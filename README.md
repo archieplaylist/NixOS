@@ -79,6 +79,16 @@ do it manually.
 
    ```bash
    sops secrets/secrets.yaml
+   # add e.g.:
+   #   my-secret: supersecretvalue
+   ```
+
+   Reference the secret in a module (see `modules/system/secrets.nix`
+   for the example-wifi secret):
+
+   ```nix
+   sops.secrets.my-secret = { };
+   # decrypted path: /run/secrets/my-secret
    ```
 
 3. **Fill in your real disk UUIDs** in the host file(s):
@@ -146,8 +156,12 @@ nixos-rebuild switch --flake .#nixos-desktop   # after edits
 - Exact version pinning is handled by `flake.lock`; `nix flake update`
   updates all inputs together.
 - `nix fmt` uses the `#formatter` output (nixpkgs-fmt).
+- **Impermanence**: opt-in per host with `mySystem.enableImpermanence = true;`.
+  It works on XFS — instead of btrfs subvolumes it keeps a persistent
+  `/persist` and wipes everything else on every boot. Files/dirs to keep are
+  listed in `modules/system/impermanence.nix`.
 
 ## Roadmap
 
-- [ ] sops-nix real secrets
-- [ ] impermanence (optional, opt-in)
+- [x] sops-nix real secrets (opt-in via `mySystem.enableSops`)
+- [x] impermanence (optional, opt-in via `mySystem.enableImpermanence`)

@@ -7,6 +7,7 @@
     ../modules/system/basics.nix
     ../modules/system/desktop.nix
     ../modules/system/services.nix
+    ../modules/system/secrets.nix
     ../modules/hardware/intel.nix
     ../modules/hardware/uefi.nix
     ../modules/hardware/laptop.nix
@@ -19,6 +20,7 @@
   mySystem.enableSSH = false;
   mySystem.enableDocker = true;
   mySystem.enableTailscale = true;
+  mySystem.enableSops = true;
 
   # --- Users -------------------------------------------------------------
   users.users.mario = {
