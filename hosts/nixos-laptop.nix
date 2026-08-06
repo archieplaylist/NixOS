@@ -17,7 +17,7 @@
   mySystem.enableDesktop = true;
   mySystem.enableLaptop = true;
   mySystem.enableSSH = false;
-  mySystem.enableDocker = true;
+  mySystem.enableDocker = false;
   mySystem.enableTailscale = true;
 
   # --- Users -------------------------------------------------------------

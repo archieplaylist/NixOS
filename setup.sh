@@ -11,12 +11,14 @@
 #   2.  OPTIONAL destructive: guided partitioning + formatting of a disk
 #       (only offered on the installer ISO; refuses mounted disks; requires
 #       typing the disk path and the word WIPE to confirm)
-#   3.  age key + secrets/.sops.yaml (from the .example template)
-#   4.  empty encrypted secrets/secrets.yaml
-#   5.  auto-fill real disk UUIDs for / and /boot in hosts/*.nix
-#   6.  select host and rebuild via nixos-rebuild
+#   3.  user password: SHA-512 hash via openssl, written as hashedPassword
+#       into hosts/*.nix (still interactive with --yes)
+#   4.  age key + secrets/.sops.yaml (from the .example template)
+#   5.  empty encrypted secrets/secrets.yaml
+#   6.  auto-fill real disk UUIDs for / and /boot in hosts/*.nix
+#   7.  select host and rebuild via nixos-rebuild
 #
-# Manual steps still required: setting the user password. See README.md.
+# See README.md for details.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -171,7 +173,78 @@ step_partition() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 3 — age key + sops.yaml
+# Step 3 — user password (hashedPassword into hosts/*.nix)
+# ---------------------------------------------------------------------------
+step_password() {
+  log "User password (mario)"
+
+  if ! confirm "Set the password for user 'mario' (written as hashedPassword)?"; then
+    info "skipped — the default 'changeme' password will be used"
+    return 0
+  fi
+
+  have openssl || { warn "openssl not found — cannot hash a password"; return 1; }
+
+  local p1 p2 hash
+  while :; do
+    if ! read -r -s -p "  new password for mario: " p1; then
+      echo
+      info "no input — aborting password step"
+      return 0
+    fi
+    echo
+    if ! read -r -s -p "  repeat password:        " p2; then
+      echo
+      info "no input — aborting password step"
+      return 0
+    fi
+    echo
+    [[ -n "$p1" ]] || { warn "empty password not allowed — try again"; continue; }
+    [[ "$p1" == "$p2" ]] || { warn "passwords do not match — try again"; continue; }
+    break
+  done
+  unset p2
+
+  # SHA-512 crypt via openssl (present on the installer ISO). Prefer -stdin
+  # so the password never shows up in the process list.
+  if printf '%s' "$p1" | openssl passwd -6 -stdin >/dev/null 2>&1; then
+    hash="$(printf '%s' "$p1" | openssl passwd -6 -stdin)"
+  else
+    warn "openssl -stdin unsupported, falling back to argument passing"
+    hash="$(openssl passwd -6 "$p1")"
+  fi
+  unset p1
+  [[ -n "$hash" ]] || { warn "openssl failed to hash the password"; return 1; }
+
+  # Replace `initialPassword = lib.mkDefault "changeme";` with
+  # `hashedPassword = lib.mkDefault "<hash>";` in every host file.
+  # Plain bash string matching (no regex/sed) so hash chars are safe.
+  local name f indent line tmp
+  for name in "${HOSTS[@]}"; do
+    f="$HOSTS_DIR/$name"
+    if grep -q 'hashedPassword' "$f"; then
+      info "$name: hashedPassword already set — skipped"
+      continue
+    fi
+    tmp="$(mktemp)"
+    while IFS= read -r line; do
+      if [[ "$line" == *'initialPassword = lib.mkDefault "changeme";'* ]]; then
+        indent="${line%%[![:space:]]*}"
+        line="${indent}hashedPassword = lib.mkDefault \"$hash\";"
+      fi
+      printf '%s\n' "$line"
+    done < "$f" > "$tmp"
+    mv "$tmp" "$f"
+    if grep -q 'hashedPassword' "$f"; then
+      info "$name: hashedPassword written"
+    else
+      warn "$name: placeholder line not found — edit manually"
+    fi
+  done
+}
+
+# ---------------------------------------------------------------------------
+# Step 4 — age key + sops.yaml
 # ---------------------------------------------------------------------------
 step_age() {
   log "Age key & sops"
@@ -324,10 +397,11 @@ done
 
 preflight
 step_partition
+step_password
 step_age
 step_secrets
 step_uuids
 step_deploy
 
 log "All done."
-warn "Reminder: set a real password with 'passwd' (initial is 'changeme')."
+warn "Password is stored as a hash in hosts/*.nix — keep the repo private."

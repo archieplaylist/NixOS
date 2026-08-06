@@ -36,11 +36,18 @@ It will:
 1. check the repo layout and required tools,
 2. **optionally partition + format a disk** (only offered on the NixOS
    installer ISO; destructive — requires typing the device path and `WIPE`),
-3. create a sops age key and `secrets/.sops.yaml` from the example,
-4. create an encrypted (empty) `secrets/secrets.yaml`,
-5. detect your real `/` and `/boot` disk UUIDs and fill them into
+3. **set the user password**: hashed (SHA-512) and written as
+   `hashedPassword` into `hosts/*.nix`,
+4. create a sops age key and `secrets/.sops.yaml` from the example,
+5. create an encrypted (empty) `secrets/secrets.yaml`,
+6. detect your real `/` and `/boot` disk UUIDs and fill them into
    `hosts/*.nix`, and
-6. let you pick a host and run `nixos-rebuild switch`.
+7. let you pick a host and run `nixos-rebuild switch`.
+
+> **Note on the password**: the SHA-512 hash is stored in the git-tracked
+> host files. Keep this repo private; to change the password later, run
+> `passwd` on the machine or update the hash with
+> `openssl passwd -6` (see below).
 
 Partitioning creates this layout on the selected disk (GPT):
 
@@ -88,6 +95,16 @@ do it manually.
    nixos-rebuild switch --flake .#nixos-laptop
    ```
 
+5. **Set the user password** (manual fallback — setup.sh does this for
+   you): generate a SHA-512 hash and put it into `hashedPassword` in the
+   host file, replacing `initialPassword`:
+
+   ```bash
+   openssl passwd -6
+   # in hosts/nixos-desktop.nix:
+   #   hashedPassword = lib.mkDefault "$6$...";   # instead of initialPassword
+   ```
+
 ### Manual partitioning (fallback)
 
 From the NixOS installer ISO, without setup.sh:
@@ -124,7 +141,8 @@ nixos-rebuild switch --flake .#nixos-desktop   # after edits
 - **Boot / snapshots**: systemd-boot lists every NixOS generation, so opening
   the boot menu lets you boot a previous system state ("snapshot"). For real
   filesystem snapshots you'd need btrfs instead of XFS.
-- **First login**: password is `changeme` (change it with `passwd`).
+- **First login**: the password is whatever you set during setup
+  (`hashedPassword`). Fresh clones without a hash fall back to `changeme`.
 - Exact version pinning is handled by `flake.lock`; `nix flake update`
   updates all inputs together.
 - `nix fmt` uses the `#formatter` output (nixpkgs-fmt).
