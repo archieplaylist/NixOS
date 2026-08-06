@@ -25,6 +25,26 @@ A modular, flake-based NixOS configuration for Mario's workstations
 
 ## First-time setup
 
+The quickest way is the setup script (interactive, idempotent, non-destructive):
+
+```bash
+./setup.sh          # interactive
+./setup.sh --yes    # answer yes to everything
+```
+
+It will:
+1. check the repo layout and required tools,
+2. create a sops age key and `secrets/.sops.yaml` from the example,
+3. create an encrypted (empty) `secrets/secrets.yaml`,
+4. detect your real `/` and `/boot` disk UUIDs and fill them into
+   `hosts/*.nix`, and
+5. let you pick a host and run `nixos-rebuild switch`.
+
+Everything it does is also documented step by step below, if you prefer to
+do it manually.
+
+### Manual steps
+
 1. **Generate an age key** for sops-nix (used for secrets):
 
    ```bash
