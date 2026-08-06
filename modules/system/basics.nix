@@ -59,5 +59,8 @@
 
     # Background TRIM for SSDs.
     services.fstrim.enable = true;
+
+    # Compressed RAM swap (no swap partition needed).
+    zramSwap.enable = true;
   };
 }

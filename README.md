@@ -25,7 +25,7 @@ A modular, flake-based NixOS configuration for Mario's workstations
 
 ## First-time setup
 
-The quickest way is the setup script (interactive, idempotent, non-destructive):
+The quickest way is the setup script:
 
 ```bash
 ./setup.sh          # interactive
@@ -34,11 +34,26 @@ The quickest way is the setup script (interactive, idempotent, non-destructive):
 
 It will:
 1. check the repo layout and required tools,
-2. create a sops age key and `secrets/.sops.yaml` from the example,
-3. create an encrypted (empty) `secrets/secrets.yaml`,
-4. detect your real `/` and `/boot` disk UUIDs and fill them into
+2. **optionally partition + format a disk** (only offered on the NixOS
+   installer ISO; destructive — requires typing the device path and `WIPE`),
+3. create a sops age key and `secrets/.sops.yaml` from the example,
+4. create an encrypted (empty) `secrets/secrets.yaml`,
+5. detect your real `/` and `/boot` disk UUIDs and fill them into
    `hosts/*.nix`, and
-5. let you pick a host and run `nixos-rebuild switch`.
+6. let you pick a host and run `nixos-rebuild switch`.
+
+Partitioning creates this layout on the selected disk (GPT):
+
+```
+/dev/sdX
+├── 1: ESP  1 GiB  vfat (label nixos-boot)
+└── 2: root  rest  xfs  (label nixos-root)
+```
+
+Swap is handled with zram (`zramSwap.enable`), so no swap partition is
+needed. The partition step refuses to run on an installed system and
+refuses disks with mounted partitions — it is meant to be run from the
+NixOS installer ISO, which is exactly where it auto-detects.
 
 Everything it does is also documented step by step below, if you prefer to
 do it manually.
@@ -72,6 +87,28 @@ do it manually.
    nixos-rebuild switch --flake .#nixos-desktop
    nixos-rebuild switch --flake .#nixos-laptop
    ```
+
+### Manual partitioning (fallback)
+
+From the NixOS installer ISO, without setup.sh:
+
+```bash
+# wipe the disk and create the GPT layout (sdX -> your disk)
+sgdisk --zap-all /dev/sdX
+sgdisk -n 1:0:+1G -t 1:ef00 -c 1:nixos-boot /dev/sdX
+sgdisk -n 2:0:0  -t 2:8300 -c 2:nixos-root /dev/sdX
+
+# format (nvme/mmcblk: use ${disk}p1 / ${disk}p2 instead of sdX1/sdX2)
+mkfs.vfat -F 32 -n nixos-boot /dev/sdX1
+mkfs.xfs -f -L nixos-root /dev/sdX2
+
+# mount and install
+mount /dev/sdX2 /mnt
+mkdir -p /mnt/boot && mount /dev/sdX1 /mnt/boot
+nixos-generate-config --root /mnt
+# copy the flake into /mnt/etc/nixos, then:
+nixos-install --flake /mnt/etc/nixos#nixos-desktop
+```
 
 ## Day-to-day
 

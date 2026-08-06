@@ -8,13 +8,15 @@
 #
 # Steps (each is idempotent and non-destructive — skips when already done):
 #   1.  preflight: repo layout + required tools
-#   2.  age key + secrets/.sops.yaml (from the .example template)
-#   3.  empty encrypted secrets/secrets.yaml
-#   4.  auto-fill real disk UUIDs for / and /boot in hosts/*.nix
-#   5.  select host and rebuild via nixos-rebuild
+#   2.  OPTIONAL destructive: guided partitioning + formatting of a disk
+#       (only offered on the installer ISO; refuses mounted disks; requires
+#       typing the disk path and the word WIPE to confirm)
+#   3.  age key + secrets/.sops.yaml (from the .example template)
+#   4.  empty encrypted secrets/secrets.yaml
+#   5.  auto-fill real disk UUIDs for / and /boot in hosts/*.nix
+#   6.  select host and rebuild via nixos-rebuild
 #
-# Manual steps still required: partitioning/formatting disks, setting the
-# user password. See README.md.
+# Manual steps still required: setting the user password. See README.md.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -74,7 +76,102 @@ preflight() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 2 — age key + sops.yaml
+# Step 2 — OPTIONAL: guided partitioning (destructive!)
+# ---------------------------------------------------------------------------
+DISK_PATTERN='^(/dev/(sd|vd|hd)[a-z]|/dev/nvme[0-9]+n[0-9]+|/dev/mmcblk[0-9]+)$'
+
+# Safe to partition only on the installer ISO: installed systems have a
+# real root filesystem, the ISO boots from a squashfs-overlay/tmpfs.
+is_installer_env() {
+  local fs
+  fs="$(findmnt -n -o FSTYPE / || true)"
+  [[ "$fs" == "squashfs" || "$fs" == "overlay" || "$fs" == "tmpfs" ]]
+}
+
+disk_is_mounted() {
+  local d="$1" p
+  for p in "${d}p1" "${d}p2" "${d}1" "${d}2" "${d}"; do
+    findmnt -n -S "$p" >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+step_partition() {
+  log "Partition & format (optional, DESTRUCTIVE)"
+
+  if ! is_installer_env; then
+    info "not on the installer ISO (root is a real filesystem) — skipping"
+    info "on a fresh install, boot the NixOS installer ISO and run setup.sh from there"
+    return 0
+  fi
+
+  if ! confirm "Partition and format a disk? This ERASES all data on it"; then
+    info "skipped — make sure hosts/*.nix point at real disks before deploying"
+    return 0
+  fi
+
+  local missing=()
+  for t in sgdisk mkfs.vfat mkfs.xfs; do
+    have "$t" || missing+=("$t")
+  done
+  [[ ${#missing[@]} -eq 0 ]] || die "missing partition tools: ${missing[*]} — run setup.sh from the NixOS installer ISO (nix shell nixpkgs#gptfdisk nixpkgs#dosfstools nixpkgs#xfsprogs)"
+
+  echo
+  echo "Available disks:"
+  lsblk -dno NAME,SIZE,MODEL | awk '{printf "  /dev/%s  %s  %s\n", $1, $2, ($3?$3:"")}'
+
+  local disk
+  while :; do
+    if ! read -r -p "  type the full device path to wipe (e.g. /dev/sda): " disk; then
+      info "no input — aborting partition step"
+      return 0
+    fi
+    [[ -n "$disk" ]] || continue
+    [[ "$disk" =~ $DISK_PATTERN ]] || { warn "invalid device path: $disk"; continue; }
+    [[ -b "$disk" ]] || { warn "not a block device: $disk"; continue; }
+    if disk_is_mounted "$disk"; then
+      warn "disk $disk has mounted partitions — refusing to wipe it"
+      continue
+    fi
+    break
+  done
+
+  echo
+  warn "ABOUT TO ERASE ALL DATA ON: $disk"
+  echo "  partition 1: ESP  1 GiB  vfat  label 'nixos-boot'"
+  echo "  partition 2: root  rest  xfs   label 'nixos-root'"
+  if ! read -r -p "  type WIPE (exactly) to continue: " ans; then
+    echo "no input — aborting partition step"
+    return 0
+  fi
+  [[ "$ans" == "WIPE" ]] || { info "aborted — nothing was changed"; return 0; }
+
+  # Partition device naming: nvme/mmcblk get a trailing "p".
+  local p1 p2 pfx=""
+  [[ "$disk" =~ /dev/(nvme|mmcblk) ]] && pfx="p"
+  p1="${disk}${pfx}1"
+  p2="${disk}${pfx}2"
+
+  sgdisk --zap-all "$disk"
+  sgdisk -n 1:0:+1G -t 1:ef00 -c 1:nixos-boot "$disk"
+  sgdisk -n 2:0:0  -t 2:8300 -c 2:nixos-root "$disk"
+  udevadm settle || true
+  partprobe "$disk" || true
+  sleep 1
+
+  mkfs.vfat -F 32 -n nixos-boot "$p1"
+  mkfs.xfs -f -L nixos-root "$p2"
+  udevadm settle || true
+
+  # Remember for the UUID auto-fill step below.
+  PART_ROOT_UUID="$(lsblk -nro UUID "$p2" 2>/dev/null || true)"
+  PART_BOOT_UUID="$(lsblk -nro UUID "$p1" 2>/dev/null || true)"
+  info "done: $p1 (ESP) + $p2 (XFS)"
+  info "root uuid: ${PART_ROOT_UUID:-unknown}  boot uuid: ${PART_BOOT_UUID:-unknown}"
+}
+
+# ---------------------------------------------------------------------------
+# Step 3 — age key + sops.yaml
 # ---------------------------------------------------------------------------
 step_age() {
   log "Age key & sops"
@@ -157,6 +254,10 @@ step_uuids() {
   local root_uuid boot_uuid
   root_uuid="$(uuid_of / || true)"
   boot_uuid="$(uuid_of /boot || true)"
+  # On the installer ISO the target partitions aren't mounted — fall back to
+  # the UUIDs recorded by the partition step.
+  [[ -z "$root_uuid" && -n "$PART_ROOT_UUID" ]] && root_uuid="$PART_ROOT_UUID"
+  [[ -z "$boot_uuid" && -n "$PART_BOOT_UUID" ]] && boot_uuid="$PART_BOOT_UUID"
   info "root  /     uuid: ${root_uuid:-<not found>}"
   info "boot  /boot uuid: ${boot_uuid:-<not found>}"
 
@@ -222,6 +323,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 preflight
+step_partition
 step_age
 step_secrets
 step_uuids
