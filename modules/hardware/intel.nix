@@ -1,15 +1,14 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }: {
   config = {
     # Intel CPU microcode.
     hardware.cpu.intel.updateMicrocode = true;
 
     # Open GPU drivers with VA-API hardware acceleration.
-    hardware.opengl = {
+    hardware.graphics = {
       enable = true;
       extraPackages = with pkgs; [
         intel-media-driver

@@ -10,7 +10,7 @@
     sops-nix.url = "github:Mic92/sops-nix";
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, ... }:
+  outputs = { self, nixpkgs, home-manager, sops-nix, ... }@inputs:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -32,7 +32,8 @@
           }
         ];
       };
-    in {
+    in
+    {
       nixosConfigurations = {
         nixos-desktop = buildHost "nixos-desktop";
         nixos-laptop = buildHost "nixos-laptop";

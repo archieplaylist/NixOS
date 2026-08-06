@@ -1,8 +1,7 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }: {
   config = lib.mkIf config.mySystem.enableDesktop {
     # GNOME on Wayland via GDM.

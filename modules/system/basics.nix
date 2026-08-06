@@ -1,8 +1,7 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }: {
   options.mySystem = {
     hostname = lib.mkOption {
@@ -26,6 +25,9 @@
     networking.hostName = config.mySystem.hostname;
 
     system.stateVersion = "24.11";
+
+    # Allow unfree packages (VSCode, Tailscale, Spotify, etc.).
+    nixpkgs.config.allowUnfree = true;
 
     # Nix configuration: flakes, auto-optimise, garbage collection.
     nix.settings = {

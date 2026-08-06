@@ -1,8 +1,7 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }: {
   config = lib.mkIf config.mySystem.enableLaptop {
     # Power profiles for GNOME (balanced/power-saver/performance).
