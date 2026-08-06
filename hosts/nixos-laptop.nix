@@ -17,7 +17,7 @@
   mySystem.enableDesktop = true;
   mySystem.enableLaptop = true;
   mySystem.enableSSH = false;
-  mySystem.enableDocker = false;
+  mySystem.enableDocker = true;
   mySystem.enableTailscale = true;
 
   # --- Users -------------------------------------------------------------
@@ -34,12 +34,12 @@
   # (lsblk -f). /boot must be vfat, / must be xfs.
   fileSystems = {
     "/" = {
-      device = "/dev/disk/by-uuid/12345678-1234-1234-1234-1234567890ab";
+      device = "/dev/disk/by-uuid/00000000-0000-0000-0000-000000000000";
       fsType = "xfs";
       options = [ "noatime" ];
     };
     "/boot" = {
-      device = "/dev/disk/by-uuid/12345678-1234-1234-1234-1234567890ab";
+      device = "/dev/disk/by-uuid/0000-0000";
       fsType = "vfat";
       options = [ "fmask=0077" "dmask=0077" ];
     };
