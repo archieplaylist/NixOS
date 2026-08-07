@@ -37,6 +37,29 @@ warn() { printf '\033[1;33m[!] %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m[error] %s\033[0m\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Ensure tools are on PATH — on NixOS systems, install via nix if missing.
+ensure_tools() {
+  local missing=()
+  for tool in "$@"; do
+    have "$tool" || missing+=("$tool")
+  done
+  [[ ${#missing[@]} -eq 0 ]] && return 0
+
+  have nix || { warn "nix not in PATH — install ${missing[*]} manually"; return 0; }
+
+  info "Installing ${missing[*]} via nix..."
+  local out
+  out="$(nix --extra-experimental-features "nix-command flakes" build --no-link --print-out-paths nixpkgs#age nixpkgs#sops 2>/dev/null)" || true
+  if [[ -n "$out" ]]; then
+    local bins
+    bins="$(echo "$out" | while IFS= read -r p; do [[ -d "$p/bin" ]] && echo "$p/bin"; done | tr '\n' ':')"
+    export PATH="${bins}${PATH}"
+    info "tools available"
+  else
+    warn "nix build failed — install ${missing[*]} manually"
+  fi
+}
+
 usage() {
   sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
@@ -72,9 +95,7 @@ preflight() {
   info "repo: $REPO_ROOT"
   info "hosts: ${HOSTS[*]}"
 
-  for tool in age age-keygen sops nixos-rebuild; do
-    have "$tool" || warn "'$tool' is not in PATH (needed for install tooling: nix shell nixpkgs#<tool>)"
-  done
+  have nixos-rebuild || warn "'nixos-rebuild' is not in PATH (available after nixos-install)"
 }
 
 # ---------------------------------------------------------------------------
@@ -251,7 +272,6 @@ step_age() {
 
   if [[ ! -f "$AGE_KEY_PATH" ]]; then
     if confirm "Generate a new age key at $AGE_KEY_PATH?"; then
-      have age-keygen || die "age-keygen is not installed (try: nix shell nixpkgs#age -c age-keygen)"
       mkdir -p "$(dirname "$AGE_KEY_PATH")"
       age-keygen -o "$AGE_KEY_PATH"
       chmod 600 "$AGE_KEY_PATH"
@@ -295,9 +315,8 @@ step_secrets() {
 
   [[ -f "$SECRETS_FILE" ]] && { info "encrypted secrets file already exists"; return 0; }
 
-  if confirm "Create an initial encrypted secrets/secrets.yaml?"; then
-    have sops || { warn "sops is not installed — can't create the file now"; return 1; }
-    # An empty sops file needs at least a comment to store something.
+    if confirm "Create an initial encrypted secrets/secrets.yaml?"; then
+      # An empty sops file needs at least a comment to store something.
     local tmp
     tmp="$(mktemp)"
     printf '# secrets.yaml\n# key: value\n' > "$tmp"
@@ -398,6 +417,7 @@ done
 preflight
 step_partition
 step_password
+ensure_tools age age-keygen sops
 step_age
 step_secrets
 step_uuids
