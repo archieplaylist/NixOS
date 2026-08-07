@@ -38,7 +38,7 @@
   programs.git = {
     enable = true;
     settings = {
-      user.name = "mario";
+      user.name = "archieplaylist";
       user.email = "mario.tani25@gmail.com";
       init.defaultBranch = "main";
       push.autoSetupRemote = true;
