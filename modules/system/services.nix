@@ -30,7 +30,6 @@
         PermitRootLogin = "no";
         KbdInteractiveAuthentication = false;
       };
-      hostKeys = [ ];
     };
 
     # Docker.
