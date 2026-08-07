@@ -423,13 +423,51 @@ step_deploy() {
       die "invalid host number: $choice"
     fi
     name="${HOSTS[$((choice - 1))]%.nix}"
-    info "-> nixos-rebuild for '$name'"
+
     # libgit2 refuses repos not owned by the current user (root on installer).
     git config --global --add safe.directory "$REPO_ROOT"
-    sudo nixos-rebuild switch --flake ".#$name"
+
+    if is_installer_env; then
+      # Installer ISO: install to the target disk (not the running tmpfs).
+      local root_dev
+      root_dev="$(lsblk -nro PKNAME "$(lsblk -nro UUID,MOUNTPOINTS | awk '/\/$/{print $1}')" 2>/dev/null || true)"
+      # Fallback: look for the partition with the nixos-root label.
+      [[ -z "$root_dev" ]] && root_dev="$(blkid -L nixos-root 2>/dev/null || true)"
+      [[ -z "$root_dev" ]] && { warn "can't find the root partition — mount /mnt manually and run: nixos-install --flake .#$name"; return 1; }
+
+      local root_uuid boot_uuid
+      root_uuid="$(lsblk -nro UUID "/dev/$root_dev" 2>/dev/null || true)"
+      # Boot partition is root_dev's sibling with the nixos-boot label.
+      boot_uuid="$(blkid -L nixos-boot 2>/dev/null || true)"
+
+      info "mounting /dev/$root_uuid at /mnt"
+      mount "/dev/disk/by-uuid/$root_uuid" /mnt
+      mkdir -p /mnt/boot
+      if [[ -n "$boot_uuid" ]]; then
+        info "mounting /dev/disk/by-uuid/$boot_uuid at /mnt/boot"
+        mount "/dev/disk/by-uuid/$boot_uuid" /mnt/boot
+      fi
+
+      # Copy the flake into the target.
+      mkdir -p /mnt/etc/nixos
+      cp -r "$REPO_ROOT"/* /mnt/etc/nixos/
+
+      info "-> nixos-install for '$name'"
+      nixos-install --flake "/mnt/etc/nixos#$name" --no-root-passwd
+      info "install done — reboot into '$name', then set the password with: passwd mario"
+    else
+      # Already on the installed system.
+      info "-> nixos-rebuild for '$name'"
+      sudo nixos-rebuild switch --flake ".#$name"
+    fi
   else
-    info "deploy skipped — rebuild later with:"
-    info "  sudo nixos-rebuild switch --flake .#<host>"
+    if is_installer_env; then
+      info "deploy skipped — to install later, run:"
+      info "  sudo nixos-install --flake .#<host>"
+    else
+      info "deploy skipped — rebuild later with:"
+      info "  sudo nixos-rebuild switch --flake .#<host>"
+    fi
   fi
 }
 
