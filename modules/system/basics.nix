@@ -26,6 +26,9 @@
 
     system.stateVersion = "26.05";
 
+    # Latest stable mainline kernel.
+    boot.kernelPackages = pkgs.linuxPackages_latest;
+
     # Allow unfree packages (VSCode, Tailscale, Spotify, etc.).
     nixpkgs.config.allowUnfree = true;
 

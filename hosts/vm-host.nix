@@ -7,33 +7,34 @@
     ../modules/system/basics.nix
     ../modules/system/desktop.nix
     ../modules/system/services.nix
-    ../modules/system/secrets.nix
-    ../modules/hardware/intel.nix
-    ../modules/hardware/uefi.nix
-    ../modules/hardware/laptop.nix
+    ../modules/hardware/vm-guest.nix
   ];
 
   # --- Host identity -----------------------------------------------------
-  mySystem.hostname = "nixos-laptop";
+  # NixOS guest intended to run inside a VM (VirtualBox or virt-manager).
+  mySystem.hostname = "vm-host";
   mySystem.enableDesktop = true;
-  mySystem.enableLaptop = true;
-  mySystem.enableSSH = false;
+  mySystem.enableSSH = true;
   mySystem.enableDocker = false;
-  mySystem.enableTailscale = true;
-  mySystem.enableSops = true;
+  mySystem.enableTailscale = false;
+  mySystem.enableSops = false;
 
   # --- Users -------------------------------------------------------------
   users.users.mario = {
     isNormalUser = true;
     description = "Mario";
-    extraGroups = [ "wheel" "networkmanager" "docker" "video" "audio" ];
-    openssh.authorizedKeys.keys = lib.mkDefault [ ];
+    extraGroups = [ "wheel" "video" "audio" ];
     initialPassword = lib.mkDefault "changeme";
   };
 
   # --- Boot / filesystems -----------------------------------------------
-  # Filesystems are referenced by label (not UUID). The setup.sh partition
-  # step creates these labels; /boot must be vfat, / must be xfs.
+  # EFI UEFI image to boot VirtualBox/QEMU.
+  boot.loader = {
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+    efi.efiSysMountPoint = "/boot";
+  };
+
   fileSystems = {
     "/" = {
       device = "/dev/disk/by-label/nixos-root";
@@ -47,7 +48,7 @@
     };
   };
 
-  boot.loader.efi.efiSysMountPoint = "/boot";
+  boot.initrd.supportedFilesystems = [ "xfs" ];
 
   # --- Misc --------------------------------------------------------------
   security.sudo.wheelNeedsPassword = lib.mkDefault false;

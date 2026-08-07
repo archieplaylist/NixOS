@@ -39,6 +39,7 @@
       nixosConfigurations = {
         nixos-desktop = buildHost "nixos-desktop";
         nixos-laptop = buildHost "nixos-laptop";
+        vm-host = buildHost "vm-host";
       };
 
       # `nix fmt` uses this.
