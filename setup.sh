@@ -429,23 +429,15 @@ step_deploy() {
 
     if is_installer_env; then
       # Installer ISO: install to the target disk (not the running tmpfs).
-      local root_dev
-      root_dev="$(lsblk -nro PKNAME "$(lsblk -nro UUID,MOUNTPOINTS | awk '/\/$/{print $1}')" 2>/dev/null || true)"
-      # Fallback: look for the partition with the nixos-root label.
-      [[ -z "$root_dev" ]] && root_dev="$(blkid -L nixos-root 2>/dev/null || true)"
-      [[ -z "$root_dev" ]] && { warn "can't find the root partition — mount /mnt manually and run: nixos-install --flake .#$name"; return 1; }
+      # Use the UUIDs recorded by step_partition (the target isn't mounted yet).
+      [[ -z "${PART_ROOT_UUID:-}" ]] && { warn "no root UUID from partition step — mount /mnt manually and run: nixos-install --flake .#$name"; return 1; }
 
-      local root_uuid boot_uuid
-      root_uuid="$(lsblk -nro UUID "/dev/$root_dev" 2>/dev/null || true)"
-      # Boot partition is root_dev's sibling with the nixos-boot label.
-      boot_uuid="$(blkid -L nixos-boot 2>/dev/null || true)"
-
-      info "mounting /dev/$root_uuid at /mnt"
-      mount "/dev/disk/by-uuid/$root_uuid" /mnt
+      info "mounting /dev/disk/by-uuid/$PART_ROOT_UUID at /mnt"
+      mount "/dev/disk/by-uuid/$PART_ROOT_UUID" /mnt
       mkdir -p /mnt/boot
-      if [[ -n "$boot_uuid" ]]; then
-        info "mounting /dev/disk/by-uuid/$boot_uuid at /mnt/boot"
-        mount "/dev/disk/by-uuid/$boot_uuid" /mnt/boot
+      if [[ -n "${PART_BOOT_UUID:-}" ]]; then
+        info "mounting /dev/disk/by-uuid/$PART_BOOT_UUID at /mnt/boot"
+        mount "/dev/disk/by-uuid/$PART_BOOT_UUID" /mnt/boot
       fi
 
       # Copy the flake into the target.
