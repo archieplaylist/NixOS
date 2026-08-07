@@ -334,8 +334,18 @@ step_secrets() {
 
   [[ -f "$SECRETS_FILE" ]] && { info "encrypted secrets file already exists"; return 0; }
 
-    if confirm "Create an initial encrypted secrets/secrets.yaml?"; then
-      # An empty sops file needs at least a comment to store something.
+  # sops needs a valid .sops.yaml with a real age key (not the placeholder).
+  if [[ ! -f "$SOPS_YAML" ]]; then
+    warn "secrets/.sops.yaml not found — run step_age first or create it manually"
+    return 0
+  fi
+  if grep -q 'age1REPLACEME' "$SOPS_YAML"; then
+    warn "secrets/.sops.yaml still has the placeholder key — edit it with your real age key first"
+    return 0
+  fi
+
+  if confirm "Create an initial encrypted secrets/secrets.yaml?"; then
+    # An empty sops file needs at least a comment to store something.
     local tmp
     tmp="$(mktemp)"
     printf '# secrets.yaml\n# key: value\n' > "$tmp"
@@ -414,6 +424,8 @@ step_deploy() {
     fi
     name="${HOSTS[$((choice - 1))]%.nix}"
     info "-> nixos-rebuild for '$name'"
+    # libgit2 refuses repos not owned by the current user (root on installer).
+    git config --global --add safe.directory "$REPO_ROOT"
     sudo nixos-rebuild switch --flake ".#$name"
   else
     info "deploy skipped — rebuild later with:"
