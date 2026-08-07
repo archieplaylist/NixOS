@@ -6,15 +6,15 @@ Status: Approved
 ## Purpose
 
 A complete, well-structured NixOS configuration for a desktop workstation
-targeting NixOS 24.11, built as a flake with modular system modules, per-host
+targeting NixOS 26.05, built as a flake with modular system modules, per-host
 configs, home-manager user config, and sops-nix secret handling. Must serve
 as a template the user can customize later and deploy to both a desktop and a
 laptop machine.
 
 ## Requirements
 
-- Flake-based, pinned to nixpkgs release-24.11 (stable)
-- Home-manager (release-24.11) for user-level configuration
+- Flake-based, pinned to nixpkgs release-26.05 (stable)
+- Home-manager (release-26.05) for user-level configuration
 - GNOME desktop on Wayland, GDM display manager
 - Intel iGPU with open drivers and VA-API hardware acceleration
 - UEFI boot with systemd-boot; boot entries per NixOS generation act as the

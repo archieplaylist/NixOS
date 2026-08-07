@@ -1,7 +1,7 @@
 # NixOS Desktop Configuration
 
 A modular, flake-based NixOS configuration for Mario's workstations
-(NixOS 24.11, GNOME, Intel). Supports both a desktop and a laptop host.
+(NixOS 26.05, GNOME, Intel). Supports both a desktop and a laptop host.
 
 ## Layout
 

@@ -6,7 +6,7 @@
   home = {
     username = "mario";
     homeDirectory = "/home/mario";
-    stateVersion = "24.11";
+    stateVersion = "26.05";
   };
 
   # Base dotfile.
@@ -37,9 +37,9 @@
   # --- Tooling ---------------------------------------------------------------
   programs.git = {
     enable = true;
-    userName = "mario";
-    userEmail = "mario@example.com";
-    extraConfig = {
+    settings = {
+      user.name = "mario";
+      user.email = "mario@example.com";
       init.defaultBranch = "main";
       push.autoSetupRemote = true;
     };

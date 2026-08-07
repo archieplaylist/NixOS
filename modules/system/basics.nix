@@ -24,7 +24,7 @@
   config = {
     networking.hostName = config.mySystem.hostname;
 
-    system.stateVersion = "24.11";
+    system.stateVersion = "26.05";
 
     # Allow unfree packages (VSCode, Tailscale, Spotify, etc.).
     nixpkgs.config.allowUnfree = true;
@@ -51,9 +51,10 @@
 
     # Common fonts.
     fonts.packages = with pkgs; [
-      (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
+      nerd-fonts.fira-code
+      nerd-fonts.jetbrains-mono
       noto-fonts
-      noto-fonts-emoji
+      noto-fonts-color-emoji
       liberation_ttf
     ];
 

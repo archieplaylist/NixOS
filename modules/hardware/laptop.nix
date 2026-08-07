@@ -8,9 +8,9 @@
     services.power-profiles-daemon.enable = true;
 
     # Suspend on lid close, ignore when on external power.
-    services.logind = {
-      lidSwitch = "suspend";
-      lidSwitchExternalPower = "ignore";
+    services.logind.settings.Login = {
+      HandleLidSwitch = "suspend";
+      HandleLidSwitchExternalPower = "ignore";
     };
   };
 }
