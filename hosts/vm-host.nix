@@ -7,6 +7,7 @@
     ../modules/system/basics.nix
     ../modules/system/desktop.nix
     ../modules/system/services.nix
+    ../modules/system/secrets.nix
     ../modules/hardware/vm-guest.nix
   ];
 
