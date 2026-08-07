@@ -39,7 +39,7 @@
     enable = true;
     settings = {
       user.name = "mario";
-      user.email = "mario@example.com";
+      user.email = "mario.tani25@gmail.com";
       init.defaultBranch = "main";
       push.autoSetupRemote = true;
     };
@@ -49,9 +49,7 @@
   home.packages = with pkgs; [
     vscode
     python3
-    nodejs_22
-    go
-    rustup
+    nodejs_24
     gh
     docker-compose
     jq
