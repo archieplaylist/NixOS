@@ -23,6 +23,21 @@ A modular, flake-based NixOS configuration for Mario's workstations
    `flake.nix`.
 3. Set `mySystem.hostname` (filesystems are referenced by label — see the
    partition step below).
+4. Optionally disable general-purpose applications on this host with
+   `home-manager.users.mario.myApps.enable = false;`.
+
+## General-purpose applications
+
+Enabled by default on every desktop host (controllable per host via
+`home-manager.users.mario.myApps.enable`):
+
+- **Browsers:** Firefox, Chromium, Vivaldi
+- **Multimedia:** VLC, mpv
+- **Gaming:** Heroic Games Launcher, MangoHud, gamescope; Steam + 32-bit
+  OpenGL multilib are set up at the system level (`modules/system/desktop.nix`)
+
+The browser/media/gaming user packages live in `home/mario.nix` (via
+home-manager), gated behind the same flag.
 
 ## First-time setup
 
