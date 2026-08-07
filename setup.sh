@@ -446,7 +446,7 @@ step_deploy() {
 
       info "-> nixos-install for '$name'"
       nixos-install --flake "/mnt/etc/nixos#$name" --no-root-passwd
-      info "install done — reboot into '$name', then set the password with: passwd mario"
+      info "install done — reboot into '$name' (mario's password was set during setup)"
     else
       # Already on the installed system.
       info "-> nixos-rebuild for '$name'"
