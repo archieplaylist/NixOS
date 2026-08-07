@@ -29,7 +29,14 @@
       gnomeExtensions.appindicator
     ];
 
-    # Flatpak for browser and third-party apps.
+    # Gaming: Steam needs 32-bit multilib OpenGL. Enabled by default, disable
+    # per host with `home-manager.users.mario.myApps.enable = false`.
+    programs.steam = lib.mkIf config.home-manager.users.mario.myApps.enable {
+      enable = true;
+    };
+    hardware.graphics.driSupport32Bit = lib.mkIf config.home-manager.users.mario.myApps.enable true;
+
+    # Flatpak for third-party apps.
     services.flatpak.enable = true;
   };
 }
