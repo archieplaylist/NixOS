@@ -373,12 +373,12 @@ step_uuids() {
   log "Auto-fill disk UUIDs in hosts/*.nix"
 
   local root_uuid boot_uuid
-  root_uuid="$(uuid_of / || true)"
-  boot_uuid="$(uuid_of /boot || true)"
-  # On the installer ISO the target partitions aren't mounted — fall back to
-  # the UUIDs recorded by the partition step.
-  [[ -z "$root_uuid" && -n "$PART_ROOT_UUID" ]] && root_uuid="$PART_ROOT_UUID"
-  [[ -z "$boot_uuid" && -n "$PART_BOOT_UUID" ]] && boot_uuid="$PART_BOOT_UUID"
+  # Prefer UUIDs from the partition step (they're the real target disk UUIDs).
+  # uuid_of / may return the squashfs UUID on the installer ISO, not the target.
+  root_uuid="${PART_ROOT_UUID:-}"
+  boot_uuid="${PART_BOOT_UUID:-}"
+  [[ -z "$root_uuid" ]] && root_uuid="$(uuid_of / || true)"
+  [[ -z "$boot_uuid" ]] && boot_uuid="$(uuid_of /boot || true)"
   info "root  /     uuid: ${root_uuid:-<not found>}"
   info "boot  /boot uuid: ${boot_uuid:-<not found>}"
 
