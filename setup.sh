@@ -2,9 +2,9 @@
 # setup.sh — bootstrap a new machine from this flake-based NixOS config.
 #
 # Usage:
-#   ./setup.sh            interactive setup
-#   ./setup.sh --yes      noninteractive (answers yes to all prompts)
-#   ./setup.sh --help     show usage
+#   sudo ./setup.sh            interactive setup
+#   sudo ./setup.sh --yes      noninteractive (answers yes to all prompts)
+#   sudo ./setup.sh --help     show usage
 #
 # Steps (each is idempotent and non-destructive — skips when already done):
 #   1.  preflight: repo layout + required tools
@@ -20,6 +20,12 @@
 #
 # See README.md for details.
 set -euo pipefail
+
+# Require root — partitioning, nixos-rebuild, and age key creation all need it.
+if [[ $EUID -ne 0 ]]; then
+  echo "[error] setup.sh must be run as root (try: sudo ./setup.sh)" >&2
+  exit 1
+fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOSTS_DIR="$REPO_ROOT/hosts"
@@ -38,21 +44,34 @@ die()  { printf '\033[1;31m[error] %s\033[0m\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # Ensure tools are on PATH — on NixOS systems, install via nix if missing.
+# Maps tool names to their nixpkgs attribute for auto-install.
 ensure_tools() {
-  local missing=()
+  local missing=() pkgs=()
   for tool in "$@"; do
-    have "$tool" || missing+=("$tool")
+    if ! have "$tool"; then
+      missing+=("$tool")
+      case "$tool" in
+        age|age-keygen) pkgs+=(nixpkgs#age) ;;
+        sops)           pkgs+=(nixpkgs#sops) ;;
+        openssl)        pkgs+=(nixpkgs#openssl) ;;
+        *)              warn "don't know how to install '$tool' via nix"; continue ;;
+      esac
+    fi
   done
   [[ ${#missing[@]} -eq 0 ]] && return 0
 
   have nix || { warn "nix not in PATH — install ${missing[*]} manually"; return 0; }
 
+  # Deduplicate package list.
+  local -a unique_pkgs
+  mapfile -t unique_pkgs < <(printf '%s\n' "${pkgs[@]}" | sort -u)
+
   info "Installing ${missing[*]} via nix..."
   local out
-  out="$(nix --extra-experimental-features "nix-command flakes" build --no-link --print-out-paths nixpkgs#age nixpkgs#sops 2>/dev/null)" || true
+  out="$(nix --extra-experimental-features "nix-command flakes" build --no-link --print-out-paths "${unique_pkgs[@]}" 2>/dev/null)" || true
   if [[ -n "$out" ]]; then
     local bins
-    bins="$(echo "$out" | while IFS= read -r p; do [[ -d "$p/bin" ]] && echo "$p/bin"; done | tr '\n' ':')"
+    bins="$(echo "$out" | while IFS= read -r p; do [[ -d "$p/bin" ]] && echo "$p/bin" || true; done | tr '\n' ':')"
     export PATH="${bins}${PATH}"
     info "tools available"
   else
@@ -416,6 +435,7 @@ done
 
 preflight
 step_partition
+ensure_tools openssl
 step_password
 ensure_tools age age-keygen sops
 step_age
