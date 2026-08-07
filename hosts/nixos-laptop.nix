@@ -14,7 +14,7 @@
   ];
 
   # --- Host identity -----------------------------------------------------
-  mySystem.hostname = "nixos-laptop";
+  mySystem.hostname = "nixlappys";
   mySystem.enableDesktop = true;
   mySystem.enableLaptop = true;
   mySystem.enableSSH = false;
@@ -50,5 +50,6 @@
   boot.loader.efi.efiSysMountPoint = "/boot";
 
   # --- Misc --------------------------------------------------------------
-  security.sudo.wheelNeedsPassword = lib.mkDefault false;
+  # Allow the wheel group to run sudo without/with a password.
+  security.sudo.wheelNeedsPassword = lib.mkDefault true;
 }

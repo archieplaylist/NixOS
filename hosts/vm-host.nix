@@ -13,7 +13,7 @@
 
   # --- Host identity -----------------------------------------------------
   # NixOS guest intended to run inside a VM (VirtualBox or virt-manager).
-  mySystem.hostname = "vm-host";
+  mySystem.hostname = "nixvms";
   mySystem.enableDesktop = true;
   mySystem.enableSSH = true;
   mySystem.enableDocker = false;
@@ -52,5 +52,6 @@
   boot.initrd.supportedFilesystems = [ "xfs" ];
 
   # --- Misc --------------------------------------------------------------
-  security.sudo.wheelNeedsPassword = lib.mkDefault false;
+  # Allow the wheel group to run sudo without/with a password.
+  security.sudo.wheelNeedsPassword = lib.mkDefault true;
 }
