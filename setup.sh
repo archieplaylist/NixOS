@@ -437,7 +437,9 @@ step_deploy() {
       mkdir -p /mnt/boot
       if [[ -n "${PART_BOOT_UUID:-}" ]]; then
         info "mounting /dev/disk/by-uuid/$PART_BOOT_UUID at /mnt/boot"
-        mount "/dev/disk/by-uuid/$PART_BOOT_UUID" /mnt/boot
+        # Mask so /boot (vfat) is root-only; avoids the systemd-boot
+        # "world accessible ... security hole" warning during install.
+        mount -o fmask=0077,dmask=0077 "/dev/disk/by-uuid/$PART_BOOT_UUID" /mnt/boot
       fi
 
       # Copy the flake into the target.
