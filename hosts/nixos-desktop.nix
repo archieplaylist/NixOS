@@ -30,16 +30,16 @@
   };
 
   # --- Boot / filesystems -----------------------------------------------
-  # IMPORTANT: replace the UUIDs below with the actual UUIDs of your disks
-  # (lsblk -f). /boot must be vfat, / must be xfs.
+  # Filesystems are referenced by label (not UUID). The setup.sh partition
+  # step creates these labels; /boot must be vfat, / must be xfs.
   fileSystems = {
     "/" = {
-      device = "/dev/disk/by-uuid/00000000-0000-0000-0000-000000000000";
+      device = "/dev/disk/by-label/nixos-root";
       fsType = "xfs";
       options = [ "noatime" ];
     };
     "/boot" = {
-      device = "/dev/disk/by-uuid/0000-0000";
+      device = "/dev/disk/by-label/nixos-boot";
       fsType = "vfat";
       options = [ "fmask=0077" "dmask=0077" ];
     };

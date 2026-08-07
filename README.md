@@ -21,7 +21,8 @@ A modular, flake-based NixOS configuration for Mario's workstations
 1. Copy `hosts/nixos-desktop.nix` to `hosts/new-host.nix`.
 2. Add a `nixosConfigurations.new-host = buildHost "new-host";` line in
    `flake.nix`.
-3. Set `mySystem.hostname` and the real disk UUIDs (step below).
+3. Set `mySystem.hostname` (filesystems are referenced by label — see the
+   partition step below).
 
 ## First-time setup
 
@@ -39,10 +40,12 @@ It will:
 3. **set the user password**: hashed (SHA-512) and written as
    `hashedPassword` into `hosts/*.nix`,
 4. create a sops age key and `secrets/.sops.yaml` from the example,
-5. create an encrypted (empty) `secrets/secrets.yaml`,
-6. detect your real `/` and `/boot` disk UUIDs and fill them into
-   `hosts/*.nix`, and
-7. let you pick a host and run `nixos-rebuild switch`.
+5. create an encrypted (empty) `secrets/secrets.yaml`, and
+6. let you pick a host and run `nixos-rebuild switch`.
+
+Filesystems are referenced by **label** (`/dev/disk/by-label/nixos-root` for
+`/`, `/dev/disk/by-label/nixos-boot` for `/boot`), which the partition step
+creates — no UUID detection needed.
 
 > **Note on the password**: the SHA-512 hash is stored in the git-tracked
 > host files. Keep this repo private; to change the password later, run
@@ -91,11 +94,13 @@ do it manually.
    # decrypted path: /run/secrets/my-secret
    ```
 
-3. **Fill in your real disk UUIDs** in the host file(s):
+3. **Make sure the disk labels exist** for the host's `fileSystems`:
 
    ```bash
-   lsblk -f
-   # replace the two placeholders under fileSystems with your / and /boot UUIDs
+   # format with the expected labels (or set them explicitly):
+   mkfs.vfat -F 32 -n nixos-boot /dev/sdX1
+   mkfs.xfs -f -L nixos-root   /dev/sdX2
+   lsblk -f   # confirm the labels match hosts/*.nix
    ```
 
 4. Rebuild a host:

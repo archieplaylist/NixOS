@@ -15,8 +15,7 @@
 #       into hosts/*.nix (still interactive with --yes)
 #   4.  age key + secrets/.sops.yaml (from the .example template)
 #   5.  empty encrypted secrets/secrets.yaml
-#   6.  auto-fill real disk UUIDs for / and /boot in hosts/*.nix
-#   7.  select host and rebuild via nixos-rebuild
+#   6.  select host and rebuild via nixos-rebuild
 #
 # See README.md for details.
 set -euo pipefail
@@ -205,11 +204,7 @@ step_partition() {
   mkfs.xfs -f -L nixos-root "$p2"
   udevadm settle || true
 
-  # Remember for the UUID auto-fill step below.
-  PART_ROOT_UUID="$(lsblk -nro UUID "$p2" 2>/dev/null || true)"
-  PART_BOOT_UUID="$(lsblk -nro UUID "$p1" 2>/dev/null || true)"
-  info "done: $p1 (ESP) + $p2 (XFS)"
-  info "root uuid: ${PART_ROOT_UUID:-unknown}  boot uuid: ${PART_BOOT_UUID:-unknown}"
+  info "done: $p1 (ESP, label nixos-boot) + $p2 (XFS, label nixos-root)"
 }
 
 # ---------------------------------------------------------------------------
@@ -362,44 +357,6 @@ step_secrets() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 4 — disk UUIDs
-# ---------------------------------------------------------------------------
-uuid_of() {
-  # uuid_of /  ->  the UUID of the filesystem mounted at /
-  lsblk -nro UUID,MOUNTPOINTS | awk -v m="$1" '$2==m { print $1; exit }'
-}
-
-step_uuids() {
-  log "Auto-fill disk UUIDs in hosts/*.nix"
-
-  local root_uuid boot_uuid
-  # Prefer UUIDs from the partition step (they're the real target disk UUIDs).
-  # uuid_of / may return the squashfs UUID on the installer ISO, not the target.
-  root_uuid="${PART_ROOT_UUID:-}"
-  boot_uuid="${PART_BOOT_UUID:-}"
-  [[ -z "$root_uuid" ]] && root_uuid="$(uuid_of / || true)"
-  [[ -z "$boot_uuid" ]] && boot_uuid="$(uuid_of /boot || true)"
-  info "root  /     uuid: ${root_uuid:-<not found>}"
-  info "boot  /boot uuid: ${boot_uuid:-<not found>}"
-
-  local name f
-  for name in "${HOSTS[@]}"; do
-    f="$HOSTS_DIR/$name"
-    # Root placeholder is a unique fake UUID; boot placeholder only occurs
-    # right after "by-uuid/" (the root placeholder has no such prefix).
-    [[ -n "$root_uuid" ]] \
-      && sed -i "s|/00000000-0000-0000-0000-000000000000|/$root_uuid|g" "$f"
-    [[ -n "$boot_uuid" ]] \
-      && sed -i "s|/0000-0000|/$boot_uuid|g" "$f"
-    if grep -qE '00000000-0000-0000-0000-000000000000|/0000-0000' "$f"; then
-      warn "$name still contains placeholder UUIDs (is this machine booted into the target disks?)"
-    else
-      info "$name: UUIDs set"
-    fi
-  done
-}
-
-# ---------------------------------------------------------------------------
 # Step 5 — deploy
 # ---------------------------------------------------------------------------
 step_deploy() {
@@ -429,17 +386,18 @@ step_deploy() {
 
     if is_installer_env; then
       # Installer ISO: install to the target disk (not the running tmpfs).
-      # Use the UUIDs recorded by step_partition (the target isn't mounted yet).
-      [[ -z "${PART_ROOT_UUID:-}" ]] && { warn "no root UUID from partition step — mount /mnt manually and run: nixos-install --flake .#$name"; return 1; }
+      # Mount by filesystem label (created by step_partition). The target
+      # isn't mounted yet, so by-label (not by-uuid snapshots) is used.
+      [[ -e /dev/disk/by-label/nixos-root ]] || { warn "no /dev/disk/by-label/nixos-root — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
 
-      info "mounting /dev/disk/by-uuid/$PART_ROOT_UUID at /mnt"
-      mount "/dev/disk/by-uuid/$PART_ROOT_UUID" /mnt
+      info "mounting /dev/disk/by-label/nixos-root at /mnt"
+      mount /dev/disk/by-label/nixos-root /mnt
       mkdir -p /mnt/boot
-      if [[ -n "${PART_BOOT_UUID:-}" ]]; then
-        info "mounting /dev/disk/by-uuid/$PART_BOOT_UUID at /mnt/boot"
+      if [[ -e /dev/disk/by-label/nixos-boot ]]; then
+        info "mounting /dev/disk/by-label/nixos-boot at /mnt/boot"
         # Mask so /boot (vfat) is root-only; avoids the systemd-boot
         # "world accessible ... security hole" warning during install.
-        mount -o fmask=0077,dmask=0077 "/dev/disk/by-uuid/$PART_BOOT_UUID" /mnt/boot
+        mount -o fmask=0077,dmask=0077 /dev/disk/by-label/nixos-boot /mnt/boot
       fi
 
       # Copy the flake into the target.
@@ -484,7 +442,6 @@ step_password
 ensure_tools age age-keygen sops
 step_age
 step_secrets
-step_uuids
 step_deploy
 
 log "All done."
