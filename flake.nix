@@ -12,7 +12,7 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, impermanence, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, sops-nix, impermanence, nix-flatpak, ... }@inputs:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
