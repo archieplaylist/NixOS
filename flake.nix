@@ -8,11 +8,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     sops-nix.url = "github:Mic92/sops-nix";
-    impermanence.url = "github:nix-community/impermanence";
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, impermanence, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, sops-nix, nix-flatpak, ... }@inputs:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -20,10 +19,9 @@
       # Build a NixOS configuration for hostname `name`.
       buildHost = name: lib.nixosSystem {
         inherit system;
-modules = [
+        modules = [
           ./hosts/${name}.nix
           ./modules/system/options.nix
-          ./modules/system/impermanence.nix
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
           nix-flatpak.nixosModules.nix-flatpak
@@ -37,7 +35,6 @@ modules = [
             };
           }
         ];
-        specialArgs = { inherit impermanence; };
       };
     in
     {

@@ -1,42 +1,24 @@
-# Two supported layouts, selected per host via `mySystem.enableImpermanence`:
+# Simple two-partition XFS layout: / and /boot, both referenced by
+# filesystem label (created by setup.sh's partition step):
 #
-#  * XFS (default, current installs): single /dev/disk/by-label/nixos-root
-#    partition, no /nix or /persist mount.
-#  * btrfs (enableImpermanence = true, fresh installs): the same partition is
-#    formatted btrfs with three subvolumes — root, nix, persist — mounted at
-#    /, /nix and /persist respectively. `/nix` and `/persist` must be mounted
-#    in the initramfs (neededForBoot) because activation runs before the normal
-#    fileSystems phase.
-{ config, lib, ... }: let
-  ephem = config.mySystem.enableImpermanence;
-in {
-  # Filesystems are referenced by label (not UUID). The setup.sh partition
-  # step creates these labels; /boot must be vfat.
-  boot.initrd.supportedFilesystems = [ (if ephem then "btrfs" else "xfs") ];
+#   p1: ESP 1 GiB, vfat, label nixos-boot -> /boot
+#   p2: root rest  xfs,  label nixos-root -> /
+#
+# No /nix or /persist mounts needed — the nix store lives on the root
+# filesystem and all state (home dirs, /var, /etc) is inherently persistent.
+{ config, lib, ... }: {
+  boot.initrd.supportedFilesystems = [ "xfs" ];
 
   fileSystems = {
     "/" = {
       device = "/dev/disk/by-label/nixos-root";
-      fsType = if ephem then "btrfs" else "xfs";
-      options = lib.optionals ephem [ "subvol=root" ] ++ [ "noatime" ];
+      fsType = "xfs";
+      options = [ "noatime" ];
     };
     "/boot" = {
       device = "/dev/disk/by-label/nixos-boot";
       fsType = "vfat";
       options = [ "fmask=0077" "dmask=0077" ];
-    };
-  } // lib.optionalAttrs ephem {
-    "/nix" = {
-      device = "/dev/disk/by-label/nixos-root";
-      fsType = "btrfs";
-      options = [ "subvol=nix" "noatime" ];
-      neededForBoot = true;
-    };
-    "/persist" = {
-      device = "/dev/disk/by-label/nixos-root";
-      fsType = "btrfs";
-      options = [ "subvol=persist" "noatime" ];
-      neededForBoot = true;
     };
   };
 }

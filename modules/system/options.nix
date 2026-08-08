@@ -50,16 +50,5 @@
       default = false;
       description = "Enable sops-nix secret decryption.";
     };
-    enableImpermanence = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = ''
-        Enable btrfs + impermanence: ephemeral / (rotated subvolume), persistent
-        state in /persist, nix store in /nix. FRESH-INSTALL ONLY — the target
-        disk must be formatted as btrfs with root/nix/persist subvolumes
-        (setup.sh does this). Do not enable on a host that still uses the XFS
-        layout: it cannot boot (there is no 'root' subvolume on XFS).
-      '';
-    };
   };
 }
