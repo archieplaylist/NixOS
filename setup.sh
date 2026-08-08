@@ -11,8 +11,10 @@
 #   2.  OPTIONAL destructive: guided partitioning + formatting of a disk
 #       (only offered on the installer ISO; refuses mounted disks; requires
 #       typing the disk path and the word WIPE to confirm)
-#   3.  user password: SHA-512 hash via openssl, written as hashedPassword
-#       into hosts/*.nix (still interactive with --yes)
+#   3.  user password: SHA-512 hash via openssl, written to
+#       /etc/hashed-password on the target during the deploy step (read at
+#       activation via `users.users.mario.hashedPasswordFile`); the hash is
+#       never stored in the repo
 #   4.  age key + secrets/.sops.yaml (from the .example template)
 #   5.  empty encrypted secrets/secrets.yaml
 #   6.  select host and rebuild via nixos-rebuild
@@ -35,6 +37,9 @@ SOPS_YAML="$REPO_ROOT/secrets/.sops.yaml"
 SECRETS_FILE="$REPO_ROOT/secrets/secrets.yaml"
 
 AN_YES_SET=0
+# Password hash captured in step_password; written to /etc/hashed-password
+# on the target by step_deploy (hosts/users.nix reads it via hashedPasswordFile).
+PASSWORD_HASH=""
 
 log()  { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
 info() { printf '    %s\n' "$*"; }
@@ -208,13 +213,15 @@ step_partition() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 3 — user password (hashedPassword into hosts/*.nix)
+# Step 3 — user password (hash only, kept in PASSWORD_HASH)
+# The hash is written on the system at /etc/hashed-password by step_deploy
+# (read at activation by `users.users.mario.hashedPasswordFile`).
 # ---------------------------------------------------------------------------
 step_password() {
   log "User password (mario)"
 
-  if ! confirm "Set the password for user 'mario' (written as hashedPassword)?"; then
-    info "skipped — the default 'changeme' password will be used"
+  if ! confirm "Set/update the password for user 'mario'?"; then
+    info "skipped — no password will be set (provision it manually later)"
     return 0
   fi
 
@@ -251,31 +258,11 @@ step_password() {
   unset p1
   [[ -n "$hash" ]] || { warn "openssl failed to hash the password"; return 1; }
 
-  # Replace `initialPassword = lib.mkDefault "changeme";` with
-  # `hashedPassword = lib.mkDefault "<hash>";` in every host file.
-  # Plain bash string matching (no regex/sed) so hash chars are safe.
-  local name f indent line tmp
-  for name in "${HOSTS[@]}"; do
-    f="$HOSTS_DIR/$name"
-    if grep -q 'hashedPassword' "$f"; then
-      info "$name: hashedPassword already set — skipped"
-      continue
-    fi
-    tmp="$(mktemp)"
-    while IFS= read -r line; do
-      if [[ "$line" == *'initialPassword = lib.mkDefault "changeme";'* ]]; then
-        indent="${line%%[![:space:]]*}"
-        line="${indent}hashedPassword = lib.mkDefault \"$hash\";"
-      fi
-      printf '%s\n' "$line"
-    done < "$f" > "$tmp"
-    mv "$tmp" "$f"
-    if grep -q 'hashedPassword' "$f"; then
-      info "$name: hashedPassword written"
-    else
-      warn "$name: placeholder line not found — edit manually"
-    fi
-  done
+  # Keep only the hash in memory; step_deploy writes it to the machine at
+  # /etc/hashed-password (hosts/users.nix reads it via hashedPasswordFile).
+  # It never touches git-tracked files.
+  PASSWORD_HASH="$hash"
+  info "password hash ready — it will be written to /etc/hashed-password during deploy"
 }
 
 # ---------------------------------------------------------------------------
@@ -404,11 +391,41 @@ step_deploy() {
       mkdir -p /mnt/etc/nixos
       cp -r "$REPO_ROOT"/* /mnt/etc/nixos/
 
+      # Provision the user's hashed password into the target. users.nix
+      # reads it at activation via `hashedPasswordFile`, so the hash must
+      # live on the installed filesystem, not in the flake.
+      if [[ -n "$PASSWORD_HASH" ]]; then
+        install -d /mnt/etc
+        printf '%s\n' "$PASSWORD_HASH" > /mnt/etc/hashed-password
+        chmod 600 /mnt/etc/hashed-password
+        info "wrote /mnt/etc/hashed-password"
+      else
+        info "no password hash captured — set one later with \`sudo passwd mario\`"
+      fi
+
+      # Provision the sops age key into the target (root's home, where
+      # modules/system/secrets.nix expects it). Without this the first boot
+      # would generate a fresh key that doesn't match secrets/.sops.yaml and
+      # sops activation would fail.
+      if [[ -f "$AGE_KEY_PATH" ]]; then
+        install -d -m 700 /mnt/root/.config/sops/age
+        install -m 600 "$AGE_KEY_PATH" /mnt/root/.config/sops/age/keys.txt
+        info "copied age key to /mnt/root/.config/sops/age/keys.txt"
+      else
+        warn "no age key found — first boot will fail / skip sops decryption"
+      fi
+
       info "-> nixos-install for '$name'"
       nixos-install --flake "/mnt/etc/nixos#$name" --no-root-passwd
       info "install done — reboot into '$name' (mario's password was set during setup)"
     else
       # Already on the installed system.
+      if [[ -n "$PASSWORD_HASH" ]]; then
+        install -d /etc
+        printf '%s\n' "$PASSWORD_HASH" > /etc/hashed-password
+        chmod 600 /etc/hashed-password
+        info "wrote /etc/hashed-password"
+      fi
       info "-> nixos-rebuild for '$name'"
       sudo nixos-rebuild switch --flake ".#$name"
     fi
@@ -445,4 +462,4 @@ step_secrets
 step_deploy
 
 log "All done."
-warn "Password is stored as a hash in hosts/*.nix — keep the repo private."
+warn "Password hash lives in /etc/hashed-password on the system (never in the repo)."

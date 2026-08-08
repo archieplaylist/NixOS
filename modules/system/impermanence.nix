@@ -3,13 +3,9 @@
 , impermanence
 , ...
 }: {
-  options.mySystem = {
-    enableImpermanence = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable nix-community/impermanence (stateless root, persistent /persist).";
-    };
-  };
+  # NOTE: not yet functional. The hosts use a XFS label-root layout with no
+  # /persist mount and no tmpfs root, so nothing is actually wiped or persisted.
+  # See README "Impermanence"; wiring it up properly is out of scope.
 
   # imports must be static; the config below is gated by the option.
   imports = [ impermanence.nixosModules.impermanence ];

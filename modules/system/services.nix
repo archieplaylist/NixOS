@@ -3,25 +3,16 @@
 , pkgs
 , ...
 }: {
-  options.mySystem = {
-    enableSSH = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the OpenSSH server.";
-    };
-    enableDocker = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the Docker daemon.";
-    };
-    enableTailscale = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the Tailscale daemon.";
-    };
-  };
-
   config = {
+    # SSH is enabled but accepts no auth methods if no keys are configured
+    # (PasswordAuthentication is off); surface it loudly instead of silently
+    # locking the host out of SSH.
+    warnings = lib.mkIf config.mySystem.enableSSH (
+      lib.optionals (config.mySystem.sshAuthorizedKeys == [ ]) [
+        "SSH is enabled but 'mySystem.sshAuthorizedKeys' is empty — nobody can log in over SSH."
+      ]
+    );
+
     # OpenSSH, hardened.
     services.openssh = lib.mkIf config.mySystem.enableSSH {
       enable = true;

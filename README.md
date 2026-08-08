@@ -5,18 +5,22 @@ A modular, flake-based NixOS configuration for Mario's workstations
 
 ## Layout
 
-```
 ├── flake.nix            # inputs + host definitions
 ├── modules/
-│   ├── system/          # basics, desktop (GNOME), services
-│   └── hardware/        # intel, uefi (systemd-boot + XFS), laptop
-├── hosts/               # per-machine host files
+│   ├── system/          # options, basics, desktop (GNOME), services, secrets,
+│   │                    # users, filesystems, impermanence (not-ready)
+│   └── hardware/        # intel, uefi (systemd-boot + XFS), laptop, vm-guest
+├── hosts/               # per-machine host files (imports + mySystem flags)
 ├── home/                # home-manager user config (mario)
-├── secrets/             # sops-nix placeholders
-└── docs/                # design spec
+└── secrets/             # sops-nix placeholders
 ```
 
 ## Adding a host
+
+Host files are thin: they only pick imports and set `mySystem` flags. The
+user account, filesystems (label-based mounts), and all option definitions
+live in shared modules (`modules/system/options.nix`, `users.nix`,
+`filesystems.nix`).
 
 1. Copy `hosts/nixos-desktop.nix` to `hosts/new-host.nix`.
 2. Add a `nixosConfigurations.new-host = buildHost "new-host";` line in
@@ -52,8 +56,9 @@ It will:
 1. check the repo layout and required tools,
 2. **optionally partition + format a disk** (only offered on the NixOS
    installer ISO; destructive — requires typing the device path and `WIPE`),
-3. **set the user password**: hashed (SHA-512) and written as
-   `hashedPassword` into `hosts/*.nix`,
+3. **set the user password**: hashed (SHA-512); the hash is written to
+   `/etc/hashed-password` on the target system during the deploy step (never
+   stored in the repo),
 4. create a sops age key and `secrets/.sops.yaml` from the example,
 5. create an encrypted (empty) `secrets/secrets.yaml`, and
 6. let you pick a host and run `nixos-rebuild switch`.
@@ -62,10 +67,14 @@ Filesystems are referenced by **label** (`/dev/disk/by-label/nixos-root` for
 `/`, `/dev/disk/by-label/nixos-boot` for `/boot`), which the partition step
 creates — no UUID detection needed.
 
-> **Note on the password**: the SHA-512 hash is stored in the git-tracked
-> host files. Keep this repo private; to change the password later, run
-> `passwd` on the machine or update the hash with
-> `openssl passwd -6` (see below).
+> **Note on the password**: the SHA-512 hash is stored on the machine at
+> `/etc/hashed-password`, read at **every system activation** through
+> `users.users.mario.hashedPasswordFile` (`modules/system/users.nix`). It
+> never lives in the repo, so there is no git interaction and nothing for a
+> fresh clone to leak. The hash path itself is always set in the config; if
+> the file is missing on a machine, activation only warns and `mario` has no
+> password until one is provisioned. To change it later, re-run `./setup.sh`
+> or run `sudo passwd mario` on the machine.
 
 Partitioning creates this layout on the selected disk (GPT):
 
@@ -109,6 +118,13 @@ do it manually.
    # decrypted path: /run/secrets/my-secret
    ```
 
+   > The module reads the age key at `/root/.config/sops/age/keys.txt` on
+   > the **installed** system (root's home). setup.sh copies the key there
+   > during the installer flow; if you install manually, copy/mount the key
+   > into the target's `/root/.config/sops/age/keys.txt` before the first
+   > switch — otherwise a new key is generated that doesn't match
+   > `secrets/.sops.yaml` and sops activation fails.
+
 3. **Make sure the disk labels exist** for the host's `fileSystems`:
 
    ```bash
@@ -126,14 +142,20 @@ do it manually.
    ```
 
 5. **Set the user password** (manual fallback — setup.sh does this for
-   you): generate a SHA-512 hash and put it into `hashedPassword` in the
-   host file, replacing `initialPassword`:
+   you): generate a SHA-512 hash and place it on the machine so the config
+   picks it up at the next activation:
 
    ```bash
-   openssl passwd -6
-   # in hosts/nixos-desktop.nix:
-   #   hashedPassword = lib.mkDefault "$6$...";   # instead of initialPassword
+   openssl passwd -6            # type the password, copy the printed hash
+   printf '%s\n' 'PASTE-HASH-HERE' | sudo tee /etc/hashed-password >/dev/null
+   sudo chmod 600 /etc/hashed-password
+   # then rebuild for it to take effect:
+   sudo nixos-rebuild switch --flake .#<host>
    ```
+
+   The file is read on **each** activation via `hashedPasswordFile` (see the
+   note under "First-time setup"), so you can also just write it and wait
+   for the next rebuild.
 
 ### Manual partitioning (fallback)
 
@@ -267,17 +289,26 @@ sudo nixos-rebuild list-generations   # see system generations + how old
 - **Boot / snapshots**: systemd-boot lists every NixOS generation, so opening
   the boot menu lets you boot a previous system state ("snapshot"). For real
   filesystem snapshots you'd need btrfs instead of XFS.
-- **First login**: the password is whatever you set during setup
-  (`hashedPassword`). Fresh clones without a hash fall back to `changeme`.
+- **First login**: the password is whatever you set during setup — the hash
+  is written to `/etc/hashed-password` on the machine (read at activation).
+  If it wasn't provisioned (e.g. a fresh clone on a machine that never ran
+  ./setup.sh), `mario` has no password until you write the file or run
+  `sudo passwd mario`.
 - Exact version pinning is handled by `flake.lock`; `nix flake update`
   updates all inputs together.
 - `nix fmt` uses the `#formatter` output (nixpkgs-fmt).
-- **Impermanence**: opt-in per host with `mySystem.enableImpermanence = true;`.
-  It works on XFS — instead of btrfs subvolumes it keeps a persistent
-  `/persist` and wipes everything else on every boot. Files/dirs to keep are
-  listed in `modules/system/impermanence.nix`.
+- **Impermanence**: opt-in per host with `mySystem.enableImpermanence = true;`,
+  but **not yet functional** — treat it as a design sketch. The XFS label-root
+  layout has no `/persist` mount and no tmpfs root, so nothing is actually
+  wiped or persisted on boot. Making it real (tmpfs root plus a `/persist`
+  partition) is future work; do not enable it expecting stateless behavior.
+- **SSH access**: on hosts with `mySystem.enableSSH = true` the server rejects
+  password logins, so access depends entirely on
+  `mySystem.sshAuthorizedKeys` — put your real public keys there or SSH will
+  accept no one (a build-time warning reminds you of this).
 
 ## Roadmap
 
 - [x] sops-nix real secrets (opt-in via `mySystem.enableSops`)
-- [x] impermanence (optional, opt-in via `mySystem.enableImpermanence`)
+- [ ] impermanence (opt-in via `mySystem.enableImpermanence`; currently a
+      not-ready design sketch)

@@ -3,24 +3,6 @@
 , pkgs
 , ...
 }: {
-  options.mySystem = {
-    hostname = lib.mkOption {
-      type = lib.types.str;
-      default = "nixos";
-      description = "Network hostname for the host.";
-    };
-    enableDesktop = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the GNOME desktop environment.";
-    };
-    enableLaptop = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable laptop power management.";
-    };
-  };
-
   config = {
     networking.hostName = config.mySystem.hostname;
 

@@ -34,7 +34,7 @@
     programs.steam = lib.mkIf config.home-manager.users.mario.myApps.enable {
       enable = true;
     };
-    hardware.graphics.driSupport32Bit = lib.mkIf config.home-manager.users.mario.myApps.enable true;
+    hardware.graphics.enable32Bit = lib.mkIf config.home-manager.users.mario.myApps.enable true;
 
     # Flatpak for third-party apps.
     services.flatpak.enable = true;

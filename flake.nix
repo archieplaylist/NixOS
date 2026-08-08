@@ -19,14 +19,17 @@
       # Build a NixOS configuration for hostname `name`.
       buildHost = name: lib.nixosSystem {
         inherit system;
-        modules = [
+modules = [
           ./hosts/${name}.nix
+          ./modules/system/options.nix
+          ./modules/system/impermanence.nix
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
           {
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
+              backupFileExtension = "hm-backup";
               users.mario = import ./home/mario.nix;
               extraSpecialArgs = { inherit self inputs; };
             };
