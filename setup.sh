@@ -426,9 +426,12 @@ step_deploy() {
         mount -o fmask=0077,dmask=0077 "$bootdev" /mnt/boot
       fi
 
-      # Copy the flake into the target.
+      # Copy the flake into the target — including dotfiles (.git, .gitignore,
+      # secrets/.sops.yaml*). Copying without .git makes the target a plain path
+      # flake whose NAR hash changes whenever the lock file is updated, which
+      # breaks nixos-install with "NAR hash mismatch in input path:...".
       mkdir -p /mnt/etc/nixos
-      cp -r "$REPO_ROOT"/* /mnt/etc/nixos/
+      cp -r "$REPO_ROOT"/. /mnt/etc/nixos/
 
       # Provision the user's hashed password into the target. users.nix
       # reads it at activation via `hashedPasswordFile`, so the hash must
