@@ -211,8 +211,18 @@ step_partition() {
   # `/` (root subvol) is rotated on every boot by modules/system/impermanence.nix;
   # `nix` and `persist` hold the store and the persistent state.
   mkfs.btrfs -f -L nixos-root "$p2"
+
+  # Make udev create /dev/disk/by-label symlinks for the fresh filesystems.
+  # udev can lag behind right after mkfs; without this the mount below (and
+  # the by-label mounts in step_deploy) fail with "... does not exist".
+  udevadm settle || true
+  udevadm trigger --subsystem-match=block || true
+  udevadm settle || true
+
+  # Mount the freshly-formatted device path directly (guaranteed to exist) —
+  # no reliance on udev symlinks for the subvolume creation step.
   mkdir -p /mnt/btrfs
-  mount -t btrfs -o subvol=/ /dev/disk/by-label/nixos-root /mnt/btrfs
+  mount -t btrfs -o subvol=/ "$p2" /mnt/btrfs
   btrfs subvolume create /mnt/btrfs/root
   btrfs subvolume create /mnt/btrfs/nix
   btrfs subvolume create /mnt/btrfs/persist
@@ -386,11 +396,14 @@ step_deploy() {
       # Installer ISO: install to the target disk (not the running tmpfs).
       # Mount by filesystem label (created by step_partition). The target
       # isn't mounted yet, so by-label (not by-uuid snapshots) is used.
-      [[ -e /dev/disk/by-label/nixos-root ]] || { warn "no /dev/disk/by-label/nixos-root — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
+      # Fall back to blkid probe if the udev symlink isn't ready yet.
+      local rootdev="/dev/disk/by-label/nixos-root"
+      [[ -e "$rootdev" ]] || rootdev="$(blkid -L nixos-root 2>/dev/null || true)"
+      [[ -n "$rootdev" && -e "$rootdev" ]] || { warn "no device with label 'nixos-root' found — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
 
       # btrfs (impermanent) target: mount the ephemeral root subvolume at /mnt
       # plus nix/persist under it. XFS (legacy) target: plain mount.
-      local rootdev="/dev/disk/by-label/nixos-root" roottype
+      local roottype
       roottype="$(blkid -o value -s TYPE -- "$rootdev" 2>/dev/null || true)"
       if [[ "$roottype" == "btrfs" ]]; then
         info "mounting $rootdev subvol=root at /mnt (btrfs layout)"
@@ -404,11 +417,13 @@ step_deploy() {
         mount "$rootdev" /mnt
       fi
       mkdir -p /mnt/boot
-      if [[ -e /dev/disk/by-label/nixos-boot ]]; then
-        info "mounting /dev/disk/by-label/nixos-boot at /mnt/boot"
+      local bootdev="/dev/disk/by-label/nixos-boot"
+      [[ -e "$bootdev" ]] || bootdev="$(blkid -L nixos-boot 2>/dev/null || true)"
+      if [[ -n "$bootdev" && -e "$bootdev" ]]; then
+        info "mounting $bootdev at /mnt/boot"
         # Mask so /boot (vfat) is root-only; avoids the systemd-boot
         # "world accessible ... security hole" warning during install.
-        mount -o fmask=0077,dmask=0077 /dev/disk/by-label/nixos-boot /mnt/boot
+        mount -o fmask=0077,dmask=0077 "$bootdev" /mnt/boot
       fi
 
       # Copy the flake into the target.
