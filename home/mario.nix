@@ -43,8 +43,21 @@
       stateVersion = "26.05";
     };
 
-    # Base dotfile.
-    home.file.".gitignore".text = ''
+    # Explicit XDG layout: app config -> ~/.config, data -> ~/.local/share,
+    # mutable state -> ~/.local/state, caches -> ~/.cache. Keeps the list of
+    # things worth persisting short (3 dirs) instead of per-app paths.
+    home.sessionVariables = {
+      XDG_CONFIG_HOME = "$HOME/.config";
+      XDG_DATA_HOME = "$HOME/.local/share";
+      XDG_STATE_HOME = "$HOME/.local/state";
+      XDG_CACHE_HOME = "$HOME/.cache";
+    };
+
+    # Global git excludes — git reads $XDG_CONFIG_HOME/git/ignore
+    # automatically, so these patterns apply to every repo on this machine
+    # (unlike a ~/.gitignore, which git never consults unless the root of the
+    # repo happens to be $HOME).
+    xdg.configFile."git/ignore".text = ''
       result
       .direnv
       .cache

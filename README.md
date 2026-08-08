@@ -8,8 +8,8 @@ A modular, flake-based NixOS configuration for Mario's workstations
 ├── flake.nix            # inputs + host definitions
 ├── modules/
 │   ├── system/          # options, basics, desktop (GNOME), services, secrets,
-│   │                    # users, filesystems, impermanence (not-ready)
-│   └── hardware/        # intel, uefi (systemd-boot + XFS), laptop, vm-guest
+│   │                    # users, filesystems, impermanence (btrfs, fresh-install)
+│   └── hardware/        # intel, uefi (systemd-boot + XFS/btrfs), laptop, vm-guest
 ├── hosts/               # per-machine host files (imports + mySystem flags)
 ├── home/                # home-manager user config (mario)
 └── secrets/             # sops-nix placeholders
@@ -122,13 +122,32 @@ creates — no UUID detection needed.
 > password until one is provisioned. To change it later, re-run `./setup.sh`
 > or run `sudo passwd mario` on the machine.
 
-Partitioning creates this layout on the selected disk (GPT):
+Partitioning creates this layout on the selected disk (GPT), and supports
+two filesystem formats depending on the host's `mySystem.enableImpermanence`:
+
+**Default — XFS** (current/legacy installs):
 
 ```
 /dev/sdX
 ├── 1: ESP  1 GiB  vfat (label nixos-boot)
 └── 2: root  rest  xfs  (label nixos-root)
 ```
+
+**Impermanent — btrfs** (fresh installs only; set
+`mySystem.enableImpermanence = true` on the host before reinstalling): the
+root partition is btrfs with three subvolumes:
+
+```
+/dev/sdX
+├── 1: ESP   1 GiB  vfat   (label nixos-boot)
+└── 2: root  rest   btrfs  (label nixos-root)
+       ├── subvol root    → mounted /
+       ├── subvol nix     → mounted /nix    (nix store)
+       └── subvol persist → mounted /persist (persistent state)
+```
+
+With impermanence, `/` is rotated to a fresh subvolume on **every boot** —
+only `/nix` and `/persist` survive. See the Impermanence note below.
 
 Swap is handled with zram (`zramSwap.enable`), so no swap partition is
 needed. The partition step refuses to run on an installed system and
@@ -334,21 +353,25 @@ sudo nixos-rebuild list-generations   # see system generations + how old
 ## Notes
 
 - **Boot / snapshots**: systemd-boot lists every NixOS generation, so opening
-  the boot menu lets you boot a previous system state ("snapshot"). For real
-  filesystem snapshots you'd need btrfs instead of XFS.
+  the boot menu lets you boot a previous system state ("snapshot"). On btrfs
+  hosts, `old_roots` keeps pruned snapshots of the ephemeral root for 30 days.
 - **First login**: the password is whatever you set during setup — the hash
-  is written to `/etc/hashed-password` on the machine (read at activation).
-  If it wasn't provisioned (e.g. a fresh clone on a machine that never ran
-  ./setup.sh), `mario` has no password until you write the file or run
-  `sudo passwd mario`.
+  is stored on the machine at `/etc/hashed-password` (read at activation; on
+  btrfs hosts this lives under `/persist` and survives reboots). If it wasn't
+  provisioned (e.g. a fresh clone on a machine that never ran ./setup.sh),
+  `mario` has no password until you write the file or run `sudo passwd mario`.
 - Exact version pinning is handled by `flake.lock`; `nix flake update`
   updates all inputs together.
 - `nix fmt` uses the `#formatter` output (nixpkgs-fmt).
-- **Impermanence**: opt-in per host with `mySystem.enableImpermanence = true;`,
-  but **not yet functional** — treat it as a design sketch. The XFS label-root
-  layout has no `/persist` mount and no tmpfs root, so nothing is actually
-  wiped or persisted on boot. Making it real (tmpfs root plus a `/persist`
-  partition) is future work; do not enable it expecting stateless behavior.
+- **Impermanence**: opt-in per host with `mySystem.enableImpermanence = true;`.
+  **Fresh-install only** — enabling it requires the disk to be formatted as
+  btrfs with `root`/`nix`/`persist` subvolumes (the partition step in
+  `setup.sh` does this). On such a host, `/` is rotated to a fresh subvolume
+  every boot; the system keeps the nix store (`/nix`) and persisted state
+  (`/persist`, plus home-manager's `home.persistence` list) and throws away
+  everything else. Never enable it on a host that still uses the XFS layout —
+  it cannot boot. See `modules/system/impermanence.nix`,
+  `modules/system/filesystems.nix` and the btrfs layout above.
 - **SSH access**: on hosts with `mySystem.enableSSH = true` the server rejects
   password logins, so access depends entirely on
   `mySystem.sshAuthorizedKeys` — put your real public keys there or SSH will
@@ -357,5 +380,5 @@ sudo nixos-rebuild list-generations   # see system generations + how old
 ## Roadmap
 
 - [x] sops-nix real secrets (opt-in via `mySystem.enableSops`)
-- [ ] impermanence (opt-in via `mySystem.enableImpermanence`; currently a
-      not-ready design sketch)
+- [x] impermanence (btrfs ephemeral root; opt-in via `mySystem.enableImpermanence`,
+      fresh-install only — the root/nix/persist subvolumes must exist)

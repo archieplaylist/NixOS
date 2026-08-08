@@ -157,10 +157,10 @@ step_partition() {
   fi
 
   local missing=()
-  for t in sgdisk mkfs.vfat mkfs.xfs; do
+  for t in sgdisk mkfs.vfat mkfs.btrfs btrfs; do
     have "$t" || missing+=("$t")
   done
-  [[ ${#missing[@]} -eq 0 ]] || die "missing partition tools: ${missing[*]} — run setup.sh from the NixOS installer ISO (nix shell nixpkgs#gptfdisk nixpkgs#dosfstools nixpkgs#xfsprogs)"
+  [[ ${#missing[@]} -eq 0 ]] || die "missing partition tools: ${missing[*]} — run setup.sh from the NixOS installer ISO (nix shell nixpkgs#gptfdisk nixpkgs#dosfstools nixpkgs#btrfs-progs)"
 
   echo
   echo "Available disks:"
@@ -184,8 +184,8 @@ step_partition() {
 
   echo
   warn "ABOUT TO ERASE ALL DATA ON: $disk"
-  echo "  partition 1: ESP  1 GiB  vfat  label 'nixos-boot'"
-  echo "  partition 2: root  rest  xfs   label 'nixos-root'"
+  echo "  partition 1: ESP   1 GiB  vfat  label 'nixos-boot'"
+  echo "  partition 2: root  rest  btrfs label 'nixos-root' (subvolumes: root, nix, persist)"
   if ! read -r -p "  type WIPE (exactly) to continue: " ans; then
     echo "no input — aborting partition step"
     return 0
@@ -206,10 +206,21 @@ step_partition() {
   sleep 1
 
   mkfs.vfat -F 32 -n nixos-boot "$p1"
-  mkfs.xfs -f -L nixos-root "$p2"
+
+  # btrfs layout: one filesystem, three top-level subvolumes. The ephemeral
+  # `/` (root subvol) is rotated on every boot by modules/system/impermanence.nix;
+  # `nix` and `persist` hold the store and the persistent state.
+  mkfs.btrfs -f -L nixos-root "$p2"
+  mkdir -p /mnt/btrfs
+  mount -t btrfs -o subvol=/ /dev/disk/by-label/nixos-root /mnt/btrfs
+  btrfs subvolume create /mnt/btrfs/root
+  btrfs subvolume create /mnt/btrfs/nix
+  btrfs subvolume create /mnt/btrfs/persist
+  umount /mnt/btrfs
+  rmdir /mnt/btrfs
   udevadm settle || true
 
-  info "done: $p1 (ESP, label nixos-boot) + $p2 (XFS, label nixos-root)"
+  info "done: $p1 (ESP, label nixos-boot) + $p2 (btrfs, label nixos-root, subvolumes root/nix/persist)"
 }
 
 # ---------------------------------------------------------------------------
@@ -377,8 +388,21 @@ step_deploy() {
       # isn't mounted yet, so by-label (not by-uuid snapshots) is used.
       [[ -e /dev/disk/by-label/nixos-root ]] || { warn "no /dev/disk/by-label/nixos-root — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
 
-      info "mounting /dev/disk/by-label/nixos-root at /mnt"
-      mount /dev/disk/by-label/nixos-root /mnt
+      # btrfs (impermanent) target: mount the ephemeral root subvolume at /mnt
+      # plus nix/persist under it. XFS (legacy) target: plain mount.
+      local rootdev="/dev/disk/by-label/nixos-root" roottype
+      roottype="$(blkid -o value -s TYPE -- "$rootdev" 2>/dev/null || true)"
+      if [[ "$roottype" == "btrfs" ]]; then
+        info "mounting $rootdev subvol=root at /mnt (btrfs layout)"
+        mount -t btrfs -o subvol=root "$rootdev" /mnt
+        mkdir -p /mnt/nix /mnt/persist
+        mount -t btrfs -o subvol=nix "$rootdev" /mnt/nix
+        mount -t btrfs -o subvol=persist "$rootdev" /mnt/persist
+        info "mounted subvolumes: / (root), /nix, /persist"
+      else
+        info "mounting $rootdev at /mnt (XFS layout)"
+        mount "$rootdev" /mnt
+      fi
       mkdir -p /mnt/boot
       if [[ -e /dev/disk/by-label/nixos-boot ]]; then
         info "mounting /dev/disk/by-label/nixos-boot at /mnt/boot"
@@ -395,22 +419,43 @@ step_deploy() {
       # reads it at activation via `hashedPasswordFile`, so the hash must
       # live on the installed filesystem, not in the flake.
       if [[ -n "$PASSWORD_HASH" ]]; then
-        install -d /mnt/etc
-        printf '%s\n' "$PASSWORD_HASH" > /mnt/etc/hashed-password
-        chmod 600 /mnt/etc/hashed-password
-        info "wrote /mnt/etc/hashed-password"
+        if [[ -d /mnt/persist ]]; then
+          install -d /mnt/persist/etc
+          printf '%s\n' "$PASSWORD_HASH" > /mnt/persist/etc/hashed-password
+          chmod 600 /mnt/persist/etc/hashed-password
+          # Also provision the ephemeral copy so the first boot's activation
+          # finds the hash regardless of bind-mount ordering.
+          install -d /mnt/etc
+          cp -p /mnt/persist/etc/hashed-password /mnt/etc/hashed-password
+          info "wrote /persist/etc/hashed-password (+ ephemeral /etc for first boot)"
+        else
+          install -d /mnt/etc
+          printf '%s\n' "$PASSWORD_HASH" > /mnt/etc/hashed-password
+          chmod 600 /mnt/etc/hashed-password
+          info "wrote /mnt/etc/hashed-password (XFS layout)"
+        fi
       else
         info "no password hash captured — set one later with \`sudo passwd mario\`"
       fi
 
-      # Provision the sops age key into the target (root's home, where
-      # modules/system/secrets.nix expects it). Without this the first boot
-      # would generate a fresh key that doesn't match secrets/.sops.yaml and
-      # sops activation would fail.
+      # Provision the sops age key into the target. modules/system/secrets.nix
+      # expects it at /root/.config/sops/age — persisted there on the btrfs
+      # layout via the impermanence users.root entry. Without this the first
+      # boot would generate a fresh key that doesn't match secrets/.sops.yaml
+      # and sops activation would fail.
       if [[ -f "$AGE_KEY_PATH" ]]; then
-        install -d -m 700 /mnt/root/.config/sops/age
-        install -m 600 "$AGE_KEY_PATH" /mnt/root/.config/sops/age/keys.txt
-        info "copied age key to /mnt/root/.config/sops/age/keys.txt"
+        if [[ -d /mnt/persist ]]; then
+          install -d -m 700 /mnt/persist/root/.config/sops/age
+          install -m 600 "$AGE_KEY_PATH" /mnt/persist/root/.config/sops/age/keys.txt
+          # Ephemeral copy for the first boot, same reasoning as the password.
+          install -d -m 700 /mnt/root/.config/sops/age
+          install -m 600 "$AGE_KEY_PATH" /mnt/root/.config/sops/age/keys.txt
+          info "copied age key to /persist/root/.config/sops/age (+ ephemeral /root for first boot)"
+        else
+          install -d -m 700 /mnt/root/.config/sops/age
+          install -m 600 "$AGE_KEY_PATH" /mnt/root/.config/sops/age/keys.txt
+          info "copied age key to /mnt/root/.config/sops/age/keys.txt (XFS layout)"
+        fi
       else
         warn "no age key found — first boot will fail / skip sops decryption"
       fi

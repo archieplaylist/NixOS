@@ -10,7 +10,8 @@
       age = {
         # Absolute path: the sops systemd service runs as root ($HOME would
         # be non-deterministic). setup.sh writes the key here when run as root.
-        # If impermanence is ever enabled, also persist /root/.config/sops/age.
+        # On hosts with enableImpermanence this path is persisted automatically
+        # via the impermanence users.root entry (see impermanence.nix).
         keyFile = "/root/.config/sops/age/keys.txt";
         generateKey = true;
       };
