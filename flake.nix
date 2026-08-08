@@ -9,6 +9,7 @@
     };
     sops-nix.url = "github:Mic92/sops-nix";
     impermanence.url = "github:nix-community/impermanence";
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
   outputs = { self, nixpkgs, home-manager, sops-nix, impermanence, ... }@inputs:
@@ -25,6 +26,7 @@ modules = [
           ./modules/system/impermanence.nix
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
+          nix-flatpak.nixosModules.nix-flatpak
           {
             home-manager = {
               useGlobalPkgs = true;
@@ -42,6 +44,7 @@ modules = [
       nixosConfigurations = {
         nixos-desktop = buildHost "nixos-desktop";
         nixos-laptop = buildHost "nixos-laptop";
+        nixos-work = buildHost "nixos-work";
         vm-host = buildHost "vm-host";
       };
 

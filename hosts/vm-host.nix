@@ -20,6 +20,12 @@
   mySystem.enableTailscale = false;
   mySystem.enableSops = false;
 
+  # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
+  mySystem.flatpakApps = [
+    "io.missioncenter.MissionCenter"
+    "com.github.wwmm.easyeffects"
+  ];
+
   # The VM doesn't need heavy gaming packages.
   home-manager.users.mario.myApps.gaming.enable = false;
 }

@@ -34,6 +34,11 @@
       enable = true;
     };
 
+    # VirtualBox host (builds the vboxdrv kernel module for the running kernel).
+    virtualisation.virtualbox = lib.mkIf config.mySystem.enableVirtualBox {
+      host.enable = true;
+    };
+
     # Generic command-line tools for all hosts.
     environment.systemPackages = with pkgs; [
       curl

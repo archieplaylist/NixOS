@@ -30,7 +30,9 @@ live in shared modules (`modules/system/options.nix`, `users.nix`,
 4. Optionally disable general-purpose, gaming, or development applications on
    this host with `home-manager.users.mario.myApps.general.enable = false;`,
    `home-manager.users.mario.myApps.gaming.enable = false;`, and/or
-   `home-manager.users.mario.myApps.dev.enable = false;`.
+   `home-manager.users.mario.myApps.dev.enable = false;`. To opt into the
+   work apps instead, set `home-manager.users.mario.myApps.work.enable = true;`
+   and `mySystem.enableVirtualBox = true;` (see the "Work" section below).
 
 ## General-purpose applications
 
@@ -65,6 +67,27 @@ Enabled by default on every desktop host (controllable per host via
 
 The gaming user packages live in `home/mario.nix` (via home-manager), gated
 behind the same flag.
+
+## Work
+
+Optional per-host application group (disabled by default — opt in with
+`home-manager.users.mario.myApps.work.enable = true;`):
+
+- **Work apps:** dbeaver-bin (database client), FileZilla (FTP/SFTP), Remmina
+  (remote desktop)
+- **VirtualBox host** (`mySystem.enableVirtualBox = true;`): builds the
+  vboxdrv kernel module and adds `mario` to the `vboxusers` group for USB
+  passthrough (`modules/system/services.nix`, `modules/system/users.nix`)
+
+Flatpak apps are declared declaratively via
+[nix-flatpak](https://github.com/gmodena/nix-flatpak) (`flake.nix` input,
+loaded as a module for every host). The daemon and wiring live in
+`modules/system/desktop.nix` (`services.flatpak.enable` +
+`services.flatpak.packages = config.mySystem.flatpakApps`); each host picks
+its own apps with
+`mySystem.flatpakApps = [ "io.missioncenter.MissionCenter" ... ]`. All four
+hosts (desktop, laptop, work, vm) currently declare Mission Center,
+EasyEffects, and Insomnia.
 
 ## First-time setup
 
@@ -159,10 +182,11 @@ do it manually.
 
 4. Rebuild a host:
 
-   ```bash
-   nixos-rebuild switch --flake .#nixos-desktop
-   nixos-rebuild switch --flake .#nixos-laptop
-   ```
+```bash
+nixos-rebuild switch --flake .#nixos-desktop
+nixos-rebuild switch --flake .#nixos-laptop
+nixos-rebuild switch --flake .#nixos-work
+```
 
 5. **Set the user password** (manual fallback — setup.sh does this for
    you): generate a SHA-512 hash and place it on the machine so the config

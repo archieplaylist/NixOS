@@ -21,6 +21,12 @@
   mySystem.enableTailscale = true;
   mySystem.enableSops = true;
 
+  # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
+  mySystem.flatpakApps = [
+    "io.missioncenter.MissionCenter"
+    "com.github.wwmm.easyeffects"
+  ];
+
   # If SSH is enabled on this host, put your real public keys here.
   mySystem.sshAuthorizedKeys = [ ];
 }

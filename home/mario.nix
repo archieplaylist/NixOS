@@ -26,6 +26,13 @@
           description = "Enable development tooling (editors, languages, CLIs).";
         };
       };
+      work = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Enable work applications (dbeaver-bin, filezilla, remmina).";
+        };
+      };
     };
   };
 
@@ -99,6 +106,9 @@
         vivaldi
         vlc
         mpv
+        joplin-desktop
+        onlyoffice-desktopeditors
+        libreoffice-fresh
       ]))
       # Gaming applications. Disabled per host with
       # `home-manager.users.mario.myApps.gaming.enable = false`.
@@ -106,6 +116,13 @@
         mangohud
         gamescope
         heroic
+      ]))
+      # Work applications. Enabled per host with
+      # `home-manager.users.mario.myApps.work.enable = true`.
+      (lib.mkIf config.myApps.work.enable (with pkgs; [
+        dbeaver-bin
+        filezilla
+        remmina
       ]))
     ];
 

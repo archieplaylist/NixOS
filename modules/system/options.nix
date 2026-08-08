@@ -30,6 +30,16 @@
       default = false;
       description = "Enable the Docker daemon.";
     };
+    enableVirtualBox = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable the VirtualBox host (with kernel modules).";
+    };
+    flatpakApps = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Flatpak app IDs to install declaratively via nix-flatpak.";
+    };
     enableTailscale = lib.mkOption {
       type = lib.types.bool;
       default = false;

@@ -54,7 +54,9 @@
     };
     hardware.graphics.enable32Bit = lib.mkIf config.home-manager.users.mario.myApps.gaming.enable true;
 
-    # Flatpak for third-party apps.
+    # Flatpak for third-party apps. The daemon is enabled here; apps are
+    # declared per host via `mySystem.flatpakApps` (nix-flatpak).
     services.flatpak.enable = true;
+    services.flatpak.packages = config.mySystem.flatpakApps;
   };
 }
