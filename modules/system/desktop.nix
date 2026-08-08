@@ -45,7 +45,7 @@
       gnomeExtensions.impatience
       gnomeExtensions.just-perfection
       gnomeExtensions.removable-drive-menu
-      gnomeExtensions.user-theme
+      gnomeExtensions.user-themes
     ];
 
     # Gaming: Steam needs 32-bit multilib OpenGL. Enabled by default, disable
