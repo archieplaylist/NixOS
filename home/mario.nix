@@ -5,10 +5,19 @@
 }: {
   options = {
     myApps = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable general-purpose applications (browsers, media, gaming).";
+      general = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable general-purpose applications (browsers, media).";
+        };
+      };
+      gaming = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable gaming applications (MangoHud, gamescope, Heroic).";
+        };
       };
     };
   };
@@ -70,14 +79,18 @@
         bat
         eza
       ])
-      # General-purpose applications (browsers, media, gaming). Disabled per
-      # host with `home-manager.users.mario.myApps.enable = false`.
-      (lib.mkIf config.myApps.enable (with pkgs; [
+      # General-purpose applications (browsers, media). Disabled per host with
+      # `home-manager.users.mario.myApps.general.enable = false`.
+      (lib.mkIf config.myApps.general.enable (with pkgs; [
         firefox
         chromium
         vivaldi
         vlc
         mpv
+      ]))
+      # Gaming applications. Disabled per host with
+      # `home-manager.users.mario.myApps.gaming.enable = false`.
+      (lib.mkIf config.myApps.gaming.enable (with pkgs; [
         mangohud
         gamescope
         heroic

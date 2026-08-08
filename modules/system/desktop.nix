@@ -30,11 +30,11 @@
     ];
 
     # Gaming: Steam needs 32-bit multilib OpenGL. Enabled by default, disable
-    # per host with `home-manager.users.mario.myApps.enable = false`.
-    programs.steam = lib.mkIf config.home-manager.users.mario.myApps.enable {
+    # per host with `home-manager.users.mario.myApps.gaming.enable = false`.
+    programs.steam = lib.mkIf config.home-manager.users.mario.myApps.gaming.enable {
       enable = true;
     };
-    hardware.graphics.enable32Bit = lib.mkIf config.home-manager.users.mario.myApps.enable true;
+    hardware.graphics.enable32Bit = lib.mkIf config.home-manager.users.mario.myApps.gaming.enable true;
 
     # Flatpak for third-party apps.
     services.flatpak.enable = true;

@@ -20,6 +20,6 @@
   mySystem.enableTailscale = false;
   mySystem.enableSops = false;
 
-  # The VM doesn't need heavy browser/media/gaming packages.
-  home-manager.users.mario.myApps.enable = false;
+  # The VM doesn't need heavy gaming packages.
+  home-manager.users.mario.myApps.gaming.enable = false;
 }
