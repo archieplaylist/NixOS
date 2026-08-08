@@ -19,6 +19,13 @@
           description = "Enable gaming applications (MangoHud, gamescope, Heroic).";
         };
       };
+      dev = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable development tooling (editors, languages, CLIs).";
+        };
+      };
     };
   };
 
@@ -67,7 +74,15 @@
 
     # User-level packages.
     home.packages = lib.mkMerge [
+      # Shell utilities (not gated; used everywhere).
       (with pkgs; [
+        fzf
+        bat
+        eza
+      ])
+      # Development tooling. Disabled per host with
+      # `home-manager.users.mario.myApps.dev.enable = false`.
+      (lib.mkIf config.myApps.dev.enable (with pkgs; [
         vscode
         python3
         nodejs_24
@@ -75,10 +90,7 @@
         docker-compose
         jq
         yq
-        fzf
-        bat
-        eza
-      ])
+      ]))
       # General-purpose applications (browsers, media). Disabled per host with
       # `home-manager.users.mario.myApps.general.enable = false`.
       (lib.mkIf config.myApps.general.enable (with pkgs; [

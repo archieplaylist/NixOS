@@ -27,9 +27,10 @@ live in shared modules (`modules/system/options.nix`, `users.nix`,
    `flake.nix`.
 3. Set `mySystem.hostname` (filesystems are referenced by label — see the
    partition step below).
-4. Optionally disable general-purpose or gaming applications on this host with
-   `home-manager.users.mario.myApps.general.enable = false;` and/or
-   `home-manager.users.mario.myApps.gaming.enable = false;`.
+4. Optionally disable general-purpose, gaming, or development applications on
+   this host with `home-manager.users.mario.myApps.general.enable = false;`,
+   `home-manager.users.mario.myApps.gaming.enable = false;`, and/or
+   `home-manager.users.mario.myApps.dev.enable = false;`.
 
 ## General-purpose applications
 
@@ -41,6 +42,18 @@ Enabled by default on every desktop host (controllable per host via
 
 The browser/media user packages live in `home/mario.nix` (via home-manager),
 gated behind the same flag.
+
+## Development
+
+Enabled by default on every host (controllable per host via
+`home-manager.users.mario.myApps.dev.enable`):
+
+- **Editors:** VS Code
+- **Languages:** Python, Node.js
+- **CLI tools:** GitHub CLI, docker-compose, jq, yq
+
+The dev user packages live in `home/mario.nix` (via home-manager), gated
+behind the same flag.
 
 ## Gaming
 
