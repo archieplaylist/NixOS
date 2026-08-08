@@ -96,5 +96,28 @@
         heroic
       ]))
     ];
+
+    # GNOME extensions are pinned by writing them directly into the user's
+    # dconf database. `extraGSettingsOverrides` in desktop.nix only changes
+    # the GSettings *default*; the per-user dconf value (which GNOME writes
+    # and which wins) would otherwise stay empty.
+    dconf = {
+      enable = true;
+      settings."org/gnome/shell" = {
+        enabled-extensions = [
+          "appindicatorsupport@rgcjonas.gmail.com"
+          "blur-my-shell@aunetx"
+          "caffeine@patapon.info"
+          "clipboard-indicator@tudmotu.com"
+          "CoverflowAltTab@palatis.blogspot.com"
+          "dash-to-dock@micxg.gmail.com"
+          "drive-menu@gnome-shell-extensions.gcampax.github.com"
+          "impatience@gfxmonk.net"
+          "just-perfection-desktop@just-perfection"
+          "tailscale-gnome-qs@tailscale-qs.github.io"
+          "user-theme@gnome-shell-extensions.gcampax.github.com"
+        ];
+      };
+    };
   };
 }
