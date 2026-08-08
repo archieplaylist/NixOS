@@ -24,8 +24,13 @@
   mySystem.flatpakApps = [
     "io.missioncenter.MissionCenter"
     "com.github.wwmm.easyeffects"
+    "org.localsend.localsend_app"
+    "it.mijorus.gearlever"
+    "com.github.tchx84.Flatseal"
+    "com.mattjakeman.ExtensionManager"
   ];
 
   # The VM doesn't need heavy gaming packages.
   home-manager.users.mario.myApps.gaming.enable = false;
+  home-manager.users.mario.myApps.dev.enable = false;
 }

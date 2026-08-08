@@ -23,6 +23,10 @@
   mySystem.flatpakApps = [
     "io.missioncenter.MissionCenter"
     "com.github.wwmm.easyeffects"
+    "org.localsend.localsend_app"
+    "it.mijorus.gearlever"
+    "com.github.tchx84.Flatseal"
+    "com.mattjakeman.ExtensionManager"
   ];
 
   # SSH password auth is disabled (see services.nix), so the keys below are

@@ -86,12 +86,12 @@
         fzf
         bat
         eza
+        python3
       ])
       # Development tooling. Disabled per host with
       # `home-manager.users.mario.myApps.dev.enable = false`.
       (lib.mkIf config.myApps.dev.enable (with pkgs; [
         vscode
-        python3
         nodejs_24
         gh
         docker-compose
