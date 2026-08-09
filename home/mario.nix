@@ -150,6 +150,40 @@
       settings."org/gnome/shell" = {
         enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
       };
+      # User Themes extension: apply the WhiteSur-dark shell theme from
+      # ~/.themes (linked below).
+      settings."org/gnome/shell/extensions/user-theme" = {
+        name = "WhiteSur-dark";
+      };
+    };
+
+    # WhiteSur dark theme (GTK), icons and cursor. home-manager's `gtk` module
+    # installs the packages, writes ~/.config/gtk-3.0/settings.ini, and sets
+    # org.gnome.desktop.interface in dconf (including color-scheme=prefer-dark
+    # for libadwaita apps).
+    gtk = {
+      enable = true;
+      colorScheme = "dark";
+      theme = {
+        name = "WhiteSur-dark";
+        package = pkgs.whiteSur-gtk-theme;
+      };
+      iconTheme = {
+        name = "WhiteSur-dark";
+        package = pkgs.whiteSur-icon-theme;
+      };
+      cursorTheme = {
+        name = "WhiteSur-cursors";
+        package = pkgs.whiteSur-cursors;
+      };
+    };
+
+    # Apply the WhiteSur-dark shell theme via the User Themes extension
+    # (user-theme@gnome-shell-extensions.gcampax.github.com is in the enabled
+    # extensions list above). The extension reads themes from ~/.themes and
+    # ~/.local/share/themes, so link the GNOME Shell variant there.
+    home.file.".themes/WhiteSur-dark" = {
+      source = "${pkgs.whiteSur-gtk-theme}/share/themes/WhiteSur-dark";
     };
   };
 }
