@@ -6,6 +6,8 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.efi.efiSysMountPoint = "/boot";
 
-  # Keep all generations so rollback entries remain available.
-  boot.loader.systemd-boot.configurationLimit = 0;
+  # Keep the most recent generations so rollback entries remain available
+  # without letting the 1 GiB ESP fill up (each entry carries kernel+initrd,
+  # ~100MB per generation with weekly updates).
+  boot.loader.systemd-boot.configurationLimit = 24;
 }

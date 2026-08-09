@@ -1,6 +1,7 @@
 { config
 , lib
 , pkgs
+, osConfig
 , ...
 }: {
   options = {
@@ -86,7 +87,7 @@
       enable = true;
       settings = {
         user.name = "archieplaylist";
-        user.email = "mario.tani25@gmail.com";
+        user.email = "archieplaylist@users.noreply.github.com";
         init.defaultBranch = "main";
         push.autoSetupRemote = true;
       };
@@ -140,24 +141,14 @@
     ];
 
     # GNOME extensions are pinned by writing them directly into the user's
-    # dconf database. `extraGSettingsOverrides` in desktop.nix only changes
-    # the GSettings *default*; the per-user dconf value (which GNOME writes
-    # and which wins) would otherwise stay empty.
+    # dconf database. The list itself lives in one place — the
+    # mySystem.gnomeExtensions option (see modules/system/options.nix); the
+    # system-level packages and GSettings defaults are derived from it in
+    # desktop.nix. This dconf block is what GNOME actually reads per user.
     dconf = {
       enable = true;
       settings."org/gnome/shell" = {
-        enabled-extensions = [
-          "appindicatorsupport@rgcjonas.gmail.com"
-          "blur-my-shell@aunetx"
-          "caffeine@patapon.info"
-          "clipboard-indicator@tudmotu.com"
-          "CoverflowAltTab@palatis.blogspot.com"
-          "dash-to-dock@micxgx.gmail.com"
-          "drive-menu@gnome-shell-extensions.gcampax.github.com"
-          "just-perfection-desktop@just-perfection"
-          "tailscale-gnome-qs@tailscale-qs.github.io"
-          "user-theme@gnome-shell-extensions.gcampax.github.com"
-        ];
+        enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
       };
     };
   };

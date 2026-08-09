@@ -1,2 +1,4 @@
-docs/*
-.kilo
+# Generated/build artifacts
+result
+.direnv
+*.swp

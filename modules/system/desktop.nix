@@ -9,9 +9,12 @@
     services.displayManager.gdm.enable = true;
     services.desktopManager.gnome = {
       enable = true;
+      # Single source of truth for GNOME extensions: mySystem.gnomeExtensions
+      # (see options.nix). The system-level GSettings default and the per-user
+      # dconf value in home/mario.nix are both derived from it.
       extraGSettingsOverrides = ''
         [org.gnome.shell]
-        enabled-extensions=['appindicatorsupport@rgcjonas.gmail.com', 'blur-my-shell@aunetx', 'caffeine@patapon.info', 'clipboard-indicator@tudmotu.com', 'CoverflowAltTab@palatis.blogspot.com', 'dash-to-dock@micxgx.gmail.com', 'impatience@gfxmonk.net', 'just-perfection-desktop@just-perfection', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'tailscale-gnome-qs@tailscale-qs.github.io', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+        enabled-extensions=[${builtins.concatStringsSep ", " (map (e: "'" + e.uuid + "'") config.mySystem.gnomeExtensions)}]
       '';
       extraGSettingsOverridePackages = [
         pkgs.gsettings-desktop-schemas
@@ -36,16 +39,7 @@
 
     environment.systemPackages = with pkgs; [
       gnome-tweaks
-      gnomeExtensions.appindicator
-      gnomeExtensions.blur-my-shell
-      gnomeExtensions.caffeine
-      gnomeExtensions.clipboard-indicator
-      gnomeExtensions.coverflow-alt-tab
-      gnomeExtensions.dash-to-dock
-      gnomeExtensions.just-perfection
-      gnomeExtensions.removable-drive-menu
-      gnomeExtensions.user-themes
-    ];
+    ] ++ (map (e: pkgs.gnomeExtensions.${e.package}) config.mySystem.gnomeExtensions);
 
     # Gaming: Steam needs 32-bit multilib OpenGL. Enabled by default, disable
     # per host with `home-manager.users.mario.myApps.gaming.enable = false`.

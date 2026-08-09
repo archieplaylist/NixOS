@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      # Informational only: formatting can't be verified on every dev machine.
+      # The real gates are the host evaluations and bash syntax below.
+      - name: Format check (nixpkgs-fmt, informational)
+        run: nix fmt -- --check
+        continue-on-error: true
+
+      - name: Evaluate all hosts (no build)
+        run: |
+          for host in nixos-desktop nixos-laptop nixos-work vm-host; do
+            nix eval --raw ".#nixosConfigurations.${host}.config.system.build.toplevel.drvPath" >/dev/null
+            echo "OK: $host"
+          done
+
+      - name: Check setup.sh syntax
+        run: bash -n setup.sh

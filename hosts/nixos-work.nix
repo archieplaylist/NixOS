@@ -30,6 +30,9 @@
   # Work apps live in home-manager (dbeaver-bin, filezilla, remmina).
   home-manager.users.mario.myApps.work.enable = true;
 
+  # Workstation: no gaming packages (Steam, MangoHud, gamescope, Heroic).
+  home-manager.users.mario.myApps.gaming.enable = false;
+
   # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix,
   # flathub remote is added by the module by default).
   mySystem.flatpakApps = [

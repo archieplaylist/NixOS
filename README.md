@@ -85,9 +85,9 @@ loaded as a module for every host). The daemon and wiring live in
 `modules/system/desktop.nix` (`services.flatpak.enable` +
 `services.flatpak.packages = config.mySystem.flatpakApps`); each host picks
 its own apps with
-`mySystem.flatpakApps = [ "io.missioncenter.MissionCenter" ... ]`. All four
-hosts (desktop, laptop, work, vm) currently declare Mission Center,
-EasyEffects, and Insomnia.
+`mySystem.flatpakApps = [ "io.missioncenter.MissionCenter" ... ]`. The
+`nixos-work` host adds Insomnia; other hosts share Mission Center,
+EasyEffects, LocalSend, GearLever, Flatseal, and Extension Manager.
 
 ## First-time setup
 
@@ -334,8 +334,12 @@ sudo nixos-rebuild list-generations   # see system generations + how old
 
 ## Notes
 
-- **Boot / snapshots**: systemd-boot lists every NixOS generation, so opening
-  the boot menu lets you boot a previous system state ("snapshot").
+- **Boot / snapshots**: systemd-boot lists NixOS generations (up to
+  `systemd-boot.configurationLimit` — see `modules/hardware/uefi.nix`), so
+  opening the boot menu lets you boot a previous system state ("snapshot").
+  Every entry carries a kernel+initrd on the ESP (~100MB), so the limit keeps
+  the 1 GiB ESP from filling up; GC (`nix.gc.automatic`) prunes old store
+  generations in parallel.
 - **First login**: the password is whatever you set during setup — the hash
   is stored on the machine at `/etc/hashed-password` (read at activation). If
   it wasn't provisioned (e.g. a fresh clone on a machine that never ran

@@ -50,5 +50,36 @@
       default = false;
       description = "Enable sops-nix secret decryption.";
     };
+    # Single source of truth for GNOME Shell extensions: enabled in the user's
+    # dconf db (home/mario.nix) and the matching package installed (desktop.nix).
+    # Each entry maps an extension-gnome.org UUID to a pkgs.gnomeExtensions attr.
+    gnomeExtensions = lib.mkOption {
+      type = lib.types.listOf (lib.types.submodule {
+        options = {
+          uuid = lib.mkOption {
+            type = lib.types.str;
+            description = "Extension UUID as registered on extensions.gnome.org.";
+          };
+          package = lib.mkOption {
+            type = lib.types.str;
+            description = "Attribute name under pkgs.gnomeExtensions.";
+          };
+        };
+      });
+      default = [
+        { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
+        { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
+        { uuid = "caffeine@patapon.info"; package = "caffeine"; }
+        { uuid = "clipboard-indicator@tudmotu.com"; package = "clipboard-indicator"; }
+        { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
+        { uuid = "dash-to-dock@micxgx.gmail.com"; package = "dash-to-dock"; }
+        { uuid = "drive-menu@gnome-shell-extensions.gcampax.github.com"; package = "removable-drive-menu"; }
+        { uuid = "impatience@gfxmonk.net"; package = "impatience"; }
+        { uuid = "just-perfection-desktop@just-perfection"; package = "just-perfection"; }
+        { uuid = "tailscale-gnome-qs@tailscale-qs.github.io"; package = "tailscale-qs"; }
+        { uuid = "user-theme@gnome-shell-extensions.gcampax.github.com"; package = "user-themes"; }
+      ];
+      description = "GNOME Shell extensions to enable and install.";
+    };
   };
 }
