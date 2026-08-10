@@ -166,7 +166,7 @@
       colorScheme = "dark";
       theme = {
         name = "WhiteSur-dark";
-        package = pkgs.whiteSur-gtk-theme;
+        package = pkgs.whitesur-gtk-theme;
       };
       iconTheme = {
         name = "WhiteSur-dark";
@@ -183,7 +183,7 @@
     # extensions list above). The extension reads themes from ~/.themes and
     # ~/.local/share/themes, so link the GNOME Shell variant there.
     home.file.".themes/WhiteSur-dark" = {
-      source = "${pkgs.whiteSur-gtk-theme}/share/themes/WhiteSur-dark";
+      source = "${pkgs.whitesur-gtk-theme}/share/themes/WhiteSur-dark";
     };
   };
 }
