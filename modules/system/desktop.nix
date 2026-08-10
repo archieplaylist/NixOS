@@ -14,7 +14,7 @@
       # dconf value in home/mario.nix are both derived from it.
       extraGSettingsOverrides = ''
         [org.gnome.shell]
-        enabled-extensions=[${builtins.concatStringsSep ", " (map (e: "'" + e.uuid + "'") config.mySystem.gnomeExtensions)}]
+        enabled-extensions=[${lib.concatMapStringsSep ", " (e: "'" + e.uuid + "'") config.mySystem.gnomeExtensions}]
       '';
       extraGSettingsOverridePackages = [
         pkgs.gsettings-desktop-schemas
