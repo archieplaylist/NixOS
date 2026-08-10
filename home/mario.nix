@@ -170,7 +170,7 @@
       };
       iconTheme = {
         name = "WhiteSur-dark";
-        package = pkgs.whiteSur-icon-theme;
+        package = pkgs.whitesur-icon-theme;
       };
       cursorTheme = {
         name = "WhiteSur-cursors";
