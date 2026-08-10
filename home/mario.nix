@@ -153,7 +153,7 @@
       # User Themes extension: apply the WhiteSur-dark shell theme from
       # ~/.themes (linked below).
       settings."org/gnome/shell/extensions/user-theme" = {
-        name = "WhiteSur-dark";
+        name = "WhiteSur-Dark";
       };
       # Titlebar buttons: minimize, maximize and close on the right.
       settings."org/gnome/desktop/wm/preferences" = {
