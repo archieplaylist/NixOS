@@ -155,6 +155,14 @@
       settings."org/gnome/shell/extensions/user-theme" = {
         name = "WhiteSur-dark";
       };
+      # Titlebar buttons: minimize, maximize and close on the right.
+      settings."org/gnome/desktop/wm/preferences" = {
+        button-layout = "appmenu:minimize,maximize,close";
+      };
+      # Middle-click pastes the primary selection.
+      settings."org/gnome/desktop/interface" = {
+        gtk-enable-primary-paste = true;
+      };
     };
 
     # WhiteSur dark theme (GTK), icons and cursor. home-manager's `gtk` module
@@ -165,7 +173,7 @@
       enable = true;
       colorScheme = "dark";
       theme = {
-        name = "WhiteSur-dark";
+        name = "WhiteSur-Dark";
         package = pkgs.whitesur-gtk-theme;
       };
       iconTheme = {
@@ -182,8 +190,8 @@
     # (user-theme@gnome-shell-extensions.gcampax.github.com is in the enabled
     # extensions list above). The extension reads themes from ~/.themes and
     # ~/.local/share/themes, so link the GNOME Shell variant there.
-    home.file.".themes/WhiteSur-dark" = {
-      source = "${pkgs.whitesur-gtk-theme}/share/themes/WhiteSur-dark";
+    home.file.".themes/WhiteSur-Dark" = {
+      source = "${pkgs.whitesur-gtk-theme}/share/themes/WhiteSur-Dark";
     };
   };
 }
