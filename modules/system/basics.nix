@@ -31,6 +31,24 @@
       allowPing = true;
     };
 
+    # Run third-party dynamically-linked binaries (VS Code extensions like
+    # Kilo Code/Cline, JetBrains remote, etc.) via nix-ld. The module's
+    # default library set (zlib, openssl, curl, systemd, …) is merged with
+    # the extra libs below, which cover Node-based CLIs and desktop deps.
+    programs.nix-ld = {
+      enable = true;
+      libraries = with pkgs; [
+        gcc-unwrapped.lib # libgcc_s.so.1
+        glib
+        libsecret # VS Code keyring
+        icu # node-based CLIs (kilo, etc.)
+        krb5
+        libnotify
+        nspr
+        nss
+      ];
+    };
+
     # Firmware.
     hardware.enableRedistributableFirmware = lib.mkDefault true;
 
