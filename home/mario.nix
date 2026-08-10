@@ -74,6 +74,24 @@
         ll = "ls -lha";
         grep = "grep --color=auto";
       };
+      initExtra = ''
+        yt() {
+          if [[ "$1" == "-a" ]]; then
+            # Audio mode: shift the arguments so $2 becomes the URL
+            shift
+            yt-dlp -f "bestaudio[ext=m4a]/bestaudio" -x --audio-format m4a -P "~/Downloads" "$@"
+          else
+            # Video mode
+            yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" -P "~/Downloads" "$@"
+          fi
+        }
+
+        tomp3() {
+          for file in "$@"; do
+            ffmpeg -i "$file" -vn -ar 44100 -ac 2 -b:a 192k "''${file%.*}.mp3"
+          done
+        }
+      '';
     };
 
     programs.direnv = {
@@ -119,6 +137,8 @@
         vivaldi
         vlc
         mpv
+        yt-dlp
+        ffmpeg
         joplin-desktop
         onlyoffice-desktopeditors
         libreoffice-fresh
