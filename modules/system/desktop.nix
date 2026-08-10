@@ -30,8 +30,9 @@
       jack.enable = true;
     };
 
-    # Bluetooth.
+    # Bluetooth. Radio stays off at boot (can be toggled on via GNOME).
     hardware.bluetooth.enable = true;
+    hardware.bluetooth.powerOnBoot = false;
     services.blueman.enable = true;
 
     # Network management.

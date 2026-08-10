@@ -22,7 +22,6 @@
 
   # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
   mySystem.flatpakApps = [
-    "io.missioncenter.MissionCenter"
     "com.github.wwmm.easyeffects"
     "org.localsend.localsend_app"
     "it.mijorus.gearlever"

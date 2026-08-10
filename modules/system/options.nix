@@ -74,7 +74,6 @@
         { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
         { uuid = "dash-to-dock@micxgx.gmail.com"; package = "dash-to-dock"; }
         { uuid = "drive-menu@gnome-shell-extensions.gcampax.github.com"; package = "removable-drive-menu"; }
-        { uuid = "impatience@gfxmonk.net"; package = "impatience"; }
         { uuid = "just-perfection-desktop@just-perfection"; package = "just-perfection"; }
         { uuid = "tailscale-gnome-qs@tailscale-qs.github.io"; package = "tailscale-qs"; }
         { uuid = "user-theme@gnome-shell-extensions.gcampax.github.com"; package = "user-themes"; }
