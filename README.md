@@ -7,7 +7,7 @@ GNOME, Intel). Four hosts share the same baseline: `nixos-desktop`, `nixos-lapto
 ## Layout
 
 ```
-├── flake.nix            # inputs (all follow nixpkgs) + hosts, checks, devShell
+├── flake.nix            # inputs (nixpkgs + unstable, home-manager, sops-nix, nix-flatpak)
 ├── Makefile             # day-to-day commands: check, fmt, update, rebuild
 ├── .githooks/           # git hooks (install with `make hooks`)
 ├── modules/
@@ -73,7 +73,8 @@ User packages live in `home/apps.nix`, each group gated behind its
 `mySystem.appGroups.<group>.enable` flag:
 
 - **general** (default on): Firefox, Chromium, Vivaldi, VLC, mpv, yt-dlp,
-  ffmpeg, Joplin, OnlyOffice, LibreOffice, VS Code.
+  ffmpeg, Discord (from nixpkgs-unstable), Joplin, OnlyOffice, LibreOffice,
+  VS Code.
 - **dev** (default on): Node.js, GitHub CLI, docker-compose, jq, yq.
 - **gaming** (default on): Heroic Games Launcher, MangoHud, gamescope; Steam +
   32-bit OpenGL multilib is set up at the system level (`desktop.nix`).
@@ -369,6 +370,10 @@ sudo nixos-rebuild list-generations   # see system generations + how old
 - Exact version pinning is handled by `flake.lock`; `nix flake update`
   updates all inputs together. sops-nix and nix-flatpak both follow
   `nixpkgs`, so there is exactly one nixpkgs revision in the lock.
+- **Unstable packages**: `nixpkgs-unstable` is a separate input exposed as
+  `pkgs.unstable` via an overlay in `flake.nix`. It's used for apps that
+  aren't on the stable channel (currently Discord). It gets updated together
+  with everything else on `nix flake update`.
 - `nix fmt` uses the `#formatter` output (nixpkgs-fmt); `nix develop` drops
   you into a shell with `nixpkgs-fmt`, `deadnix`, and `statix`.
 - `nix flake check` builds every host config (`#checks`) — run it before

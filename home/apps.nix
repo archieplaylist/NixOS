@@ -30,6 +30,9 @@
       mpv
       yt-dlp
       ffmpeg
+      # Discord is not on the stable channel; pulled from nixpkgs-unstable
+      # via the `pkgs.unstable` overlay (see flake.nix).
+      pkgs.unstable.discord
       joplin-desktop
       onlyoffice-desktopeditors
       libreoffice-fresh

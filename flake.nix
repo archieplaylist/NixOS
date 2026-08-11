@@ -3,6 +3,9 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    # Packages not on the stable channel (e.g. discord) come from here via
+    # the `pkgs.unstable` overlay below.
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -14,7 +17,7 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, sops-nix, nix-flatpak, ... }@inputs:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -29,6 +32,19 @@
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
           nix-flatpak.nixosModules.nix-flatpak
+          {
+            # `pkgs.unstable` — the nixpkgs-unstable package set, for apps that
+            # aren't on the stable channel (discord). Unfree is allowed here so
+            # discord resolves regardless of the stable config.
+            nixpkgs.overlays = [
+              (final: _prev: {
+                unstable = import nixpkgs-unstable {
+                  localSystem = { inherit system; };
+                  config.allowUnfree = true;
+                };
+              })
+            ];
+          }
           {
             home-manager = {
               useGlobalPkgs = true;
