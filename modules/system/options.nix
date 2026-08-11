@@ -35,6 +35,46 @@
       default = false;
       description = "Enable the VirtualBox host (with kernel modules).";
     };
+    # Per-host application group toggles. Single source of truth: the system
+    # side (desktop.nix, e.g. Steam/32-bit OpenGL) and the user side
+    # (home/*.nix packages via `osConfig.mySystem.appGroups`) both read these,
+    # never home-manager options directly.
+    appGroups = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          general = {
+            enable = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "General-purpose applications (browsers, media, editors).";
+            };
+          };
+          gaming = {
+            enable = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";
+            };
+          };
+          dev = {
+            enable = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Development tooling (editors, languages, CLIs).";
+            };
+          };
+          work = {
+            enable = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Work applications (dbeaver-bin, filezilla, remmina).";
+            };
+          };
+        };
+      };
+      default = { };
+      description = "Per-host application group toggles (mirrored to home-manager).";
+    };
     flatpakApps = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];

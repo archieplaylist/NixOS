@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Pre-push hook: formatting + build every host config before pushing.
+# Install once per clone with: `make hooks` (sets core.hooksPath).
+set -euo pipefail
+
+echo "==> make fmt-check"
+make fmt-check
+
+echo "==> make check"
+make check

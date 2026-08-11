@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# tomp3 — convert any ffmpeg-supported file to a 192 kbps MP3 in place.
+#   tomp3 foo.m4a bar.webm ...
+set -euo pipefail
+
+for file in "$@"; do
+  ffmpeg -i "$file" -vn -ar 44100 -ac 2 -b:a 192k "${file%.*}.mp3"
+done

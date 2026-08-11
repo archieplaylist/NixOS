@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# yt — download video or audio from a URL with yt-dlp.
+#   yt <url>     video: best mp4 video + m4a audio
+#   yt -a <url>  audio: m4a only, extracted into ~/Downloads
+set -euo pipefail
+
+if [[ "${1:-}" == "-a" ]]; then
+  shift
+  yt-dlp -f "bestaudio[ext=m4a]/bestaudio" -x --audio-format m4a -P "$HOME/Downloads" "$@"
+else
+  yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" -P "$HOME/Downloads" "$@"
+fi

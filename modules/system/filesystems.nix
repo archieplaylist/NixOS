@@ -6,7 +6,8 @@
 #
 # No /nix or /persist mounts needed — the nix store lives on the root
 # filesystem and all state (home dirs, /var, /etc) is inherently persistent.
-{ config, lib, ... }: {
+{ ...
+}: {
   boot.initrd.supportedFilesystems = [ "xfs" ];
 
   fileSystems = {

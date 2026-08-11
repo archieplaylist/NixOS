@@ -7,7 +7,10 @@
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
@@ -15,6 +18,7 @@
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
+      pkgs = nixpkgs.legacyPackages.${system};
 
       # Build a NixOS configuration for hostname `name`.
       buildHost = name: lib.nixosSystem {
@@ -45,7 +49,23 @@
         vm-host = buildHost "vm-host";
       };
 
+      # `nix flake check` builds every host config — catches module errors
+      # before you rebuild on a real machine.
+      checks.${system} =
+        builtins.mapAttrs
+        (_: cfg: cfg.config.system.build.toplevel)
+        self.nixosConfigurations;
+
+      # `nix develop` — formatter and Nix linters.
+      devShells.${system}.default = pkgs.mkShell {
+        packages = with pkgs; [
+          nixpkgs-fmt
+          deadnix
+          statix
+        ];
+      };
+
       # `nix fmt` uses this.
-      formatter.${system} = nixpkgs.legacyPackages.${system}.nixpkgs-fmt;
+      formatter.${system} = pkgs.nixpkgs-fmt;
     };
 }

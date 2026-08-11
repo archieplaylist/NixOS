@@ -1,14 +1,9 @@
 { ...
 }: {
   imports = [
-    ../modules/system/basics.nix
+    ./common.nix
     ../modules/system/desktop.nix
-    ../modules/system/services.nix
-    ../modules/system/secrets.nix
-    ../modules/system/users.nix
-    ../modules/system/filesystems.nix
     ../modules/hardware/intel.nix
-    ../modules/hardware/uefi.nix
   ];
 
   # --- Host identity -----------------------------------------------------
@@ -28,10 +23,10 @@
   mySystem.sshAuthorizedKeys = [ ];
 
   # Work apps live in home-manager (dbeaver-bin, filezilla, remmina).
-  home-manager.users.mario.myApps.work.enable = true;
+  mySystem.appGroups.work.enable = true;
 
   # Workstation: no gaming packages (Steam, MangoHud, gamescope, Heroic).
-  home-manager.users.mario.myApps.gaming.enable = false;
+  mySystem.appGroups.gaming.enable = false;
 
   # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix,
   # flathub remote is added by the module by default).

@@ -1,93 +1,105 @@
 # NixOS Desktop Configuration
 
-A modular, flake-based NixOS configuration for Mario's workstations
-(NixOS 26.05, GNOME, Intel). Supports both a desktop and a laptop host.
+A modular, flake-based NixOS configuration for Mario's machines (NixOS 26.05,
+GNOME, Intel). Four hosts share the same baseline: `nixos-desktop`, `nixos-laptop`,
+`nixos-work`, and `vm-host` (a VM guest).
 
 ## Layout
 
-├── flake.nix            # inputs + host definitions
-├── modules/
-│   ├── system/          # options, basics, desktop (GNOME), services, secrets,
-│   │                    # users, filesystems (XFS layout)
-│   └── hardware/        # intel, uefi (systemd-boot + XFS), laptop, vm-guest
-├── hosts/               # per-machine host files (imports + mySystem flags)
-├── home/                # home-manager user config (mario)
-└── secrets/             # sops-nix placeholders
 ```
+├── flake.nix            # inputs (all follow nixpkgs) + hosts, checks, devShell
+├── Makefile             # day-to-day commands: check, fmt, update, rebuild
+├── .githooks/           # git hooks (install with `make hooks`)
+├── modules/
+│   ├── system/          # options (mySystem.*), basics, desktop (GNOME), services,
+│   │                    # secrets, users, filesystems (XFS layout)
+│   └── hardware/        # intel, uefi (systemd-boot), laptop, vm-guest
+├── hosts/
+│   ├── common.nix       # baseline imports shared by every host
+│   └── <host>.nix       # per-machine files (imports + mySystem flags)
+├── home/
+│   ├── mario.nix        # home-manager entry; imports the submodules below
+│   ├── shell.nix        # bash, direnv, ~/.local/bin scripts (yt, tomp3)
+│   ├── apps.nix         # user packages, gated on mySystem.appGroups.*
+│   ├── gnome.nix        # GNOME dconf (extensions, theme, tweaks)
+│   ├── themes.nix       # WhiteSur dark GTK/icon/cursor + shell theme
+│   ├── tooling.nix      # git config + global excludes
+│   └── scripts/         # plain bash scripts -> ~/.local/bin
+└── secrets/             # sops-nix placeholders (encrypted secrets never in git)
+```
+
+## Host flags
+
+Each host file sets `mySystem` flags (defined in `modules/system/options.nix`):
+
+- `mySystem.enableDesktop` — GNOME via GDM, PipeWire, Bluetooth, NetworkManager,
+  Flatpak daemon, GNOME extensions.
+- `mySystem.enableLaptop` — power-profiles-daemon + lid handling.
+- `mySystem.enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSops`.
+- `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
+- `mySystem.gnomeExtensions` — single source of truth for GNOME extensions.
+- `mySystem.appGroups.{general,gaming,dev,work}.enable` — application group
+  toggles used by **both** the system side (`desktop.nix`) and the user side
+  (`home/apps.nix` via `osConfig`). This is the per-host switch for the
+  package groups below.
 
 ## Adding a host
 
-Host files are thin: they only pick imports and set `mySystem` flags. The
-user account, filesystems (label-based mounts), and all option definitions
-live in shared modules (`modules/system/options.nix`, `users.nix`,
-`filesystems.nix`).
+1. Copy `hosts/nixos-desktop.nix` to `hosts/new-host.nix` and simplify it to:
 
-1. Copy `hosts/nixos-desktop.nix` to `hosts/new-host.nix`.
+   ```nix
+   { ...
+   }: {
+     imports = [
+       ./common.nix
+       ../modules/system/desktop.nix  # only for desktop hosts
+       ../modules/hardware/intel.nix  # only for Intel hardware
+     ];
+     mySystem.hostname = "new-host";
+     # ... any mySystem flags you need (see "Host flags")
+   }
+   ```
+
 2. Add a `nixosConfigurations.new-host = buildHost "new-host";` line in
    `flake.nix`.
 3. Set `mySystem.hostname` (filesystems are referenced by label — see the
    partition step below).
-4. Optionally disable general-purpose, gaming, or development applications on
-   this host with `home-manager.users.mario.myApps.general.enable = false;`,
-   `home-manager.users.mario.myApps.gaming.enable = false;`, and/or
-   `home-manager.users.mario.myApps.dev.enable = false;`. To opt into the
-   work apps instead, set `home-manager.users.mario.myApps.work.enable = true;`
-   and `mySystem.enableVirtualBox = true;` (see the "Work" section below).
+4. Toggle application groups if needed, e.g.
+   `mySystem.appGroups.dev.enable = false;`.
 
-## General-purpose applications
+## Application groups
 
-Enabled by default on every desktop host (controllable per host via
-`home-manager.users.mario.myApps.general.enable`):
+User packages live in `home/apps.nix`, each group gated behind its
+`mySystem.appGroups.<group>.enable` flag:
 
-- **Browsers:** Firefox, Chromium, Vivaldi
-- **Multimedia:** VLC, mpv
+- **general** (default on): Firefox, Chromium, Vivaldi, VLC, mpv, yt-dlp,
+  ffmpeg, Joplin, OnlyOffice, LibreOffice, VS Code.
+- **dev** (default on): Node.js, GitHub CLI, docker-compose, jq, yq.
+- **gaming** (default on): Heroic Games Launcher, MangoHud, gamescope; Steam +
+  32-bit OpenGL multilib is set up at the system level (`desktop.nix`).
+- **work** (default off, opt-in): dbeaver-bin (database client), FileZilla,
+  Remmina. Often combined with `mySystem.enableVirtualBox = true;`
+  (`services.nix` builds the vboxdrv kernel module, `users.nix` adds `mario`
+  to `vboxusers` for USB passthrough).
 
-The browser/media user packages live in `home/mario.nix` (via home-manager),
-gated behind the same flag.
+## Custom scripts
 
-## Development
+`home/scripts/` holds plain bash scripts installed as `~/.local/bin` (put on
+PATH via `home.sessionPath` in `home/mario.nix`):
 
-Enabled by default on every host (controllable per host via
-`home-manager.users.mario.myApps.dev.enable`):
+- `yt <url>` — best mp4 video + m4a audio; `yt -a <url>` — audio-only m4a.
+  Downloads go to `~/Downloads`.
+- `tomp3 file...` — converts any ffmpeg-supported file to a 192 kbps MP3 in
+  place.
 
-- **Editors:** VS Code
-- **Languages:** Python, Node.js
-- **CLI tools:** GitHub CLI, docker-compose, jq, yq
-
-The dev user packages live in `home/mario.nix` (via home-manager), gated
-behind the same flag.
-
-## Gaming
-
-Enabled by default on every desktop host (controllable per host via
-`home-manager.users.mario.myApps.gaming.enable`):
-
-- **Gaming:** Heroic Games Launcher, MangoHud, gamescope; Steam + 32-bit
-  OpenGL multilib are set up at the system level (`modules/system/desktop.nix`)
-
-The gaming user packages live in `home/mario.nix` (via home-manager), gated
-behind the same flag.
-
-## Work
-
-Optional per-host application group (disabled by default — opt in with
-`home-manager.users.mario.myApps.work.enable = true;`):
-
-- **Work apps:** dbeaver-bin (database client), FileZilla (FTP/SFTP), Remmina
-  (remote desktop)
-- **VirtualBox host** (`mySystem.enableVirtualBox = true;`): builds the
-  vboxdrv kernel module and adds `mario` to the `vboxusers` group for USB
-  passthrough (`modules/system/services.nix`, `modules/system/users.nix`)
+## Flatpak
 
 Flatpak apps are declared declaratively via
-[nix-flatpak](https://github.com/gmodena/nix-flatpak) (`flake.nix` input,
-loaded as a module for every host). The daemon and wiring live in
-`modules/system/desktop.nix` (`services.flatpak.enable` +
-`services.flatpak.packages = config.mySystem.flatpakApps`); each host picks
-its own apps with
-`mySystem.flatpakApps = [ "io.missioncenter.MissionCenter" ... ]`. The
-`nixos-work` host adds Insomnia; other hosts share Mission Center,
-EasyEffects, LocalSend, GearLever, Flatseal, and Extension Manager.
+[nix-flatpak](https://github.com/gmodena/nix-flatpak). The daemon and wiring
+live in `modules/system/desktop.nix`; each host picks its own apps with
+`mySystem.flatpakApps = [ ... ]`. Current shared set: EasyEffects, LocalSend,
+GearLever, Flatseal, Extension Manager (`nixos-work` additionally has
+Insomnia).
 
 ## First-time setup
 
@@ -133,11 +145,8 @@ Partitioning creates this layout on the selected disk (GPT, XFS):
 The nix store and all system/user state live on the root filesystem — no
 subvolumes, no `/persist`. Swap is handled with zram (`zramSwap.enable`), so
 no swap partition is needed. The partition step refuses to run on an
-installed system and refuses disks with mounted partitions — it is meant to
-be run from the NixOS installer ISO, which is exactly where it auto-detects.
-
-Everything it does is also documented step by step below, if you prefer to
-do it manually.
+installed system and refuses disks with mounted partitions. Everything it
+does is also documented manually below.
 
 ### Manual steps
 
@@ -183,11 +192,10 @@ do it manually.
 
 4. Rebuild a host:
 
-```bash
-nixos-rebuild switch --flake .#nixos-desktop
-nixos-rebuild switch --flake .#nixos-laptop
-nixos-rebuild switch --flake .#nixos-work
-```
+   ```bash
+   sudo nixos-rebuild switch --flake .#nixos-desktop
+   # or: make rebuild HOST=nixos-laptop
+   ```
 
 5. **Set the user password** (manual fallback — setup.sh does this for
    you): generate a SHA-512 hash and place it on the machine so the config
@@ -197,7 +205,6 @@ nixos-rebuild switch --flake .#nixos-work
    openssl passwd -6            # type the password, copy the printed hash
    printf '%s\n' 'PASTE-HASH-HERE' | sudo tee /etc/hashed-password >/dev/null
    sudo chmod 600 /etc/hashed-password
-   # then rebuild for it to take effect:
    sudo nixos-rebuild switch --flake .#<host>
    ```
 
@@ -231,12 +238,22 @@ nixos-install --flake /mnt/etc/nixos#nixos-desktop
 
 This section covers the everyday and periodic upkeep of an installed host:
 updating, rebuilding, rolling back, and cleaning up. Unless noted, run these
-**on the machine** and from the **repo directory** (`~/Documents/.../NixOS`).
+**on the machine** and from the **repo directory**.
+
+A `Makefile` wraps the common commands (run `make help` for the full list):
+
+| Command | What it does |
+|---------|--------------|
+| `make check` | `nix flake check` — builds every host config to catch errors |
+| `make fmt-check` | fails if `nix fmt` would change anything |
+| `make update` | `nix flake update` — refresh all inputs |
+| `make build` / `make rebuild` | build / build+activate the `HOST` (default `nixos-desktop`) |
+| `make hooks` | install git hooks (`core.hooksPath` → `.githooks`, once per clone) |
+| `make develop` | `nix develop` — formatter + Nix linters (nixpkgs-fmt, deadnix, statix) |
 
 Some cleanup runs automatically already (see `modules/system/basics.nix`):
 
-- **`nix.gc.automatic = true`** — weekly `nix-collect-garbage
-  --delete-older-than 14d`
+- **`nix.gc.automatic = true`** — weekly `nix-collect-garbage --delete-older-than 7d`
 - **`nix.settings.auto-optimise-store = true`** — dedupe store paths
 - **`services.fstrim.enable = true`** — weekly SSD TRIM
 
@@ -246,27 +263,29 @@ The most common task: pull the latest packages, rebuild, and switch to the
 new generation.
 
 ```bash
-git status                 # make sure you have no uncommitted changes
-git pull                   # if the repo is shared/pushed
-nix flake update           # update nixpkgs, home-manager, sops-nix together
-git diff flake.lock        # review what changed before committing/building
-nix fmt                     # keep formatting clean
+git status                    # make sure you have no uncommitted changes
+git pull                      # if the repo is shared/pushed
+nix flake update              # update nixpkgs, home-manager, sops-nix together
+git diff flake.lock           # review what changed before committing/building
+nix fmt                       # keep formatting clean
 git add flake.nix flake.lock && git commit -m "chore: update flake inputs"
-sudo nixos-rebuild switch --flake .#nixos-desktop
-systemctl --failed         # confirm nothing broke
+sudo nixos-rebuild switch --flake .#nixos-desktop   # or: make rebuild
+systemctl --failed            # confirm nothing broke
 ```
 
 - Only update a single input: `nix flake update nixpkgs`
   (+ you can lock just one: `nix flake lock --update-input nixpkgs`).
 - Home-manager is configured **inside** the flake, so `nixos-rebuild switch`
   updates it too — no separate `home-manager switch` is needed.
+- Before pushing, the `pre-push` hook runs `nix fmt --check` + `nix flake check`
+  (install once with `make hooks`).
 
 ### Rebuild safely (before flipping the switch)
 
 ```bash
-sudo nixos-rebuild build --flake .#nixos-desktop   # build only, don't activate
+sudo nixos-rebuild build --flake .#nixos-desktop   # build only, don't activate (make build)
 sudo nixos-rebuild boot --flake .#nixos-desktop    # build + set as next boot
-sudo nixos-rebuild switch --flake .#nixos-desktop  # build + activate now
+sudo nixos-rebuild switch --flake .#nixos-desktop  # build + activate now (make rebuild)
 ```
 
 - `build` is a harmless dry run for syntax/config errors; `switch` changes the
@@ -275,9 +294,9 @@ sudo nixos-rebuild switch --flake .#nixos-desktop  # build + activate now
 
 ### Updating just home-manager state
 
-You don't normally do this separately. But if you edit `home/mario.nix` and
-only want to apply the user part on a machine without rebuilding the system
-profile (useful for quick experiments):
+You don't normally do this separately. But if you edit something in `home/`
+and only want to apply the user part on a machine without rebuilding the
+system profile (useful for quick experiments):
 
 ```bash
 nix fmt
@@ -297,9 +316,11 @@ reliable because it works even if modules fail to load:
 | Rebuild switch | system boots but you want the previous profile | `sudo nixos-rebuild switch --rollback` |
 | Older gen | roll back to a specific past generation | `sudo nix-env --profile /nix/var/nix/profiles/system --list-generations` |
 
-- systemd-boot keeps every generation (see the **Notes** section above). To
-  actually see the menu at boot, you may want
-  `boot.loader.timeout = 10;` in the host file.
+- systemd-boot keeps every generation up to
+  `boot.loader.systemd-boot.configurationLimit = 24` (see
+  `modules/hardware/uefi.nix`), and the ESP is masked root-only. To actually
+  see the menu at boot, you may want `boot.loader.timeout = 10;` in the host
+  file.
 - `switch --rollback` activates the previously *active* generation (NOT the
   list of boot entries — the two swap lists can differ), so the menu is the
   source of truth for going "further back".
@@ -322,7 +343,7 @@ sudo nixos-rebuild list-generations   # see system generations + how old
   boot-menu rollback history — keep at least one before it (use `list-generations`
   first).
 - To drop only old/broken generations, keep running weekly GC and rely on the
-  default `--delete-older-than 14d`.
+  default `--delete-older-than 7d`.
 
 ### Practical schedule
 
@@ -346,8 +367,12 @@ sudo nixos-rebuild list-generations   # see system generations + how old
   ./setup.sh), `mario` has no password until you write the file or run
   `sudo passwd mario`.
 - Exact version pinning is handled by `flake.lock`; `nix flake update`
-  updates all inputs together.
-- `nix fmt` uses the `#formatter` output (nixpkgs-fmt).
+  updates all inputs together. sops-nix and nix-flatpak both follow
+  `nixpkgs`, so there is exactly one nixpkgs revision in the lock.
+- `nix fmt` uses the `#formatter` output (nixpkgs-fmt); `nix develop` drops
+  you into a shell with `nixpkgs-fmt`, `deadnix`, and `statix`.
+- `nix flake check` builds every host config (`#checks`) — run it before
+  rebuilding on a real machine or after structural refactors.
 - **SSH access**: on hosts with `mySystem.enableSSH = true` the server rejects
   password logins, so access depends entirely on
   `mySystem.sshAuthorizedKeys` — put your real public keys there or SSH will
@@ -356,4 +381,5 @@ sudo nixos-rebuild list-generations   # see system generations + how old
 ## Roadmap
 
 - [x] sops-nix real secrets (opt-in via `mySystem.enableSops`)
-- [x] impermanence removed — simple XFS layout (2 partitions: `/` + `/boot`)
+- [x] simple two-partition XFS layout (impermanence removed)
+- [x] local quality gates: `make check`, `make fmt-check`, git hooks, devShell

@@ -43,11 +43,11 @@
     ] ++ (map (e: pkgs.gnomeExtensions.${e.package}) config.mySystem.gnomeExtensions);
 
     # Gaming: Steam needs 32-bit multilib OpenGL. Enabled by default, disable
-    # per host with `home-manager.users.mario.myApps.gaming.enable = false`.
-    programs.steam = lib.mkIf config.home-manager.users.mario.myApps.gaming.enable {
+    # per host with `mySystem.appGroups.gaming.enable = false`.
+    programs.steam = lib.mkIf config.mySystem.appGroups.gaming.enable {
       enable = true;
     };
-    hardware.graphics.enable32Bit = lib.mkIf config.home-manager.users.mario.myApps.gaming.enable true;
+    hardware.graphics.enable32Bit = lib.mkIf config.mySystem.appGroups.gaming.enable true;
 
     # Flatpak for third-party apps. The daemon is enabled here; apps are
     # declared per host via `mySystem.flatpakApps` (nix-flatpak).
