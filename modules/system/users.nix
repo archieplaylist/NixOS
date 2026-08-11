@@ -6,7 +6,8 @@
       [ "wheel" "video" "audio" ]
       ++ lib.optionals config.mySystem.enableDesktop [ "networkmanager" ]
       ++ lib.optionals config.mySystem.enableDocker [ "docker" ]
-      ++ lib.optionals config.mySystem.enableVirtualBox [ "vboxusers" ];
+      ++ lib.optionals config.mySystem.enableVirtualBox [ "vboxusers" ]
+      ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" ];
     openssh.authorizedKeys.keys = config.mySystem.sshAuthorizedKeys;
     # Read at activation from the live filesystem (not the flake, so no git
     # interplay). setup.sh writes the hash here; if the file is missing the

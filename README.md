@@ -76,8 +76,12 @@ User packages live in `home/apps.nix`, each group gated behind its
   ffmpeg, Discord (from nixpkgs-unstable), Joplin, OnlyOffice, LibreOffice,
   VS Code.
 - **dev** (default on): Node.js, GitHub CLI, docker-compose, jq, yq.
-- **gaming** (default on): Heroic Games Launcher, MangoHud, gamescope; Steam +
-  32-bit OpenGL multilib is set up at the system level (`desktop.nix`).
+- **gaming** (default on): Heroic, MangoHud, Cartridges, goverlay, OpenMW,
+  Daggerfall Unity, SuperTuxKart, vulkan-tools (user packages). At the system
+  level (`desktop.nix`): Steam (32-bit OpenGL + Remote Play/Dedicated
+  Server/LAN transfer firewall + Proton env overrides), GameMode (with the
+  GNOME shell extension), gamescope (`capSysNice` + `--rt --adaptive-sync`),
+  and Xbox/Steam controller support (xone, xpadneo, steam-hardware).
 - **work** (default off, opt-in): dbeaver-bin (database client), FileZilla,
   Remmina. Often combined with `mySystem.enableVirtualBox = true;`
   (`services.nix` builds the vboxdrv kernel module, `users.nix` adds `mario`

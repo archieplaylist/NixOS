@@ -106,19 +106,24 @@
           };
         };
       });
-      default = [
-        { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
-        { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
-        { uuid = "caffeine@patapon.info"; package = "caffeine"; }
-        { uuid = "clipboard-indicator@tudmotu.com"; package = "clipboard-indicator"; }
-        { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
-        { uuid = "dash-to-dock@micxgx.gmail.com"; package = "dash-to-dock"; }
-        { uuid = "drive-menu@gnome-shell-extensions.gcampax.github.com"; package = "removable-drive-menu"; }
-        { uuid = "just-perfection-desktop@just-perfection"; package = "just-perfection"; }
-        { uuid = "tailscale-gnome-qs@tailscale-qs.github.io"; package = "tailscale-qs"; }
-        { uuid = "user-theme@gnome-shell-extensions.gcampax.github.com"; package = "user-themes"; }
-      ];
+      default = [ ];
       description = "GNOME Shell extensions to enable and install.";
     };
   };
+
+  # Base extension list as a regular definition: modules extending it (e.g.
+  # the gamemode extension gated on mySystem.appGroups.gaming in desktop.nix)
+  # use mkAfter at the same priority, so both lists merge.
+  config.mySystem.gnomeExtensions = [
+    { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
+    { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
+    { uuid = "caffeine@patapon.info"; package = "caffeine"; }
+    { uuid = "clipboard-indicator@tudmotu.com"; package = "clipboard-indicator"; }
+    { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
+    { uuid = "dash-to-dock@micxgx.gmail.com"; package = "dash-to-dock"; }
+    { uuid = "drive-menu@gnome-shell-extensions.gcampax.github.com"; package = "removable-drive-menu"; }
+    { uuid = "just-perfection-desktop@just-perfection"; package = "just-perfection"; }
+    { uuid = "tailscale-gnome-qs@tailscale-qs.github.io"; package = "tailscale-qs"; }
+    { uuid = "user-theme@gnome-shell-extensions.gcampax.github.com"; package = "user-themes"; }
+  ];
 }

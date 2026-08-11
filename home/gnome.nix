@@ -23,5 +23,9 @@
     settings."org/gnome/desktop/interface" = {
       gtk-enable-primary-paste = true;
     };
+    # Overamplification: allow volume above 100%.
+    settings."org/gnome/desktop/sound" = {
+      allow-volume-above-100-percent = true;
+    };
   };
 }

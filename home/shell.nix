@@ -8,6 +8,7 @@
       ls = "ls --color=auto";
       ll = "ls -lha";
       grep = "grep --color=auto";
+      ff = "fastfetch";
     };
   };
 

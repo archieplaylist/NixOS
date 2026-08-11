@@ -2,6 +2,7 @@
 # Submodules cover one concern each:
 #   shell.nix   bash aliases, direnv, custom scripts (yt, tomp3)
 #   apps.nix    user packages, gated on mySystem.appGroups.*
+#   fastfetch.nix  fastfetch config (~/.config/fastfetch)
 #   gnome.nix   GNOME dconf settings (extensions, theme, tweaks)
 #   themes.nix  WhiteSur dark GTK/icon/cursor theme
 #   tooling.nix git config + global excludes
@@ -9,6 +10,7 @@
 }: {
   imports = [
     ./apps.nix
+    ./fastfetch.nix
     ./gnome.nix
     ./shell.nix
     ./themes.nix

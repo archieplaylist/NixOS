@@ -11,6 +11,7 @@
       fzf
       bat
       eza
+      fastfetch
       python3
     ])
     # Development tooling.
@@ -41,8 +42,12 @@
     # Gaming applications.
     (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
       mangohud
-      gamescope
       heroic
+      cartridges
+      daggerfall-unity
+      goverlay
+      openmw
+      vulkan-tools
     ]))
     # Work applications.
     (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
