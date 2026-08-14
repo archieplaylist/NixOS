@@ -18,15 +18,18 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   ├── outputs.nix      # flake wiring: nixosConfigurations, checks, devShell, formatter
 │   ├── features/        # NixOS feature modules, each merging into a slot
 │   │   ├── mySystem.nix     # mySystem.* options + GNOME extension source of truth
-│   │   ├── basics.nix       # locale, kernel, nix, firewall, fonts, zram, ...
+│   │   ├── basics.nix       # locale, kernel, nix, firewall, fonts, ...
+│   │   ├── optimisation.nix # store/disk maintenance: GC, TRIM, zram, smartd, journald
 │   │   ├── services.nix     # ssh, docker, tailscale, virtualbox
 │   │   ├── secrets.nix      # sops-nix
 │   │   ├── users.nix        # mario user
 │   │   ├── filesystems.nix  # XFS layout
 │   │   ├── desktop.nix      # GNOME desktop
+│   │   ├── audio.nix        # PipeWire + low-latency gaming audio
+│   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers
 │   │   └── hardware/        # intel, uefi (systemd-boot), laptop, vm-guest
 │   ├── home/            # home-manager modules (all merge into home.modules.mario)
-│   │   ├── mario.nix    # user identity + XDG/session settings
+│   │   ├── user.nix     # user identity + XDG/session settings
 │   │   ├── shell.nix    # bash, direnv, ~/.local/bin scripts (yt, tomp3)
 │   │   ├── apps.nix     # user packages, gated on mySystem.appGroups.*
 │   │   ├── gnome.nix    # GNOME dconf (extensions, theme, tweaks)
@@ -69,7 +72,8 @@ Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`
 - `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
 - `mySystem.gnomeExtensions` — single source of truth for GNOME extensions.
 - `mySystem.appGroups.{general,gaming,dev,work}.enable` — application group
-  toggles used by **both** the system side (`desktop.nix`) and the user side
+  toggles used by **both** the system side (`desktop.nix`, `audio.nix`,
+  `gaming.nix`) and the user side
   (`modules/home/apps.nix` via `osConfig`). This is the per-host switch for the
   package groups below.
 
@@ -111,7 +115,7 @@ User packages live in `modules/home/apps.nix`, each group gated behind its
 - **dev** (default on): Node.js, GitHub CLI, docker-compose, jq, yq.
 - **gaming** (default on): Heroic, MangoHud, Cartridges, goverlay, OpenMW,
   Daggerfall Unity, SuperTuxKart, vulkan-tools (user packages). At the system
-  level (`desktop.nix`): Steam (32-bit OpenGL + Remote Play/Dedicated
+  level (`gaming.nix`): Steam (32-bit OpenGL + Remote Play/Dedicated
   Server/LAN transfer firewall + Proton env overrides), GameMode (with the
   GNOME shell extension), gamescope (`capSysNice` + `--rt --adaptive-sync`),
   and Xbox/Steam controller support (xone, xpadneo, steam-hardware).
@@ -123,7 +127,7 @@ User packages live in `modules/home/apps.nix`, each group gated behind its
 ## Custom scripts
 
 `modules/home/scripts/` holds plain bash scripts installed as `~/.local/bin` (put on
-PATH via `home.sessionPath` in `modules/home/mario.nix`):
+PATH via `home.sessionPath` in `modules/home/user.nix`):
 
 - `yt <url>` — best mp4 video + m4a audio; `yt -a <url>` — audio-only m4a.
   Downloads go to `~/Downloads`.
@@ -289,11 +293,14 @@ A `Makefile` wraps the common commands (run `make help` for the full list):
 | `make hooks` | install git hooks (`core.hooksPath` → `.githooks`, once per clone) |
 | `make develop` | `nix develop` — formatter + Nix linters (nixpkgs-fmt, deadnix, statix) |
 
-Some cleanup runs automatically already (see `modules/features/basics.nix`):
+Some cleanup runs automatically already (see `modules/features/optimisation.nix`):
 
 - **`nix.gc.automatic = true`** — weekly `nix-collect-garbage --delete-older-than 7d`
 - **`nix.settings.auto-optimise-store = true`** — dedupe store paths
+- **`nix.settings.min-free` / `max-free`** — auto-GC when the store drops below 5 GiB free
 - **`services.fstrim.enable = true`** — weekly SSD TRIM
+- **`systemd.tmpfiles.rules`** — daily cleanup of browser caches, thumbnails, and `/tmp/nix-build-*`
+- **`services.journald.extraConfig`** — journal capped at 500 MiB / 30 days
 
 ### Regular update (weekly)
 

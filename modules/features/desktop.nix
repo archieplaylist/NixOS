@@ -1,7 +1,7 @@
-# GNOME desktop: GNOME on Wayland via GDM, PipeWire, Bluetooth, NetworkManager,
-# Flatpak (nix-flatpak) and gaming support (Steam, GameMode, gamescope,
-# controllers). Contributes a NixOS module to the `desktop` slot, gated on
-# `mySystem.enableDesktop`.
+# GNOME desktop: GNOME on Wayland via GDM, Bluetooth, NetworkManager and
+# Flatpak (nix-flatpak). Audio lives in audio.nix, gaming in gaming.nix (same
+# slot, same enableDesktop gate). Contributes a NixOS module to the `desktop`
+# slot, gated on `mySystem.enableDesktop`.
 { ... }: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkIf config.mySystem.enableDesktop {
@@ -23,13 +23,9 @@
         ];
       };
 
-      # Sound via PipeWire.
-      services.pipewire = {
-        enable = true;
-        audio.enable = true;
-        pulse.enable = true;
-        jack.enable = true;
-      };
+      # Sound via PipeWire lives in modules/features/audio.nix; gaming
+      # (Steam, GameMode, gamescope, controllers) in gaming.nix. Both share
+      # this slot and gate, so desktop.nix stays focused on the GNOME stack.
 
       # Bluetooth. Radio stays off at boot (can be toggled on via GNOME).
       hardware.bluetooth.enable = true;
@@ -42,53 +38,6 @@
       environment.systemPackages = with pkgs; [
         gnome-tweaks
       ] ++ (map (e: pkgs.gnomeExtensions.${e.package}) config.mySystem.gnomeExtensions);
-
-      # Gaming (adapted from https://codeberg.org/balint/nixos-configs/modules/gaming.nix):
-      # GameMode, controllers, Steam with networking + Proton env, gamescope.
-      # Enabled by default, disable per host with `mySystem.appGroups.gaming.enable = false`.
-      programs.gamemode = lib.mkIf config.mySystem.appGroups.gaming.enable {
-        enable = true;
-        settings = {
-          general.renice = 20;
-        };
-      };
-      # Controllers: Xbox (wired dongle + Bluetooth) and Steam hardware.
-      hardware.xone = lib.mkIf config.mySystem.appGroups.gaming.enable { enable = true; };
-      hardware.xpadneo = lib.mkIf config.mySystem.appGroups.gaming.enable { enable = true; };
-      hardware.steam-hardware = lib.mkIf config.mySystem.appGroups.gaming.enable { enable = true; };
-      programs.steam = lib.mkIf config.mySystem.appGroups.gaming.enable {
-        enable = true;
-        remotePlay.openFirewall = true; # TCP+UDP 27036, UDP 27031-27035
-        dedicatedServer.openFirewall = true; # TCP+UDP 27015
-        localNetworkGameTransfers.openFirewall = true; # TCP 27040, UDP 27036
-        package = pkgs.steam.override {
-          extraEnv = {
-            WINE_VK_VULKAN_ONLY = "1";
-            PROTON_LOCAL_SHADER_CACHE = "1";
-            MESA_SHADER_CACHE_MAX_SIZE = "8G";
-            PROTON_ADD_CONFIG = "fsr4rdna3";
-            WINEDLLOVERRIDES = "dinput8,dxgi,dsound=n,b";
-            PROTON_FSR4_UPGRADE = "1";
-          };
-        };
-      };
-      # Gamescope session: fullscreen, realtime scheduling, adaptive sync.
-      programs.gamescope = lib.mkIf config.mySystem.appGroups.gaming.enable {
-        enable = true;
-        capSysNice = true;
-        args = [
-          "-f"
-          "--rt"
-          "--adaptive-sync"
-          "--backend sdl"
-        ];
-      };
-      # Gamemode shell extension (shows GameMode state in the GNOME panel).
-      # Appended via mkAfter so it follows the shared default extension list.
-      mySystem.gnomeExtensions = lib.mkIf config.mySystem.appGroups.gaming.enable (lib.mkAfter [
-        { uuid = "gamemode@charlieq0137gmail.com"; package = "gamemode-shell-extension"; }
-      ]);
-      hardware.graphics.enable32Bit = lib.mkIf config.mySystem.appGroups.gaming.enable true;
 
       # Flatpak for third-party apps. The daemon is enabled here; apps are
       # declared per host via `mySystem.flatpakApps` (nix-flatpak).

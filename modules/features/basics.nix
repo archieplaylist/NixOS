@@ -1,5 +1,6 @@
-# System fundamentals for every host: locale, kernel, nix settings, firewall,
-# avahi, printing, nix-ld, AppImages, firmware, fonts, TRIM and zram.
+# System fundamentals for every host: locale, kernel, nix, firewall, avahi,
+# printing, nix-ld, AppImages, firmware and fonts. Store/disk maintenance
+# (GC, TRIM, zram, smartd, journald, tmpfiles) lives in optimisation.nix.
 # Contributes a NixOS module to the `base` slot.
 { ... }: {
   config.nixos.modules.base = { config, lib, pkgs, ... }: {
@@ -20,17 +21,6 @@
 
       # Allow unfree packages (VSCode, Tailscale, Spotify, etc.).
       nixpkgs.config.allowUnfree = true;
-
-      # Nix configuration: flakes, auto-optimise, garbage collection.
-      nix.settings = {
-        experimental-features = [ "nix-command" "flakes" ];
-        auto-optimise-store = true;
-      };
-      nix.gc = {
-        automatic = true;
-        dates = "weekly";
-        options = "--delete-older-than 7d";
-      };
 
       # Firewall: DNS is fine, allow ping. LocalSend (flatpak, all hosts)
       # listens on TCP+UDP 53317 for discovery and file transfer.
@@ -101,12 +91,6 @@
         noto-fonts-color-emoji
         liberation_ttf
       ];
-
-      # Background TRIM for SSDs.
-      services.fstrim.enable = true;
-
-      # Compressed RAM swap (no swap partition needed).
-      zramSwap.enable = true;
     };
   };
 }

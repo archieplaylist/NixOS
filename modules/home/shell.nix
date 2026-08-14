@@ -20,7 +20,7 @@
 
     # `yt` and `tomp3` live as plain bash scripts (no Nix string escaping, easy
     # to test) in ~/.local/bin, which is put on PATH via home.sessionPath
-    # (modules/home/mario.nix).
+    # (modules/home/user.nix).
     home.file.".local/bin/yt" = {
       source = ./scripts/yt;
       executable = true;
