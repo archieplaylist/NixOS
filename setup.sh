@@ -29,7 +29,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOSTS_DIR="$REPO_ROOT/hosts"
+HOSTS_DIR="$REPO_ROOT/modules/hosts"
 AGE_DIR="${SOPS_AGE_DIR:-$HOME/.config/sops/age}"
 AGE_KEY_PATH="$AGE_DIR/keys.txt"
 SOPS_YAML_EXAMPLE="$REPO_ROOT/secrets/.sops.yaml.example"
@@ -113,7 +113,7 @@ preflight() {
   have lsblk || die "lsblk not found in PATH"
 
   mapfile -t HOSTS < <(find "$HOSTS_DIR" -maxdepth 1 -name '*.nix' ! -name '.*' -printf '%f\n' 2>/dev/null | sort)
-  [[ ${#HOSTS[@]} -gt 0 ]] || die "no host configs (*.nix) found in hosts/"
+  [[ ${#HOSTS[@]} -gt 0 ]] || die "no host configs (*.nix) found in modules/hosts/"
 
   info "repo: $REPO_ROOT"
   info "hosts: ${HOSTS[*]}"
@@ -152,7 +152,7 @@ step_partition() {
   fi
 
   if ! confirm "Partition and format a disk? This ERASES all data on it"; then
-    info "skipped — make sure hosts/*.nix point at real disks before deploying"
+    info "skipped — make sure modules/hosts/*.nix point at real disks before deploying"
     return 0
   fi
 
@@ -420,7 +420,7 @@ step_deploy() {
         info "no password hash captured — set one later with \`sudo passwd mario\`"
       fi
 
-      # Provision the sops age key into the target. modules/system/secrets.nix
+      # Provision the sops age key into the target. modules/features/secrets.nix
       # expects it at /root/.config/sops/age on the installed system. Without
       # this the first boot would generate a fresh key that doesn't match
       # secrets/.sops.yaml and sops activation would fail.

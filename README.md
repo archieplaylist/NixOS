@@ -1,36 +1,66 @@
 # NixOS Desktop Configuration
 
 A modular, flake-based NixOS configuration for Mario's machines (NixOS 26.05,
-GNOME, Intel). Four hosts share the same baseline: `nixos-desktop`, `nixos-laptop`,
-`nixos-work`, and `vm-host` (a VM guest).
+GNOME, Intel), organized with the
+[dendritic pattern](https://github.com/mightyiam/dendritic): every Nix file
+except the entry point is a top-level (flake-parts) module, auto-imported from
+`modules/`. Four hosts share the same baseline: `nixos-desktop`,
+`nixos-laptop`, `nixos-work`, and `vm-host` (a VM guest).
 
 ## Layout
 
 ```
-├── flake.nix            # inputs (nixpkgs + unstable, home-manager, sops-nix, nix-flatpak)
+├── flake.nix            # entry point: flake-parts; auto-imports every module under modules/
 ├── Makefile             # day-to-day commands: check, fmt, update, rebuild
 ├── .githooks/           # git hooks (install with `make hooks`)
-├── modules/
-│   ├── system/          # options (mySystem.*), basics, desktop (GNOME), services,
-│   │                    # secrets, users, filesystems (XFS layout)
-│   └── hardware/        # intel, uefi (systemd-boot), laptop, vm-guest
-├── hosts/
-│   ├── common.nix       # baseline imports shared by every host
-│   └── <host>.nix       # per-machine files (imports + mySystem flags)
-├── home/
-│   ├── mario.nix        # home-manager entry; imports the submodules below
-│   ├── shell.nix        # bash, direnv, ~/.local/bin scripts (yt, tomp3)
-│   ├── apps.nix         # user packages, gated on mySystem.appGroups.*
-│   ├── gnome.nix        # GNOME dconf (extensions, theme, tweaks)
-│   ├── themes.nix       # WhiteSur dark GTK/icon/cursor + shell theme
-│   ├── tooling.nix      # git config + global excludes
-│   └── scripts/         # plain bash scripts -> ~/.local/bin
+├── modules/             # EVERY .nix file here is a top-level (flake-parts) module
+│   ├── options.nix      # top-level slot options: nixos.modules/hosts, home.modules
+│   ├── outputs.nix      # flake wiring: nixosConfigurations, checks, devShell, formatter
+│   ├── features/        # NixOS feature modules, each merging into a slot
+│   │   ├── mySystem.nix     # mySystem.* options + GNOME extension source of truth
+│   │   ├── basics.nix       # locale, kernel, nix, firewall, fonts, zram, ...
+│   │   ├── services.nix     # ssh, docker, tailscale, virtualbox
+│   │   ├── secrets.nix      # sops-nix
+│   │   ├── users.nix        # mario user
+│   │   ├── filesystems.nix  # XFS layout
+│   │   ├── desktop.nix      # GNOME desktop
+│   │   └── hardware/        # intel, uefi (systemd-boot), laptop, vm-guest
+│   ├── home/            # home-manager modules (all merge into home.modules.mario)
+│   │   ├── mario.nix    # user identity + XDG/session settings
+│   │   ├── shell.nix    # bash, direnv, ~/.local/bin scripts (yt, tomp3)
+│   │   ├── apps.nix     # user packages, gated on mySystem.appGroups.*
+│   │   ├── gnome.nix    # GNOME dconf (extensions, theme, tweaks)
+│   │   ├── themes.nix   # WhiteSur dark GTK/icon/cursor + shell theme
+│   │   ├── tooling.nix  # git config + global excludes
+│   │   ├── fastfetch.nix
+│   │   └── scripts/     # plain bash scripts -> ~/.local/bin
+│   └── hosts/           # per-machine modules (imports + mySystem flags)
+│       └── <host>.nix   # e.g. nixos-desktop.nix -> nixos.hosts.nixos-desktop
 └── secrets/             # sops-nix placeholders (encrypted secrets never in git)
 ```
 
+## Dendritic pattern
+
+Lower-level modules (NixOS and home-manager) are stored as **option values**
+of the top-level flake-parts configuration (`lib.types.deferredModule` in
+`modules/options.nix`):
+
+- `nixos.modules.<slot>` — NixOS feature modules, merged by slot name
+  (`base`, `desktop`, `intel`, `uefi`, `laptop`, `vm-guest`). Feature files
+  in `modules/features/` merge into these slots.
+- `nixos.hosts.<name>` — one NixOS module per machine, whose key is the flake
+  output name. Host files in `modules/hosts/` set it, importing the feature
+  slots they need plus their `mySystem` flags.
+- `home.modules.<user>` — home-manager modules, all merged into one slot per
+  user (single user `mario`), wired to home-manager in `modules/outputs.nix`.
+
+Since every file is a top-level module, files can be moved and renamed freely
+(paths only *name* the feature), and adding a machine is just adding one file —
+no wiring in `flake.nix` (see "Adding a host").
+
 ## Host flags
 
-Each host file sets `mySystem` flags (defined in `modules/system/options.nix`):
+Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`):
 
 - `mySystem.enableDesktop` — GNOME via GDM, PipeWire, Bluetooth, NetworkManager,
   Flatpak daemon, GNOME extensions.
@@ -40,28 +70,31 @@ Each host file sets `mySystem` flags (defined in `modules/system/options.nix`):
 - `mySystem.gnomeExtensions` — single source of truth for GNOME extensions.
 - `mySystem.appGroups.{general,gaming,dev,work}.enable` — application group
   toggles used by **both** the system side (`desktop.nix`) and the user side
-  (`home/apps.nix` via `osConfig`). This is the per-host switch for the
+  (`modules/home/apps.nix` via `osConfig`). This is the per-host switch for the
   package groups below.
 
 ## Adding a host
 
-1. Copy `hosts/nixos-desktop.nix` to `hosts/new-host.nix` and simplify it to:
+1. Create `modules/hosts/new-host.nix`:
 
    ```nix
-   { ...
-   }: {
-     imports = [
-       ./common.nix
-       ../modules/system/desktop.nix  # only for desktop hosts
-       ../modules/hardware/intel.nix  # only for Intel hardware
-     ];
-     mySystem.hostname = "new-host";
-     # ... any mySystem flags you need (see "Host flags")
+   { config, ... }: {
+     config.nixos.hosts.new-host = {
+       imports = [
+         config.nixos.modules.base
+         config.nixos.modules.desktop   # only for desktop hosts
+         config.nixos.modules.intel     # only for Intel hardware
+         config.nixos.modules.uefi
+       ];
+       mySystem.hostname = "new-host";
+       # ... any mySystem flags you need (see "Host flags")
+     };
    }
    ```
 
-2. Add a `nixosConfigurations.new-host = buildHost "new-host";` line in
-   `flake.nix`.
+2. That's it — the host is auto-imported and becomes
+   `nixosConfigurations.new-host` (flake.nix derives all outputs from the
+   `nixos.hosts` slots, so nothing else needs to change).
 3. Set `mySystem.hostname` (filesystems are referenced by label — see the
    partition step below).
 4. Toggle application groups if needed, e.g.
@@ -69,7 +102,7 @@ Each host file sets `mySystem` flags (defined in `modules/system/options.nix`):
 
 ## Application groups
 
-User packages live in `home/apps.nix`, each group gated behind its
+User packages live in `modules/home/apps.nix`, each group gated behind its
 `mySystem.appGroups.<group>.enable` flag:
 
 - **general** (default on): Firefox, Chromium, Vivaldi, VLC, mpv, yt-dlp,
@@ -89,8 +122,8 @@ User packages live in `home/apps.nix`, each group gated behind its
 
 ## Custom scripts
 
-`home/scripts/` holds plain bash scripts installed as `~/.local/bin` (put on
-PATH via `home.sessionPath` in `home/mario.nix`):
+`modules/home/scripts/` holds plain bash scripts installed as `~/.local/bin` (put on
+PATH via `home.sessionPath` in `modules/home/mario.nix`):
 
 - `yt <url>` — best mp4 video + m4a audio; `yt -a <url>` — audio-only m4a.
   Downloads go to `~/Downloads`.
@@ -101,7 +134,7 @@ PATH via `home.sessionPath` in `home/mario.nix`):
 
 Flatpak apps are declared declaratively via
 [nix-flatpak](https://github.com/gmodena/nix-flatpak). The daemon and wiring
-live in `modules/system/desktop.nix`; each host picks its own apps with
+live in `modules/features/desktop.nix`; each host picks its own apps with
 `mySystem.flatpakApps = [ ... ]`. Current shared set: EasyEffects, LocalSend,
 GearLever, Flatseal, Extension Manager (`nixos-work` additionally has
 Insomnia).
@@ -132,7 +165,7 @@ creates — no UUID detection needed.
 
 > **Note on the password**: the SHA-512 hash is stored on the machine at
 > `/etc/hashed-password`, read at **every system activation** through
-> `users.users.mario.hashedPasswordFile` (`modules/system/users.nix`). It
+> `users.users.mario.hashedPasswordFile` (`modules/features/users.nix`). It
 > never lives in the repo, so there is no git interaction and nothing for a
 > fresh clone to leak. The hash path itself is always set in the config; if
 > the file is missing on a machine, activation only warns and `mario` has no
@@ -171,7 +204,7 @@ does is also documented manually below.
    #   my-secret: supersecretvalue
    ```
 
-   Reference the secret in a module (see `modules/system/secrets.nix`
+   Reference the secret in a module (see `modules/features/secrets.nix`
    for the example-wifi secret):
 
    ```nix
@@ -192,7 +225,7 @@ does is also documented manually below.
    # format with the expected labels (or set them explicitly):
    mkfs.vfat -F 32 -n nixos-boot /dev/sdX1
    mkfs.xfs -f -L nixos-root   /dev/sdX2
-   lsblk -f   # confirm the labels match hosts/*.nix
+   lsblk -f   # confirm the labels match modules/hosts/*.nix
    ```
 
 4. Rebuild a host:
@@ -256,7 +289,7 @@ A `Makefile` wraps the common commands (run `make help` for the full list):
 | `make hooks` | install git hooks (`core.hooksPath` → `.githooks`, once per clone) |
 | `make develop` | `nix develop` — formatter + Nix linters (nixpkgs-fmt, deadnix, statix) |
 
-Some cleanup runs automatically already (see `modules/system/basics.nix`):
+Some cleanup runs automatically already (see `modules/features/basics.nix`):
 
 - **`nix.gc.automatic = true`** — weekly `nix-collect-garbage --delete-older-than 7d`
 - **`nix.settings.auto-optimise-store = true`** — dedupe store paths
@@ -299,7 +332,8 @@ sudo nixos-rebuild switch --flake .#nixos-desktop  # build + activate now (make 
 
 ### Updating just home-manager state
 
-You don't normally do this separately. But if you edit something in `home/`
+You don't normally do this separately. But if you edit something in
+`modules/home/`
 and only want to apply the user part on a machine without rebuilding the
 system profile (useful for quick experiments):
 
@@ -323,7 +357,7 @@ reliable because it works even if modules fail to load:
 
 - systemd-boot keeps every generation up to
   `boot.loader.systemd-boot.configurationLimit = 24` (see
-  `modules/hardware/uefi.nix`), and the ESP is masked root-only. To actually
+   `modules/features/hardware/uefi.nix`), and the ESP is masked root-only. To actually
   see the menu at boot, you may want `boot.loader.timeout = 10;` in the host
   file.
 - `switch --rollback` activates the previously *active* generation (NOT the
@@ -361,7 +395,7 @@ sudo nixos-rebuild list-generations   # see system generations + how old
 ## Notes
 
 - **Boot / snapshots**: systemd-boot lists NixOS generations (up to
-  `systemd-boot.configurationLimit` — see `modules/hardware/uefi.nix`), so
+   `systemd-boot.configurationLimit` — see `modules/features/hardware/uefi.nix`), so
   opening the boot menu lets you boot a previous system state ("snapshot").
   Every entry carries a kernel+initrd on the ESP (~100MB), so the limit keeps
   the 1 GiB ESP from filling up; GC (`nix.gc.automatic`) prunes old store
