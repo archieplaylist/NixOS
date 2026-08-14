@@ -33,27 +33,25 @@
       ffmpeg
       # Discord is not on the stable channel; pulled from nixpkgs-unstable
       # via the `pkgs.unstable` overlay (see flake.nix).
-      pkgs.unstable.discord
       joplin-desktop
       onlyoffice-desktopeditors
       libreoffice-fresh
       vscode
+      pkgs.unstable.discord
     ]))
     # Gaming applications.
     (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
-      mangohud
       heroic
       cartridges
-      daggerfall-unity
-      goverlay
-      openmw
       vulkan-tools
+      pkgs.unstable.mangohud
+      pkgs.unstable.goverlay
     ]))
     # Work applications.
     (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
       dbeaver-bin
-      filezilla
       remmina
+      pkgs.unstable.filezilla
     ]))
   ];
 }
