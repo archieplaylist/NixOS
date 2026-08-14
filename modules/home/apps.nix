@@ -10,7 +10,14 @@
         bat
         eza
         fastfetch
+        btop
         python3
+        exfatprogs
+        ntfs3g
+        gparted
+        zip
+        unzip
+        unrar
       ])
       # Development tooling.
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
