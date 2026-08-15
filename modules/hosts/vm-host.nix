@@ -9,6 +9,9 @@
       config.nixos.modules.vm-guest
     ];
 
+    # SMART monitoring is pointless on a VM's virtual disk.
+    mySystem.enableSmartd = false;
+
     mySystem.hostname = "nixvms";
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;

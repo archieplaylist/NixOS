@@ -39,6 +39,12 @@
         host.enable = true;
       };
 
+      # SMART disk health monitoring (smartd autodetects all disks).
+      services.smartd = lib.mkIf config.mySystem.enableSmartd {
+        enable = true;
+        autodetect = true;
+      };
+
       # Generic command-line tools for all hosts.
       environment.systemPackages = with pkgs; [
         curl

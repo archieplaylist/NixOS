@@ -15,6 +15,7 @@
     mySystem.enableDocker = true;
     mySystem.enableTailscale = true;
     mySystem.enableSops = true;
+    mySystem.enableSmartd = true;
 
     # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
     mySystem.flatpakApps = [

@@ -95,6 +95,11 @@
         default = false;
         description = "Enable sops-nix secret decryption.";
       };
+      enableSmartd = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable the smartd disk health monitoring service.";
+      };
       # Single source of truth for GNOME Shell extensions: enabled in the user's
       # dconf db (modules/home/gnome.nix) and the matching package installed
       # (desktop.nix). Each entry maps an extension-gnome.org UUID to a

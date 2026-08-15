@@ -17,6 +17,7 @@
     mySystem.enableTailscale = false;
     mySystem.enableSops = true;
     mySystem.enableVirtualBox = true;
+    mySystem.enableSmartd = true;
 
     # SSH password auth is disabled (see services.nix), so the keys below are
     # what actually grants access — add your real public keys here.

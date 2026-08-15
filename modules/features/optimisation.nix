@@ -2,7 +2,7 @@
 # zram, smartd health monitoring, journald bounds and tmpfiles cleanup.
 # Contributes a NixOS module to the `base` slot.
 { ... }: {
-  config.nixos.modules.base = { lib, ... }: {
+  config.nixos.modules.base = { ... }: {
     config = {
       # Nix configuration: flakes, auto-optimise, garbage collection, and
       # automatic cleanup when the store is low on free space.
@@ -23,13 +23,6 @@
 
       # Compressed RAM swap (no swap partition needed).
       zramSwap.enable = true;
-
-      # Disk health monitoring (SMART). The desktop is an NVMe, and smartd
-      # detects all disks automatically.
-      services.smartd = {
-        enable = true;
-        autodetect = true;
-      };
 
       # Keep the journal bounded so it can't fill the disk.
       services.journald.extraConfig = ''
