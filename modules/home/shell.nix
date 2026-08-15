@@ -18,15 +18,19 @@
       nix-direnv.enable = true;
     };
 
-    # `yt` and `tomp3` live as plain bash scripts (no Nix string escaping, easy
-    # to test) in ~/.local/bin, which is put on PATH via home.sessionPath
-    # (modules/home/user.nix).
+    # `yt`, `tomp3` and `switch-de` live as plain bash scripts (no Nix string
+    # escaping, easy to test) in ~/.local/bin, which is put on PATH via
+    # home.sessionPath (modules/home/user.nix).
     home.file.".local/bin/yt" = {
       source = ./scripts/yt;
       executable = true;
     };
     home.file.".local/bin/tomp3" = {
       source = ./scripts/tomp3;
+      executable = true;
+    };
+    home.file.".local/bin/switch-de" = {
+      source = ./scripts/switch-de;
       executable = true;
     };
   };

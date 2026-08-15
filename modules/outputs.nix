@@ -63,7 +63,12 @@ let
           useGlobalPkgs = true;
           useUserPackages = true;
           backupFileExtension = "hm-backup";
-          users.mario = config.home.modules.mario;
+          users.mario = {
+            imports = [
+              config.home.modules.mario
+              inputs.plasma-manager.homeModules.plasma-manager
+            ];
+          };
         };
       }
     ];

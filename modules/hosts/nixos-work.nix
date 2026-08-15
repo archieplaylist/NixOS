@@ -11,6 +11,7 @@
     ];
 
     mySystem.hostname = "nixworks";
+    mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;
     mySystem.enableDocker = true;

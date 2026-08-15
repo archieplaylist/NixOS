@@ -65,8 +65,11 @@ no wiring in `flake.nix` (see "Adding a host").
 
 Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`):
 
-- `mySystem.enableDesktop` — GNOME via GDM, PipeWire, Bluetooth, NetworkManager,
-  Flatpak daemon, GNOME extensions.
+- `mySystem.enableDesktop` — desktop environment (GNOME via GDM, Plasma via
+  SDDM), PipeWire, Bluetooth, NetworkManager, Flatpak daemon.
+- `mySystem.desktop` — `"gnome"` (default) or `"plasma"`; selects which DE the
+  `desktop` slot installs. Switch with `switch-de` (see "Custom scripts") or by
+  editing the host file and rebuilding.
 - `mySystem.enableLaptop` — power-profiles-daemon + lid handling.
 - `mySystem.enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSops`.
 - `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
@@ -133,6 +136,46 @@ PATH via `home.sessionPath` in `modules/home/user.nix`):
   Downloads go to `~/Downloads`.
 - `tomp3 file...` — converts any ffmpeg-supported file to a 192 kbps MP3 in
   place.
+- `switch-de <gnome|plasma>` — flips `mySystem.desktop` in this host's module,
+  builds the new system with `nixos-rebuild boot` (nothing activates until
+  reboot), and archives the dormant DE's runtime state to
+  `~/.local/share/de-archive/` so the home directory stays clean. HM-managed
+  config (symlinks), caches and KWallet data are never touched. Reboot after
+  running to start the new display manager.
+
+## Desktop environments
+
+The `desktop` feature slot installs either GNOME or KDE Plasma, chosen per host
+via `mySystem.desktop`:
+
+- **GNOME** (default) — fully declarative: dconf settings in
+  `modules/home/gnome.nix`, extensions declared via `mySystem.gnomeExtensions`.
+- **KDE Plasma** — fully declarative via
+  [plasma-manager](https://nix-community.github.io/plasma-manager/) in
+  `modules/home/plasma.nix`: panel layout, widgets, shortcuts and the WhiteSur
+  dark theme (from `pkgs.whitesur-kde`, matching the GTK side) are all
+  declared, with `overrideConfig` resetting unset settings to Plasma defaults
+  on every rebuild. Runtime tweaks via System Settings are overwritten by the
+  next rebuild — edit `plasma.nix` instead.
+
+Both DEs run on Wayland, each under its own display manager: GNOME under GDM,
+Plasma under SDDM.
+
+### Switching desktop environments
+
+1. Run `switch-de <gnome|plasma>` — it flips `mySystem.desktop` in this host's
+   module, builds the new system with `nixos-rebuild boot` (the running session
+   is untouched), and moves the dormant DE's leftover runtime state into
+   `~/.local/share/de-archive/`.
+2. Reboot. The new display manager (GDM for GNOME, SDDM for Plasma) starts and
+   offers the new session at login.
+3. Switch back anytime with `switch-de <the-other-de>`. Your previous DE's
+   archived state is recoverable from `~/.local/share/de-archive/`; delete that
+   directory when you no longer need it.
+
+If `switch-de` is unavailable (fresh checkout), do the same by hand: set
+`mySystem.desktop` in `modules/hosts/<host>.nix`, run
+`sudo nixos-rebuild boot --flake .#<host>`, and reboot.
 
 ## Flatpak
 

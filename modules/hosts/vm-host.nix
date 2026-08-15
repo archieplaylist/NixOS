@@ -13,6 +13,7 @@
     mySystem.enableSmartd = false;
 
     mySystem.hostname = "nixvms";
+    mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;
     mySystem.enableDocker = false;

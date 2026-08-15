@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# switch-de <gnome|plasma>
+#
+# Switches this machine's desktop environment: flips the mySystem.desktop line
+# in the host module, builds the new system with `nixos-rebuild boot` (nothing
+# is activated until reboot), then archives the dormant DE's runtime state so
+# the home directory doesn't accumulate dead config.
+#
+# Only real files/directories are archived; home-manager-managed entries are
+# symlinks into the nix store and are skipped. ~/.cache and KWallet data are
+# never touched. Declared settings (GNOME dconf, plasma-manager) survive the
+# switch through Nix itself; the archive is a recoverable copy you may delete.
+
+set -euo pipefail
+
+REPO="$HOME/nixos"
+ARCHIVE_DIR="$HOME/.local/share/de-archive"
+
+# Runtime state owned by each DE, relative to $HOME (glob patterns).
+plasma_paths=(
+  ".config/plasma-*" ".config/plasmarc" ".config/kdeglobals"
+  ".config/kwin*" ".config/kglobalshortcutsrc" ".config/khotkeysrc"
+  ".config/krunnerrc" ".config/kscreenlockerrc" ".config/kactivitymanagerdrc"
+  ".config/baloofilerc" ".config/breezerc"
+  ".local/share/plasma*" ".local/share/kactivitymanagerd"
+  ".local/share/klipper" ".local/share/baloo" ".local/share/konsole"
+)
+gnome_paths=(
+  ".config/dconf" ".config/mutter"
+  ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
+)
+
+host_module() {
+  case "$(hostname)" in
+    nixdesks) echo "nixos-desktop" ;;
+    nixlappys) echo "nixos-laptop" ;;
+    nixworks) echo "nixos-work" ;;
+    nixvms) echo "vm-host" ;;
+    *) echo "error: no host module known for hostname '$(hostname)'" >&2
+       echo "add it to host_module() in $HOME/.local/bin/switch-de" >&2
+       exit 1 ;;
+  esac
+}
+
+archive_de() {
+  local de="$1"
+  shift
+  local dest="$ARCHIVE_DIR/$de"
+  local moved=0
+  mkdir -p "$dest"
+  for pat in "$@"; do
+    for p in "$HOME"/$pat; do
+      [ -e "$p" ] || continue
+      [ -L "$p" ] && continue # HM-managed symlink: skip
+      case "$p" in
+        */.cache/* | */kwalletd*) continue ;;
+      esac
+      mv -f "$p" "$dest/" 2>/dev/null || true
+      moved=$((moved + 1))
+    done
+  done
+  echo "archived $moved leftover item(s) for $de -> $dest"
+}
+
+usage() {
+  echo "usage: switch-de <gnome|plasma>" >&2
+  exit 1
+}
+
+TARGET="${1:-}"
+[ "$TARGET" = "gnome" ] || [ "$TARGET" = "plasma" ] || usage
+
+HOST="$(host_module)"
+HOST_FILE="$REPO/modules/hosts/$HOST.nix"
+[ -f "$HOST_FILE" ] || { echo "error: $HOST_FILE not found" >&2; exit 1; }
+
+CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|plasma)"' "$HOST_FILE" | grep -Eo '"(gnome|plasma)"' | tr -d '"')"
+if [ -z "$CURRENT" ]; then
+  echo "error: no 'mySystem.desktop = ...' line found in $HOST_FILE" >&2
+  exit 1
+fi
+
+if [ "$CURRENT" = "$TARGET" ]; then
+  echo "already on $TARGET"
+  exit 0
+fi
+
+echo "switching $HOST from $CURRENT to $TARGET"
+cp "$HOST_FILE" "$HOST_FILE.bak"
+sed -i -E "s|^([[:space:]]*mySystem\.desktop = \")[^\"]+\"|\1$TARGET\"|" "$HOST_FILE"
+
+git -C "$REPO" diff --color=always -- "$HOST_FILE" 2>/dev/null || true
+
+# The DE switch (display manager included) only takes effect on reboot, so we
+# `boot` rather than `switch`: the running session stays untouched and the new
+# system is picked up at the next boot.
+if ! sudo nixos-rebuild boot --flake "$REPO#$HOST"; then
+  echo "error: rebuild failed; restoring $HOST_FILE" >&2
+  mv "$HOST_FILE.bak" "$HOST_FILE"
+  exit 1
+fi
+rm -f "$HOST_FILE.bak"
+
+# Hand off runtime state: archive what the DE we're leaving wrote, so the home
+# directory only ever holds the active DE's files. Caches and wallets stay put.
+if [ "$CURRENT" = "plasma" ]; then
+  archive_de plasma "${plasma_paths[@]}"
+else
+  archive_de gnome "${gnome_paths[@]}"
+fi
+
+echo
+echo "built the $TARGET boot entry. Reboot to start the new display manager"
+echo "and session. Your previous $CURRENT state is recoverable from"
+echo "$ARCHIVE_DIR/$CURRENT (delete it whenever you like)."

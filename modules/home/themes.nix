@@ -19,6 +19,10 @@
         name = "WhiteSur-cursors";
         package = pkgs.whitesur-cursors;
       };
+      # Overwrite ~/.gtkrc-2.0 without backing up: the gtk module writes the
+      # same content every generation, and the leftover .hm-backup otherwise
+      # makes home-manager fail with a clobber error on every activation.
+      gtk2.force = true;
     };
 
     # Apply the WhiteSur-dark shell theme via the User Themes extension

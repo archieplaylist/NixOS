@@ -19,6 +19,25 @@
       XDG_CACHE_HOME = "$HOME/.cache";
     };
 
+    # XDG user dirs, declared so ~/.config/user-dirs.dirs stays reproducible.
+    # Without this, xdg-user-dirs-update may point XDG_DESKTOP_DIR at $HOME
+    # (which makes Plasma draw the whole home folder on the desktop).
+    xdg.userDirs = {
+      enable = true;
+      desktop = "$HOME/Desktop";
+      documents = "$HOME/Documents";
+      download = "$HOME/Downloads";
+      music = "$HOME/Music";
+      pictures = "$HOME/Pictures";
+      videos = "$HOME/Videos";
+      templates = "$HOME/Templates";
+      publicShare = "$HOME/Public";
+      createDirectories = true;
+      extraConfig = {
+        XDG_PROJECTS_DIR = "$HOME/Projects";
+      };
+    };
+
     # ~/.local/bin holds user scripts (yt, tomp3 — see shell.nix). Put it on
     # PATH for the session, independent of NixOS defaults.
     home.sessionPath = [ "$HOME/.local/bin" ];
