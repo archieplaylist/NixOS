@@ -9,6 +9,23 @@
 let
   system = "x86_64-linux";
 
+  # VirtualBox GuestAdditions 7.2.14 predate the kernel's fbdev emulation
+  # change that removed drm_fb_helper_alloc_info (present in 6.12+), so its
+  # vboxvideo driver fails to build against modern kernels. Patch vbox_fb.c to
+  # use the new API where the fb_info lives on the helper, mirroring upstream
+  # VirtualBox. The NULL guard fails fbdev setup cleanly instead of crashing.
+  patchVboxGuestAdditions = kernelPackages:
+    kernelPackages.extend (_final: prev: {
+      virtualboxGuestAdditions = prev.virtualboxGuestAdditions.overrideAttrs (old: {
+        prePatch = (old.prePatch or "") + ''
+          sed -i 's@info = drm_fb_helper_alloc_info(helper);@info = helper->info;@' \
+            src/vboxguest-7.2.14_NixOS/vboxvideo/vbox_fb.c
+          sed -i 's@if (IS_ERR(info))@if (IS_ERR(info) || !info)@' \
+            src/vboxguest-7.2.14_NixOS/vboxvideo/vbox_fb.c
+        '';
+      });
+    });
+
   # Build a NixOS configuration for a host whose NixOS module is stored in the
   # top-level slot `config.nixos.hosts.${name}`.
   buildHost = name: inputs.nixpkgs.lib.nixosSystem {
@@ -28,6 +45,14 @@ let
               localSystem = { inherit system; };
               config.allowUnfree = true;
             };
+          })
+          # Fix VirtualBox GuestAdditions 7.2.14 for modern kernels (see
+          # patchVboxGuestAdditions above). Applied to the default and pinned
+          # kernel sets so vm-host can use the default kernel.
+          (final: prev: {
+            linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
+            linuxPackages_6_12 = patchVboxGuestAdditions (prev.linuxPackages_6_12 or prev.linuxPackages);
+            linuxPackages_latest = patchVboxGuestAdditions prev.linuxPackages_latest;
           })
         ];
       }
