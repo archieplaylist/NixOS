@@ -16,8 +16,10 @@
       # Timezone.
       time.timeZone = "Asia/Jakarta";
 
-      # Latest stable mainline kernel.
-      boot.kernelPackages = pkgs.linuxPackages_latest;
+      # Channel default kernel (the LTS NixOS ships and tests against, e.g.
+      # VirtualBox guest additions). Latest mainline lags behind out-of-tree
+      # modules, so prefer the default; hosts may override (mkDefault).
+      boot.kernelPackages = lib.mkDefault pkgs.linuxPackages;
 
       # Allow unfree packages (VSCode, Tailscale, Spotify, etc.).
       nixpkgs.config.allowUnfree = true;

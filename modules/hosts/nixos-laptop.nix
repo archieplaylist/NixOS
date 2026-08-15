@@ -1,6 +1,6 @@
 # nixos-laptop host: like the desktop host plus the `laptop` power-management
 # slot, and no heavy development tooling.
-{ config, ... }: {
+{ config, pkgs, ... }: {
   config.nixos.hosts.nixos-laptop = {
     imports = [
       config.nixos.modules.base
@@ -9,6 +9,10 @@
       config.nixos.modules.uefi
       config.nixos.modules.laptop
     ];
+
+    # Newest mainline kernel for the latest laptop hardware support
+    # (overrides the channel-default kernel in basics.nix).
+    boot.kernelPackages = pkgs.linuxPackages_latest;
 
     mySystem.hostname = "nixlappys";
     mySystem.enableDesktop = true;
