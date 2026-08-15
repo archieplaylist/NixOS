@@ -1,7 +1,7 @@
 # nixos-laptop host: like the desktop host plus the `laptop` power-management
 # slot, and no heavy development tooling.
-{ config, pkgs, ... }: {
-  config.nixos.hosts.nixos-laptop = {
+{ config, ... }: {
+  config.nixos.hosts.nixos-laptop = { pkgs, ... }: {
     imports = [
       config.nixos.modules.base
       config.nixos.modules.desktop

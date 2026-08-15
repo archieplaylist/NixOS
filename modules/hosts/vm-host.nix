@@ -1,7 +1,7 @@
 # vm-host: NixOS guest intended to run inside a VM (VirtualBox or
 # virt-manager). Picks the `base`, `desktop`, `uefi` and `vm-guest` slots.
-{ config, pkgs, ... }: {
-  config.nixos.hosts.vm-host = {
+{ config, ... }: {
+  config.nixos.hosts.vm-host = { pkgs, ... }: {
     imports = [
       config.nixos.modules.base
       config.nixos.modules.desktop
