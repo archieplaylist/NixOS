@@ -1,6 +1,6 @@
 # vm-host: NixOS guest intended to run inside a VM (VirtualBox or
 # virt-manager). Picks the `base`, `desktop`, `uefi` and `vm-guest` slots.
-{ config, ... }: {
+{ config, pkgs, ... }: {
   config.nixos.hosts.vm-host = {
     imports = [
       config.nixos.modules.base
@@ -8,6 +8,11 @@
       config.nixos.modules.uefi
       config.nixos.modules.vm-guest
     ];
+
+    # Pin the newest LTS kernel VirtualBox GuestAdditions 7.2.14 can build
+    # against (the current default kernel breaks them). Bump when VirtualBox
+    # catches up with a newer kernel.
+    boot.kernelPackages = pkgs.linuxPackages_6_12;
 
     mySystem.hostname = "nixvms";
     mySystem.enableDesktop = true;
