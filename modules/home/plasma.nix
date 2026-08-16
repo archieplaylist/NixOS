@@ -67,6 +67,10 @@
       };
 
       # Classic single bottom panel: launcher, pinned tasks, system tray, clock.
+      # The task manager is org.kde.plasma.taskmanager (NOT the icon-only
+      # org.kde.plasma.icontasks — that plasmoid is broken in this nixpkgs
+      # plasma-desktop 6.6.6 build, shipping only a metadata.json stub, and
+      # fails to load at login, which leaves the panel empty).
       panels = [
         {
           location = "bottom";
@@ -74,13 +78,12 @@
           widgets = [
             "org.kde.plasma.kickoff"
             {
-              iconTasks = {
-                launchers = [
-                  "applications:org.kde.dolphin.desktop"
-                  "applications:org.kde.konsole.desktop"
-                  "applications:firefox.desktop"
-                ];
-              };
+              name = "org.kde.plasma.taskmanager";
+              config.General.launchers = [
+                "applications:org.kde.dolphin.desktop"
+                "applications:org.kde.konsole.desktop"
+                "applications:firefox.desktop"
+              ];
             }
             "org.kde.plasma.systemtray"
             {
