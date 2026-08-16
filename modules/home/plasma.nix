@@ -22,6 +22,14 @@
       # overwritten by the next rebuild (that's the point).
       overrideConfig = true;
 
+      # Start with an empty session at login instead of restoring the previous
+      # session's open applications (ksmserverrc [General] loginMode).
+      session = {
+        sessionRestore = {
+          restoreOpenApplicationsOnLogin = "startWithEmptySession";
+        };
+      };
+
       # KWallet: enabled, and the wallet is unlocked at SDDM login by the PAM
       # module (security.pam.services.sddm.kwallet.enable in desktop.nix) when
       # the wallet password matches the login password. `First Use=false`
@@ -67,10 +75,6 @@
       };
 
       # Classic single bottom panel: launcher, pinned tasks, system tray, clock.
-      # The task manager is org.kde.plasma.taskmanager (NOT the icon-only
-      # org.kde.plasma.icontasks — that plasmoid is broken in this nixpkgs
-      # plasma-desktop 6.6.6 build, shipping only a metadata.json stub, and
-      # fails to load at login, which leaves the panel empty).
       panels = [
         {
           location = "bottom";
@@ -78,12 +82,13 @@
           widgets = [
             "org.kde.plasma.kickoff"
             {
-              name = "org.kde.plasma.taskmanager";
-              config.General.launchers = [
-                "applications:org.kde.dolphin.desktop"
-                "applications:org.kde.konsole.desktop"
-                "applications:firefox.desktop"
-              ];
+              iconTasks = {
+                launchers = [
+                  "applications:org.kde.dolphin.desktop"
+                  "applications:org.kde.konsole.desktop"
+                  "applications:firefox.desktop"
+                ];
+              };
             }
             "org.kde.plasma.systemtray"
             {
