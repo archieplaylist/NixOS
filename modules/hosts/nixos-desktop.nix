@@ -18,6 +18,10 @@
     mySystem.enableSops = true;
     mySystem.enableSmartd = true;
 
+    # Desktop gaming: no power-profiles-daemon on this host (laptop-only slot),
+    # so pin the CPU to the performance governor instead of the default EPP.
+    powerManagement.cpuFreqGovernor = "performance";
+
     # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
     mySystem.flatpakApps = [
       "com.github.wwmm.easyeffects"

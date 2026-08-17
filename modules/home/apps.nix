@@ -51,6 +51,11 @@
         vulkan-tools
         pkgs.unstable.mangohud
         pkgs.unstable.goverlay
+        # Per-game Proton-GE management (install GE versions from the app).
+        pkgs.unstable.protonup-qt
+        # Shader injection (reshade-style); activates per game via
+        # `ENABLE_VKBASALT=1 %command%`.
+        pkgs.unstable.vkbasalt
       ]))
       # Work applications.
       (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [

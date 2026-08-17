@@ -117,11 +117,14 @@ User packages live in `modules/home/apps.nix`, each group gated behind its
   VS Code.
 - **dev** (default on): Node.js, GitHub CLI, docker-compose, jq, yq.
 - **gaming** (default on): Heroic, MangoHud, Cartridges, goverlay, OpenMW,
-  Daggerfall Unity, SuperTuxKart, vulkan-tools (user packages). At the system
-  level (`gaming.nix`): Steam (32-bit OpenGL + Remote Play/Dedicated
-  Server/LAN transfer firewall + Proton env overrides), GameMode (with the
-  GNOME shell extension), gamescope (`capSysNice` + `--rt --adaptive-sync`),
-  and Xbox/Steam controller support (xone, xpadneo, steam-hardware).
+  Daggerfall Unity, SuperTuxKart, vulkan-tools, protonup-qt, vkbasalt (user
+  packages). At the system level (`gaming.nix`): Steam (32-bit OpenGL + Remote
+  Play/Dedicated Server/LAN transfer firewall + Proton env overrides), GameMode
+  (renice + flips the power profile to performance while gaming), gamescope
+  (`capSysNice` + `--rt --adaptive-sync -e --mangoapp`), Xbox/Steam controller
+  support (xone, xpadneo, steam-hardware), `split_lock_detect=off`, a raised
+  `vm.max_map_count`, `systemd.oomd` and Intel `thermald`. Recommended Steam
+  launch option for any game: `mangohud --dlsym gamemoderun %command%`.
 - **work** (default off, opt-in): dbeaver-bin (database client), FileZilla,
   Remmina. Often combined with `mySystem.enableVirtualBox = true;`
   (`services.nix` builds the vboxdrv kernel module, `users.nix` adds `mario`
