@@ -16,12 +16,12 @@
         ntfs3g
         gparted
         zip
-        unzip
         unrar
+        nodejs
       ])
       # Development tooling.
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
-        nodejs_24
+        nodejs
         gh
         docker-compose
         jq

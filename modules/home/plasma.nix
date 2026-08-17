@@ -56,8 +56,12 @@
         ];
       };
 
-      # WhiteSur dark theme stack. `lookAndFeel` applies the global theme;
-      # the explicit settings below win over its defaults.
+      # WhiteSur dark theme stack. `lookAndFeel` applies the global theme
+      # (colors, icons, window decorations, splash) on every login; the
+      # explicit settings below win over its defaults. We deliberately do NOT
+      # set `workspace.windowDecorations` here — the theme's own defaults
+      # provide the same WhiteSur-dark Aurorae decorations, and plasma-manager
+      # warns against declaring them alongside lookAndFeel.
       workspace = {
         lookAndFeel = "com.github.vinceliuice.WhiteSur-dark";
         theme = "WhiteSur-dark";
@@ -66,10 +70,6 @@
         cursor = {
           theme = "WhiteSur-cursors";
           size = 24;
-        };
-        windowDecorations = {
-          library = "org.kde.kwin.aurorae.v2";
-          theme = "__aurorae__svg__WhiteSur-dark";
         };
         wallpaper = "${pkgs.whitesur-kde}/share/wallpapers/WhiteSur-dark/contents/images/3840x2160.jpg";
       };
