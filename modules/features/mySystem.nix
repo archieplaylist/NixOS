@@ -22,9 +22,9 @@
         description = "Enable the desktop environment.";
       };
       desktop = lib.mkOption {
-        type = lib.types.enum [ "gnome" "plasma" ];
+        type = lib.types.enum [ "gnome" "plasma" "xfce" ];
         default = "gnome";
-        description = "Desktop environment for this host: gnome or plasma.";
+        description = "Desktop environment for this host: gnome, plasma or xfce.";
       };
       enableLaptop = lib.mkOption {
         type = lib.types.bool;

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# switch-de <gnome|plasma>
+# switch-de <gnome|plasma|xfce>
 #
 # Switches this machine's desktop environment: flips the mySystem.desktop line
 # in the host module, builds the new system with `nixos-rebuild boot` (nothing
@@ -28,6 +28,10 @@ plasma_paths=(
 gnome_paths=(
   ".config/dconf" ".config/mutter"
   ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
+)
+xfce_paths=(
+  ".config/xfce4" ".config/xfconf" ".config/xfce4-session"
+  ".config/Thunar" ".local/share/xfce4"
 )
 
 host_module() {
@@ -63,18 +67,18 @@ archive_de() {
 }
 
 usage() {
-  echo "usage: switch-de <gnome|plasma>" >&2
+  echo "usage: switch-de <gnome|plasma|xfce>" >&2
   exit 1
 }
 
 TARGET="${1:-}"
-[ "$TARGET" = "gnome" ] || [ "$TARGET" = "plasma" ] || usage
+[ "$TARGET" = "gnome" ] || [ "$TARGET" = "plasma" ] || [ "$TARGET" = "xfce" ] || usage
 
 HOST="$(host_module)"
 HOST_FILE="$REPO/modules/hosts/$HOST.nix"
 [ -f "$HOST_FILE" ] || { echo "error: $HOST_FILE not found" >&2; exit 1; }
 
-CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|plasma)"' "$HOST_FILE" | grep -Eo '"(gnome|plasma)"' | tr -d '"')"
+CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|plasma|xfce)"' "$HOST_FILE" | grep -Eo '"(gnome|plasma|xfce)"' | tr -d '"')"
 if [ -z "$CURRENT" ]; then
   echo "error: no 'mySystem.desktop = ...' line found in $HOST_FILE" >&2
   exit 1
@@ -103,11 +107,11 @@ rm -f "$HOST_FILE.bak"
 
 # Hand off runtime state: archive what the DE we're leaving wrote, so the home
 # directory only ever holds the active DE's files. Caches and wallets stay put.
-if [ "$CURRENT" = "plasma" ]; then
-  archive_de plasma "${plasma_paths[@]}"
-else
-  archive_de gnome "${gnome_paths[@]}"
-fi
+case "$CURRENT" in
+  plasma) archive_de plasma "${plasma_paths[@]}" ;;
+  gnome) archive_de gnome "${gnome_paths[@]}" ;;
+  xfce) archive_de xfce "${xfce_paths[@]}" ;;
+esac
 
 echo
 echo "built the $TARGET boot entry. Reboot to start the new display manager"

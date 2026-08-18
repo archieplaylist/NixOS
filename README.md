@@ -24,7 +24,7 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── secrets.nix      # sops-nix
 │   │   ├── users.nix        # mario user
 │   │   ├── filesystems.nix  # XFS layout
-│   │   ├── desktop.nix      # GNOME desktop
+│   │   ├── desktop.nix      # GNOME/Plasma/XFCE desktop
 │   │   ├── audio.nix        # PipeWire + low-latency gaming audio
 │   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers
 │   │   └── hardware/        # intel, uefi (systemd-boot), laptop, vm-guest
@@ -33,6 +33,8 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── shell.nix    # bash, direnv, ~/.local/bin scripts (yt, tomp3)
 │   │   ├── apps.nix     # user packages, gated on mySystem.appGroups.*
 │   │   ├── gnome.nix    # GNOME dconf (extensions, theme, tweaks)
+│   │   ├── plasma.nix   # KDE Plasma via plasma-manager
+│   │   ├── xfce.nix     # XFCE xfconf (window theme, panel, xsettings)
 │   │   ├── themes.nix   # WhiteSur dark GTK/icon/cursor + shell theme
 │   │   ├── tooling.nix  # git config + global excludes
 │   │   ├── fastfetch.nix
@@ -66,10 +68,10 @@ no wiring in `flake.nix` (see "Adding a host").
 Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`):
 
 - `mySystem.enableDesktop` — desktop environment (GNOME via GDM, Plasma via
-  SDDM), PipeWire, Bluetooth, NetworkManager, Flatpak daemon.
-- `mySystem.desktop` — `"gnome"` (default) or `"plasma"`; selects which DE the
-  `desktop` slot installs. Switch with `switch-de` (see "Custom scripts") or by
-  editing the host file and rebuilding.
+  SDDM, XFCE via LightDM), PipeWire, Bluetooth, NetworkManager, Flatpak daemon.
+- `mySystem.desktop` — `"gnome"` (default), `"plasma"` or `"xfce"`; selects
+  which DE the `desktop` slot installs. Switch with `switch-de` (see "Custom
+  scripts") or by editing the host file and rebuilding.
 - `mySystem.enableLaptop` — power-profiles-daemon + lid handling.
 - `mySystem.enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSops`.
 - `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
@@ -139,7 +141,7 @@ PATH via `home.sessionPath` in `modules/home/user.nix`):
   Downloads go to `~/Downloads`.
 - `tomp3 file...` — converts any ffmpeg-supported file to a 192 kbps MP3 in
   place.
-- `switch-de <gnome|plasma>` — flips `mySystem.desktop` in this host's module,
+- `switch-de <gnome|plasma|xfce>` — flips `mySystem.desktop` in this host's module,
   builds the new system with `nixos-rebuild boot` (nothing activates until
   reboot), and archives the dormant DE's runtime state to
   `~/.local/share/de-archive/` so the home directory stays clean. HM-managed
@@ -148,7 +150,7 @@ PATH via `home.sessionPath` in `modules/home/user.nix`):
 
 ## Desktop environments
 
-The `desktop` feature slot installs either GNOME or KDE Plasma, chosen per host
+The `desktop` feature slot installs GNOME, KDE Plasma or XFCE, chosen per host
 via `mySystem.desktop`:
 
 - **GNOME** (default) — fully declarative: dconf settings in
@@ -160,18 +162,22 @@ via `mySystem.desktop`:
   declared, with `overrideConfig` resetting unset settings to Plasma defaults
   on every rebuild. Runtime tweaks via System Settings are overwritten by the
   next rebuild — edit `plasma.nix` instead.
+- **XFCE** — X11 (not Wayland), configured declaratively via xfconf XML files
+  in `modules/home/xfce.nix`: WhiteSur-Dark xfwm4 window theme (matching the
+  GTK side), xsettingsd theme/icon/cursor sync, and a minimal panel. XFCE runs
+  under LightDM.
 
-Both DEs run on Wayland, each under its own display manager: GNOME under GDM,
-Plasma under SDDM.
+Each DE runs under its own display manager: GNOME and Plasma on Wayland (GDM
+and SDDM), XFCE on X11 under LightDM.
 
 ### Switching desktop environments
 
-1. Run `switch-de <gnome|plasma>` — it flips `mySystem.desktop` in this host's
+1. Run `switch-de <gnome|plasma|xfce>` — it flips `mySystem.desktop` in this host's
    module, builds the new system with `nixos-rebuild boot` (the running session
    is untouched), and moves the dormant DE's leftover runtime state into
    `~/.local/share/de-archive/`.
-2. Reboot. The new display manager (GDM for GNOME, SDDM for Plasma) starts and
-   offers the new session at login.
+2. Reboot. The new display manager (GDM for GNOME, SDDM for Plasma, LightDM
+   for XFCE) starts and offers the new session at login.
 3. Switch back anytime with `switch-de <the-other-de>`. Your previous DE's
    archived state is recoverable from `~/.local/share/de-archive/`; delete that
    directory when you no longer need it.

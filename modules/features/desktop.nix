@@ -1,9 +1,10 @@
-# Desktop environment slot: GNOME or KDE Plasma on Wayland, plus Bluetooth,
-# NetworkManager and Flatpak (nix-flatpak). Display manager follows the DE:
-# GNOME runs under GDM, Plasma under SDDM. Audio lives in audio.nix, gaming in
-# gaming.nix (same slot, same enableDesktop gate). The DE is chosen per host
-# via `mySystem.desktop` (see mySystem.nix). Contributes a NixOS module to the
-# `desktop` slot, gated on `mySystem.enableDesktop`.
+# Desktop environment slot: GNOME and KDE Plasma on Wayland, XFCE on X11, plus
+# Bluetooth, NetworkManager and Flatpak (nix-flatpak). Display manager follows
+# the DE: GNOME runs under GDM, Plasma under SDDM, XFCE under LightDM. Audio
+# lives in audio.nix, gaming in gaming.nix (same slot, same enableDesktop
+# gate). The DE is chosen per host via `mySystem.desktop` (see mySystem.nix).
+# Contributes a NixOS module to the `desktop` slot, gated on
+# `mySystem.enableDesktop`.
 { ... }: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
@@ -64,6 +65,25 @@
           kdePackages.dolphin
           kdePackages.konsole
           kdePackages.gwenview
+        ];
+      })
+
+      # XFCE stack. Display manager: LightDM. Unlike GNOME/Plasma (Wayland),
+      # XFCE is X11-based, so it relies on the shared `services.xserver` block
+      # above. The core session (xfwm4, xfdesktop, xfce4-panel, xfce4-session)
+      # comes from services.xserver.desktopManager.xfce; user-facing config
+      # (window theme, xsettings, panel) is declared via xfconf XML files in
+      # modules/home/xfce.nix. The extra packages below are the thin apps the
+      # stock session doesn't ship (mirroring Plasma's dolphin/konsole/gwenview).
+      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {
+        services.displayManager.lightdm.enable = true;
+        services.xserver.desktopManager.xfce.enable = true;
+
+        environment.systemPackages = with pkgs; [
+          xfce.xfce4-terminal
+          xfce.xfce4-screenshooter
+          xfce.xfce4-clipman-plugin
+          xfce.mousepad
         ];
       })
     ];
