@@ -1,81 +1,97 @@
 #!/usr/bin/env bash
 # xfce-setup-panel: one-shot XFCE panel configuration.
 #
-# Adds the Whisker menu to the first panel (replacing the stock Applications
-# Menu when present) and binds the bare Super (Meta) key to pop it up. Runs
-# once via XFCE autostart (modules/home/xfce.nix); guarded by a marker file in
-# ~/.local/state/ so it never repeats. Delete the marker to re-run.
+# Runs once at session start via XFCE autostart (modules/home/xfce.nix),
+# guarded by a marker in ~/.local/state/ (delete it to re-run).
+#
+# Why this exists: the xfconf panel channel (xfce4-panel.xml) must not be
+# declared as static XML. xfconf merges hand-written XML with its own
+# auto-generated defaults and the layout is version-sensitive; a stale or
+# half-merged file ends up with plugin ids that have no matching
+# /plugins/plugin-N/type entry, which makes the panel complain
+# "Plugin '(null)' could not be loaded" on every login. This script therefore
+# wipes the panel channel and rebuilds a known-good panel from scratch:
+# Whisker menu (Super/Meta pops it), tasklist, separator, clock, pager and
+# systray.
 set -uo pipefail
 
-MARKER="$HOME/.local/state/xfce-panel-setup-done"
+MARKER="$HOME/.local/state/xfce-panel-setup-v2-done"
 [ -f "$MARKER" ] && exit 0
 
 log() { echo "xfce-setup-panel: $*"; }
 
-# xfconfd starts with the session; wait until it answers (up to ~10s).
+# xfconfd starts with the session; wait until it answers (up to ~10 s).
 for _ in $(seq 1 20); do
   xfconf-query -c xfce4-panel -l &>/dev/null && break
   sleep 0.5
 done
 
-# --- Panel: swap the stock Applications Menu for Whisker ----------------------
-PANEL_ID="$(xfconf-query -c xfce4-panel -p /panels 2>/dev/null | awk 'NF{print; exit}')"
-if [ -z "$PANEL_ID" ]; then
-  log "no panel found; skipping panel setup"
-else
-  PLUGIN_IDS="$(xfconf-query -c xfce4-panel -p "/panels/panel-${PANEL_ID}/plugin-ids" 2>/dev/null | awk 'NF{print}')"
+# --- 1. Clear stale/broken panel state ---------------------------------------
+# Remove the (possibly merged) per-channel XML and the panel state dir so the
+# panel can never re-read the broken config that produced the "(null) plugin"
+# error.
+rm -f "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml"
+rm -rf "$HOME/.config/xfce4/panel"
 
-  # Locate the stock applications menu (if any) so we can replace it.
-  OLD_ID=""
-  for id in $PLUGIN_IDS; do
-    t="$(xfconf-query -c xfce4-panel -p "/plugins/plugin-${id}/type" 2>/dev/null)"
-    if [ "$t" = "applicationsmenu" ] || [ "$t" = "appmenu" ]; then
-      OLD_ID="$id"
-    fi
-  done
+# Wipe the channel inside xfconfd (in-memory) so no stale plugin ids survive.
+xfconf-query -c xfce4-panel -p /panels -r 2>/dev/null || true
+xfconf-query -c xfce4-panel -p /plugins -r 2>/dev/null || true
 
-  # Pick a fresh plugin id (past the highest in use).
-  FREE=10
-  for id in $PLUGIN_IDS; do
-    if [ "$id" -ge "$FREE" ]; then FREE=$((id + 1)); fi
-  done
+# Stop the running panel so it reloads the fresh config on restart.
+xfce4-panel --quit &>/dev/null || true
+for _ in $(seq 1 20); do
+  pgrep -x xfce4-panel &>/dev/null || break
+  sleep 0.2
+done
 
-  # Create the Whisker plugin and slot it in where the old menu was.
-  if xfconf-query -c xfce4-panel -p "/plugins/plugin-${FREE}/type" -n -t string -s "whiskermenu" 2>/dev/null; then
-    NEW_IDS=""
-    for id in $PLUGIN_IDS; do
-      if [ -n "$OLD_ID" ] && [ "$id" = "$OLD_ID" ]; then
-        NEW_IDS="$NEW_IDS $FREE"
-      else
-        NEW_IDS="$NEW_IDS $id"
-      fi
-    done
-    [ -z "$OLD_ID" ] && NEW_IDS="$NEW_IDS $FREE"
+# --- 2. Single fresh panel (bottom, full width) -------------------------------
+# configver=2 tells xfce4-panel the config is current so it won't "migrate"
+# (i.e. overwrite) our values on load.
+xfconf-query -c xfce4-panel -p /configver -n -t int -s 2
+xfconf-query -c xfce4-panel -p /panels -n -t int -s 1
+xfconf-query -c xfce4-panel -p /panels/panel-1/position -n -t string -s "p=6;x=0;y=0"
+xfconf-query -c xfce4-panel -p /panels/panel-1/length -n -t uint -s 100
+xfconf-query -c xfce4-panel -p /panels/panel-1/position-locked -n -t bool -s true
+xfconf-query -c xfce4-panel -p /panels/panel-1/icon-size -n -t uint -s 24
+xfconf-query -c xfce4-panel -p /panels/panel-1/size -n -t uint -s 30
+xfconf-query -c xfce4-panel -p /panels/panel-1/background-style -n -t int -s 1
+xfconf-query -c xfce4-panel -p /panels/panel-1/background-alpha -n -t uint -s 100
 
-    xfconf-query -c xfce4-panel -p "/panels/panel-${PANEL_ID}/plugin-ids" -r 2>/dev/null || true
-    first=1
-    for id in $NEW_IDS; do
-      if [ "$first" = 1 ]; then
-        xfconf-query -c xfce4-panel -p "/panels/panel-${PANEL_ID}/plugin-ids" -n -t int -s "$id" 2>/dev/null || true
-        first=0
-      else
-        xfconf-query -c xfce4-panel -p "/panels/panel-${PANEL_ID}/plugin-ids" -a -t int -s "$id" 2>/dev/null || true
-      fi
-    done
-    log "panel ${PANEL_ID}: whiskermenu installed${OLD_ID:+ (replaced plugin-${OLD_ID})}"
-  else
-    log "could not create whiskermenu plugin (panel left untouched)"
-  fi
-fi
+# --- 3. Plugins ---------------------------------------------------------------
+# 1 Whisker menu, 2 tasklist, 3 expanding separator, 4 clock, 5 pager, 6 systray.
+xfconf-query -c xfce4-panel -p /plugins/plugin-1/type -n -t string -s "whiskermenu"
+xfconf-query -c xfce4-panel -p /plugins/plugin-1/show-button-title -n -t bool -s false
+xfconf-query -c xfce4-panel -p /plugins/plugin-1/show-button-icon -n -t bool -s true
 
-# --- Super key pops the Whisker menu ------------------------------------------
-if xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/<Super>" -n -t string \
-    -s "xfce4-popup-whiskermenu" 2>/dev/null; then
-  log "Super key bound to xfce4-popup-whiskermenu"
-else
-  log "could not bind Super key (shortcut left untouched)"
+xfconf-query -c xfce4-panel -p /plugins/plugin-2/type -n -t string -s "tasklist"
+xfconf-query -c xfce4-panel -p /plugins/plugin-2/grouping -n -t int -s 0
+
+xfconf-query -c xfce4-panel -p /plugins/plugin-3/type -n -t string -s "separator"
+xfconf-query -c xfce4-panel -p /plugins/plugin-3/expand -n -t bool -s true
+xfconf-query -c xfce4-panel -p /plugins/plugin-3/style -n -t int -s 0
+
+xfconf-query -c xfce4-panel -p /plugins/plugin-4/type -n -t string -s "clock"
+xfconf-query -c xfce4-panel -p /plugins/plugin-4/digital-time-format -n -t string -s "%H:%M"
+
+xfconf-query -c xfce4-panel -p /plugins/plugin-5/type -n -t string -s "pager"
+
+xfconf-query -c xfce4-panel -p /plugins/plugin-6/type -n -t string -s "systray"
+
+# --- 4. Order the plugins on the panel ----------------------------------------
+xfconf-query -c xfce4-panel -p /panels/panel-1/plugin-ids -n \
+  -t int -s 1 -t int -s 2 -t int -s 3 -t int -s 4 -t int -s 5 -t int -s 6
+
+# --- 5. Super/Meta key pops the Whisker menu ----------------------------------
+# Bare-modifier grab (X11). If it is flaky on a host, change it in
+# Settings > Keyboard > Application Shortcuts.
+xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/<Super>" -n -t string \
+  -s "xfce4-popup-whiskermenu" 2>/dev/null || true
+
+# --- 6. Restart the panel so it loads the fresh config -------------------------
+if command -v xfce4-panel &>/dev/null && ! pgrep -x xfce4-panel &>/dev/null; then
+  setsid xfce4-panel &>/dev/null &
 fi
 
 mkdir -p "$(dirname "$MARKER")"
 touch "$MARKER"
-log "done"
+log "panel rebuilt (whiskermenu + tasklist + clock + pager + systray)"

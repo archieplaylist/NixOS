@@ -12,12 +12,14 @@
 # environment (same mechanism plasma.nix documents for whitesur-kde).
 #
 # NOTE on the panel: the xfconf panel XML (xfce4-panel.xml) is deliberately NOT
-# declared here — xfconf merges it with the auto-generated default panel on
-# first boot and the XML layout is version-sensitive, which manifests as a
-# "Plugin '(null)' could not be loaded" dialog. Instead, a one-shot autostart
-# script (xfce-setup-panel, in modules/home/scripts/) configures the panel via
-# xfconf-query once the session is fully up. It only runs once (marker file in
-# ~/.local/state/); delete the marker to re-run it.
+# declared here — xfconf merges hand-written XML with auto-generated defaults
+# on first boot and the layout is version-sensitive. A stale or half-merged
+# file leaves plugin ids pointing at plugins that no longer exist, which makes
+# the panel show "Plugin '(null)' could not be loaded" on every login. Instead,
+# a one-shot autostart script (xfce-setup-panel, in modules/home/scripts/)
+# wipes the panel channel and rebuilds a known-good panel (Whisker menu +
+# tasklist + clock + pager + systray) via xfconf-query once the session is up.
+# It runs once (marker file in ~/.local/state/); delete the marker to re-run.
 { ... }: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     home.file = lib.mkIf (osConfig.mySystem.desktop == "xfce") {
