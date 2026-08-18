@@ -83,12 +83,15 @@
         services.xserver.displayManager.lightdm.enable = true;
         services.xserver.desktopManager.xfce.enable = true;
 
+        # Extra apps the stock XFCE session doesn't ship (mirroring Plasma's
+        # dolphin/konsole/gwenview). These used to live in the `xfce` package
+        # set but were moved to top-level in this nixpkgs.
         environment.systemPackages = with pkgs; [
-          xfce.xfce4-terminal
-          xfce.xfce4-screenshooter
-          xfce.xfce4-clipman-plugin
-          xfce.xfce4-whiskermenu-plugin
-          xfce.mousepad
+          xfce4-terminal
+          xfce4-screenshooter
+          xfce4-clipman-plugin
+          xfce4-whiskermenu-plugin
+          mousepad
         ];
       })
     ];
