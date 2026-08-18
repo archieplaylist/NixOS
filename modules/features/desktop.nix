@@ -72,9 +72,8 @@
       # XFCE is X11-based, so it relies on the shared `services.xserver` block
       # above. The core session (xfwm4, xfdesktop, xfce4-panel, xfce4-session)
       # comes from services.xserver.desktopManager.xfce; user-facing config
-      # (window theme, xsettings) is declared via xfconf XML files in
-      # modules/home/xfce.nix. The default panel (Whisker menu) is shipped as a
-      # system-wide xfconf default below. The extra packages are the thin apps
+      # (window theme, xsettings, panel, Super-key shortcut) is shipped as
+      # system-wide xfconf defaults below. The extra packages are the thin apps
       # the stock session doesn't ship (mirroring Plasma's dolphin/konsole).
       #
       # Note: LightDM still lives at the legacy `services.xserver.displayManager.*`
@@ -167,6 +166,42 @@
     <property name="custom" type="empty">
       <property name="<Super>" type="string" value="xfce4-popup-whiskermenu"/>
     </property>
+  </property>
+</channel>
+'';
+
+        # Window manager (xfwm4): WhiteSur-Dark decorations to match the GTK
+        # side, minimize/maximize/close on the right, and the built-in
+        # compositor (no separate picom needed).
+        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml".text = ''
+<?xml version="1.0" encoding="UTF-8"?>
+
+<channel name="xfwm4" version="1.0">
+  <property name="general" type="empty">
+    <property name="theme" type="string" value="WhiteSur-Dark"/>
+    <property name="button_layout" type="string" value="O|HMC"/>
+    <property name="use_compositing" type="bool" value="true"/>
+    <property name="workspace_count" type="int" value="4"/>
+    <property name="placement_mode" type="string" value="center"/>
+    <property name="edge_resistance" type="int" value="10"/>
+  </property>
+</channel>
+'';
+
+        # xsettingsd: keep XFCE's GTK/icon/cursor choices in sync with the
+        # home-manager gtk module (themes.nix) so panels, menus and dialogs all
+        # render WhiteSur dark.
+        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml".text = ''
+<?xml version="1.0" encoding="UTF-8"?>
+
+<channel name="xsettings" version="1.0">
+  <property name="Net" type="empty">
+    <property name="ThemeName" type="string" value="WhiteSur-Dark"/>
+    <property name="IconThemeName" type="string" value="WhiteSur-dark"/>
+  </property>
+  <property name="Gtk" type="empty">
+    <property name="CursorThemeName" type="string" value="WhiteSur-cursors"/>
+    <property name="CursorThemeSize" type="int" value="24"/>
   </property>
 </channel>
 '';

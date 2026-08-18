@@ -34,7 +34,6 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── apps.nix     # user packages, gated on mySystem.appGroups.*
 │   │   ├── gnome.nix    # GNOME dconf (extensions, theme, tweaks)
 │   │   ├── plasma.nix   # KDE Plasma via plasma-manager
-│   │   ├── xfce.nix     # XFCE xfconf (window theme, panel, xsettings)
 │   │   ├── themes.nix   # WhiteSur dark GTK/icon/cursor + shell theme
 │   │   ├── tooling.nix  # git config + global excludes
 │   │   ├── fastfetch.nix
@@ -162,12 +161,12 @@ via `mySystem.desktop`:
   declared, with `overrideConfig` resetting unset settings to Plasma defaults
   on every rebuild. Runtime tweaks via System Settings are overwritten by the
   next rebuild — edit `plasma.nix` instead.
-- **XFCE** — X11 (not Wayland), configured via xfconf XML files
-  (`modules/home/xfce.nix`): WhiteSur-Dark xfwm4 window theme (matching the GTK
-  side) and xsettingsd theme/icon/cursor sync. The default panel — Whisker menu,
-  tasklist, clock, pager, systray — is shipped as a system-wide xfconf default
-  in `modules/features/desktop.nix` (`/etc/xdg/xfce4/xfconf/.../xfce4-panel.xml`),
-  with Super/Meta bound to open the Whisker menu. XFCE runs under LightDM.
+- **XFCE** — X11 (not Wayland). All xfconf settings are shipped as system-wide
+  defaults in `modules/features/desktop.nix` (`/etc/xdg/xfce4/xfconf/...`):
+  WhiteSur-Dark xfwm4 window theme (matching the GTK side), xsettingsd
+  theme/icon/cursor sync, and a default panel — Whisker menu, tasklist, clock,
+  pager, systray — with Super/Meta bound to open the Whisker menu. XFCE runs
+  under LightDM.
 
 Each DE runs under its own display manager: GNOME and Plasma on Wayland (GDM
 and SDDM), XFCE on X11 under LightDM.
