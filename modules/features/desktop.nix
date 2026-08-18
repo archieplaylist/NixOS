@@ -72,9 +72,10 @@
       # XFCE is X11-based, so it relies on the shared `services.xserver` block
       # above. The core session (xfwm4, xfdesktop, xfce4-panel, xfce4-session)
       # comes from services.xserver.desktopManager.xfce; user-facing config
-      # (window theme, xsettings, panel) is declared via xfconf XML files in
-      # modules/home/xfce.nix. The extra packages below are the thin apps the
-      # stock session doesn't ship (mirroring Plasma's dolphin/konsole/gwenview).
+      # (window theme, xsettings) is declared via xfconf XML files in
+      # modules/home/xfce.nix. The default panel (Whisker menu) is shipped as a
+      # system-wide xfconf default below. The extra packages are the thin apps
+      # the stock session doesn't ship (mirroring Plasma's dolphin/konsole).
       #
       # Note: LightDM still lives at the legacy `services.xserver.displayManager.*`
       # path — the display-manager refactor moved GDM/SDDM/lemurs to the new
@@ -93,6 +94,82 @@
           xfce4-whiskermenu-plugin
           mousepad
         ];
+
+        # Default panel for the XFCE session. XFCE reads channel defaults from
+        # /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/ and merges them into the
+        # user's config on first login, so this gives every user the same stock
+        # bottom panel with the Whisker menu replacing the Applications menu.
+        # A complete, valid XML is critical: a plugin id in the `plugin-ids`
+        # array without a matching /plugins/plugin-N entry is exactly what
+        # produces the "Plugin '(null)' could not be loaded" dialog.
+        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
+<?xml version="1.0" encoding="UTF-8"?>
+
+<channel name="xfce4-panel" version="1.0">
+  <property name="configver" type="int" value="2"/>
+  <property name="panels" type="array">
+    <value type="int" value="1"/>
+    <property name="panel-1" type="empty">
+      <property name="position" type="string" value="p=6;x=0;y=0"/>
+      <property name="length" type="uint" value="100"/>
+      <property name="position-locked" type="bool" value="true"/>
+      <property name="icon-size" type="uint" value="24"/>
+      <property name="size" type="uint" value="30"/>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="1"/>
+        <value type="int" value="2"/>
+        <value type="int" value="3"/>
+        <value type="int" value="4"/>
+        <value type="int" value="5"/>
+        <value type="int" value="6"/>
+      </property>
+      <property name="background-style" type="int" value="1"/>
+      <property name="background-alpha" type="uint" value="100"/>
+      <property name="span-monitors" type="bool" value="false"/>
+    </property>
+  </property>
+  <property name="plugins" type="empty">
+    <property name="plugin-1" type="empty">
+      <property name="type" type="string" value="whiskermenu"/>
+      <property name="show-button-title" type="bool" value="false"/>
+      <property name="show-button-icon" type="bool" value="true"/>
+    </property>
+    <property name="plugin-2" type="empty">
+      <property name="type" type="string" value="tasklist"/>
+      <property name="grouping" type="int" value="0"/>
+    </property>
+    <property name="plugin-3" type="empty">
+      <property name="type" type="string" value="separator"/>
+      <property name="expand" type="bool" value="true"/>
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <property name="plugin-4" type="empty">
+      <property name="type" type="string" value="clock"/>
+      <property name="digital-time-format" type="string" value="%H:%M"/>
+    </property>
+    <property name="plugin-5" type="empty">
+      <property name="type" type="string" value="pager"/>
+    </property>
+    <property name="plugin-6" type="empty">
+      <property name="type" type="string" value="systray"/>
+    </property>
+  </property>
+</channel>
+'';
+
+        # Make the bare Super (Meta) key open the Whisker menu, also as a
+        # system xfconf default (same /etc/xdg mechanism as the panel above).
+        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml".text = ''
+<?xml version="1.0" encoding="UTF-8"?>
+
+<channel name="xfce4-keyboard-shortcuts" version="1.0">
+  <property name="commands" type="empty">
+    <property name="custom" type="empty">
+      <property name="<Super>" type="string" value="xfce4-popup-whiskermenu"/>
+    </property>
+  </property>
+</channel>
+'';
       })
     ];
   };

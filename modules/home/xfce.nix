@@ -11,15 +11,15 @@
 # home-manager's gtk module installs whitesur-gtk-theme into the user
 # environment (same mechanism plasma.nix documents for whitesur-kde).
 #
-# NOTE on the panel: the xfconf panel XML (xfce4-panel.xml) is deliberately NOT
-# declared here — xfconf merges hand-written XML with auto-generated defaults
-# on first boot and the layout is version-sensitive. A stale or half-merged
-# file leaves plugin ids pointing at plugins that no longer exist, which makes
-# the panel show "Plugin '(null)' could not be loaded" on every login. Instead,
-# a one-shot autostart script (xfce-setup-panel, in modules/home/scripts/)
-# wipes the panel channel and rebuilds a known-good panel (Whisker menu +
-# tasklist + clock + pager + systray) via xfconf-query once the session is up.
-# It runs once (marker file in ~/.local/state/); delete the marker to re-run.
+# NOTE on the panel: the panel (Whisker menu, tasklist, clock, pager, systray)
+# is NOT declared here. It is shipped as a system-wide xfconf default in
+# modules/features/desktop.nix (environment.etc → /etc/xdg/xfce4/xfconf/
+# xfce-perchannel-xml/xfce4-panel.xml). Writing the panel XML into the user
+# config instead is fragile: xfconf merges it with auto-generated defaults and
+# writes through the file, so a stale/broken copy leaves plugin ids pointing at
+# plugins that no longer exist — the "Plugin '(null)' could not be loaded"
+# error. The /etc/xdg default is read-only and merged on first login, so it
+# cannot go stale.
 { ... }: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     home.file = lib.mkIf (osConfig.mySystem.desktop == "xfce") {
@@ -55,17 +55,6 @@
             <property name="CursorThemeSize" type="int" value="24"/>
           </property>
         </channel>
-      '';
-
-      # Autostart: run the one-shot panel setup (Whisker menu + Super key) at
-      # session start. The script is installed to ~/.local/bin in shell.nix;
-      # this entry just triggers it.
-      ".config/autostart/xfce-setup-panel.desktop".text = ''
-        [Desktop Entry]
-        Type=Application
-        Name=XFCE Panel Setup
-        Exec=sh -c 'exec "$HOME/.local/bin/xfce-setup-panel"'
-        OnlyShowIn=XFCE;
       '';
     };
   };
