@@ -75,8 +75,12 @@
       # (window theme, xsettings, panel) is declared via xfconf XML files in
       # modules/home/xfce.nix. The extra packages below are the thin apps the
       # stock session doesn't ship (mirroring Plasma's dolphin/konsole/gwenview).
+      #
+      # Note: LightDM still lives at the legacy `services.xserver.displayManager.*`
+      # path — the display-manager refactor moved GDM/SDDM/lemurs to the new
+      # `services.displayManager.*` namespace but kept LightDM where it was.
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {
-        services.displayManager.lightdm.enable = true;
+        services.xserver.displayManager.lightdm.enable = true;
         services.xserver.desktopManager.xfce.enable = true;
 
         environment.systemPackages = with pkgs; [
