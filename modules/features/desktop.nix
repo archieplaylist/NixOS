@@ -205,6 +205,23 @@
   </property>
 </channel>
 '';
+
+        # Self-healing: xfconfd writes through any user-level xfconf XML it
+        # finds (e.g. a leftover from an earlier home-manager setup), turning
+        # it into a real file that overrides the /etc/xdg defaults above and
+        # can leave dangling plugin ids — the "Plugin '(null)' could not be
+        # loaded" error. Remove the stale per-channel files at boot so the
+        # system defaults always apply on a fresh login.
+        systemd.tmpfiles.rules = let
+          home = config.users.users.mario.home;
+        in [
+          "r ${home}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml"
+          "r ${home}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml"
+          "r ${home}/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml"
+          "r ${home}/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml"
+          "r ${home}/.config/xfce4/xfconf/xfce-perchannel-xml/*.hm-backup"
+          "R ${home}/.config/xfce4/panel"
+        ];
       })
     ];
   };
