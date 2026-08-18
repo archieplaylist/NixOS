@@ -10,6 +10,14 @@
 # xfwm4 finds the WhiteSur-Dark window theme through XDG_DATA_DIRS because
 # home-manager's gtk module installs whitesur-gtk-theme into the user
 # environment (same mechanism plasma.nix documents for whitesur-kde).
+#
+# NOTE on the panel: the xfconf panel XML (xfce4-panel.xml) is deliberately NOT
+# declared here — xfconf merges it with the auto-generated default panel on
+# first boot and the XML layout is version-sensitive, which manifests as a
+# "Plugin '(null)' could not be loaded" dialog. Instead, a one-shot autostart
+# script (xfce-setup-panel, in modules/home/scripts/) configures the panel via
+# xfconf-query once the session is fully up. It only runs once (marker file in
+# ~/.local/state/); delete the marker to re-run it.
 { ... }: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     home.file = lib.mkIf (osConfig.mySystem.desktop == "xfce") {
@@ -47,60 +55,15 @@
         </channel>
       '';
 
-      # Panel: a minimal single bottom panel (Whisker menu, tasklist, clock,
-      # system tray). Plugin IDs are arbitrary unique integers; the
-      # launcher/pager plugins are deliberately omitted because their items are
-      # easy to get wrong by hand — add them by editing this XML (or removing
-      # this file to fall back to the stock panel, which xfce4-panel
-      # regenerates on first login).
-      ".config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
-        <?xml version="1.0" encoding="UTF-8"?>
-        <channel name="xfce4-panel" version="1.0">
-          <property name="configver" type="int" value="2"/>
-          <property name="panels" type="array">
-            <value type="int" value="1"/>
-            <property name="panel-1" type="empty">
-              <property name="length" type="uint" value="100"/>
-              <property name="size" type="uint" value="40"/>
-              <property name="plugin-ids" type="array">
-                <value type="int" value="1"/>
-                <value type="int" value="2"/>
-                <value type="int" value="3"/>
-                <value type="int" value="4"/>
-              </property>
-            </property>
-          </property>
-          <property name="plugins" type="empty">
-            <property name="plugin-1" type="empty">
-              <property name="type" type="string" value="whiskermenu"/>
-            </property>
-            <property name="plugin-2" type="empty">
-              <property name="type" type="string" value="tasklist"/>
-            </property>
-            <property name="plugin-3" type="empty">
-              <property name="type" type="string" value="clock"/>
-              <property name="digital-time-format" type="string" value="%H:%M"/>
-            </property>
-            <property name="plugin-4" type="empty">
-              <property name="type" type="string" value="systray"/>
-            </property>
-          </property>
-        </channel>
-      '';
-
-      # Keyboard shortcuts: bind the bare Super (Meta) key to pop up the
-      # Whisker menu (xfce4-popup-whiskermenu), like a typical launcher key.
-      # xfce4-settings merges this channel with its built-in defaults at
-      # runtime, so only the custom binding needs to be declared here.
-      ".config/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml".text = ''
-        <?xml version="1.0" encoding="UTF-8"?>
-        <channel name="xfce4-keyboard-shortcuts" version="1.0">
-          <property name="commands" type="empty">
-            <property name="custom" type="empty">
-              <property name="&lt;Super&gt;" type="string" value="xfce4-popup-whiskermenu"/>
-            </property>
-          </property>
-        </channel>
+      # Autostart: run the one-shot panel setup (Whisker menu + Super key) at
+      # session start. The script is installed to ~/.local/bin in shell.nix;
+      # this entry just triggers it.
+      ".config/autostart/xfce-setup-panel.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=XFCE Panel Setup
+        Exec=sh -c 'exec "$HOME/.local/bin/xfce-setup-panel"'
+        OnlyShowIn=XFCE;
       '';
     };
   };

@@ -18,9 +18,9 @@
       nix-direnv.enable = true;
     };
 
-    # `yt`, `tomp3` and `switch-de` live as plain bash scripts (no Nix string
-    # escaping, easy to test) in ~/.local/bin, which is put on PATH via
-    # home.sessionPath (modules/home/user.nix).
+    # `yt`, `tomp3`, `switch-de` and `xfce-setup-panel` live as plain bash
+    # scripts (no Nix string escaping, easy to test) in ~/.local/bin, which is
+    # put on PATH via home.sessionPath (modules/home/user.nix).
     home.file.".local/bin/yt" = {
       source = ./scripts/yt;
       executable = true;
@@ -31,6 +31,12 @@
     };
     home.file.".local/bin/switch-de" = {
       source = ./scripts/switch-de;
+      executable = true;
+    };
+    # One-shot XFCE panel setup (only triggered on XFCE hosts, via the
+    # autostart entry in xfce.nix).
+    home.file.".local/bin/xfce-setup-panel" = {
+      source = ./scripts/xfce-setup-panel;
       executable = true;
     };
   };

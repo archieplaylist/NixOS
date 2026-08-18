@@ -162,10 +162,11 @@ via `mySystem.desktop`:
   declared, with `overrideConfig` resetting unset settings to Plasma defaults
   on every rebuild. Runtime tweaks via System Settings are overwritten by the
   next rebuild — edit `plasma.nix` instead.
-- **XFCE** — X11 (not Wayland), configured declaratively via xfconf XML files
-  in `modules/home/xfce.nix`: WhiteSur-Dark xfwm4 window theme (matching the
-  GTK side), xsettingsd theme/icon/cursor sync, a minimal panel with a Whisker
-  menu (Super/Meta opens it), and keyboard shortcuts. XFCE runs under LightDM.
+- **XFCE** — X11 (not Wayland), configured via xfconf XML files plus a one-shot
+  autostart script (`modules/home/xfce.nix`, `modules/home/scripts/xfce-setup-panel`):
+  WhiteSur-Dark xfwm4 window theme (matching the GTK side), xsettingsd
+  theme/icon/cursor sync, and a Whisker menu added to the panel at first login
+  (Super/Meta opens it). XFCE runs under LightDM.
 
 Each DE runs under its own display manager: GNOME and Plasma on Wayland (GDM
 and SDDM), XFCE on X11 under LightDM.
