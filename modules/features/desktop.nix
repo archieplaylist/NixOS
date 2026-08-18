@@ -83,6 +83,7 @@
           xfce.xfce4-terminal
           xfce.xfce4-screenshooter
           xfce.xfce4-clipman-plugin
+          xfce.xfce4-whiskermenu-plugin
           xfce.mousepad
         ];
       })

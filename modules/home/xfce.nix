@@ -47,8 +47,8 @@
         </channel>
       '';
 
-      # Panel: a minimal single bottom panel (applications menu, tasklist,
-      # clock, system tray). Plugin IDs are arbitrary unique integers; the
+      # Panel: a minimal single bottom panel (Whisker menu, tasklist, clock,
+      # system tray). Plugin IDs are arbitrary unique integers; the
       # launcher/pager plugins are deliberately omitted because their items are
       # easy to get wrong by hand — add them by editing this XML (or removing
       # this file to fall back to the stock panel, which xfce4-panel
@@ -72,7 +72,7 @@
           </property>
           <property name="plugins" type="empty">
             <property name="plugin-1" type="empty">
-              <property name="type" type="string" value="applicationsmenu"/>
+              <property name="type" type="string" value="whiskermenu"/>
             </property>
             <property name="plugin-2" type="empty">
               <property name="type" type="string" value="tasklist"/>
@@ -83,6 +83,21 @@
             </property>
             <property name="plugin-4" type="empty">
               <property name="type" type="string" value="systray"/>
+            </property>
+          </property>
+        </channel>
+      '';
+
+      # Keyboard shortcuts: bind the bare Super (Meta) key to pop up the
+      # Whisker menu (xfce4-popup-whiskermenu), like a typical launcher key.
+      # xfce4-settings merges this channel with its built-in defaults at
+      # runtime, so only the custom binding needs to be declared here.
+      ".config/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml".text = ''
+        <?xml version="1.0" encoding="UTF-8"?>
+        <channel name="xfce4-keyboard-shortcuts" version="1.0">
+          <property name="commands" type="empty">
+            <property name="custom" type="empty">
+              <property name="&lt;Super&gt;" type="string" value="xfce4-popup-whiskermenu"/>
             </property>
           </property>
         </channel>

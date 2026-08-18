@@ -164,8 +164,8 @@ via `mySystem.desktop`:
   next rebuild — edit `plasma.nix` instead.
 - **XFCE** — X11 (not Wayland), configured declaratively via xfconf XML files
   in `modules/home/xfce.nix`: WhiteSur-Dark xfwm4 window theme (matching the
-  GTK side), xsettingsd theme/icon/cursor sync, and a minimal panel. XFCE runs
-  under LightDM.
+  GTK side), xsettingsd theme/icon/cursor sync, a minimal panel with a Whisker
+  menu (Super/Meta opens it), and keyboard shortcuts. XFCE runs under LightDM.
 
 Each DE runs under its own display manager: GNOME and Plasma on Wayland (GDM
 and SDDM), XFCE on X11 under LightDM.
