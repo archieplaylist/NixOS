@@ -72,9 +72,10 @@
       # XFCE is X11-based, so it relies on the shared `services.xserver` block
       # above. The core session (xfwm4, xfdesktop, xfce4-panel, xfce4-session)
       # comes from services.xserver.desktopManager.xfce; user-facing config
-      # (window theme, xsettings) is shipped as system-wide xfconf defaults
-      # below. The panel is left at XFCE's stock default — custom panel XML
-      # kept producing the "(null)" plugin dialog, so there is none. The extra
+      # (single bottom panel, window theme, xsettings) is shipped as
+      # system-wide xfconf defaults below. The panel XML is the user's own
+      # working config (a single bottom panel with Whisker menu) — the one
+      # layout that finally stopped the "(null)" plugin dialog. The extra
       # packages are the thin apps the stock session doesn't ship (mirroring
       # Plasma's dolphin/konsole).
       #
@@ -96,12 +97,75 @@
           mousepad
         ];
 
-        # Panel: XFCE's stock default. Every custom /etc/xdg xfce4-panel.xml we
-        # shipped (Whisker menu, then plain stock plugins) STILL produced the
-        # "Plugin '(null)' could not be loaded" dialog, so the panel config is
-        # left entirely to xfce4-panel's own defaults — no custom XML at all.
-        # (Note: XFCE 4.20's stock layout is a top panel plus a bottom dock —
-        # two panels, but XFCE's own consistent config, so no error.)
+        # Panel: the user's own working XFCE panel config, embedded verbatim.
+        # This is the exact config exported from a session that no longer shows
+        # the "Plugin '(null)' could not be loaded" dialog — a hand-tuned
+        # single bottom panel (Whisker menu, task list, systray, clock;
+        # dark-mode). Shipped as a system xfconf default via /etc/xdg. It is
+        # consistent: every id in `plugin-ids` (4,2,3,6,7,8,9) has a matching
+        # /plugins/plugin-N entry, which is what keeps the "(null)" dialog
+        # away. The tmpfiles wipe below clears stale user config at boot so
+        # this is always the config the panel reads.
+        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
+<?xml version="1.1" encoding="UTF-8"?>
+
+<channel name="xfce4-panel" version="1.0">
+  <property name="configver" type="int" value="2"/>
+  <property name="panels" type="array">
+    <value type="int" value="1"/>
+    <property name="dark-mode" type="bool" value="true"/>
+    <property name="panel-1" type="empty">
+      <property name="position" type="string" value="p=8;x=960;y=985"/>
+      <property name="length" type="uint" value="100"/>
+      <property name="position-locked" type="bool" value="true"/>
+      <property name="icon-size" type="uint" value="16"/>
+      <property name="size" type="uint" value="26"/>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="4"/>
+        <value type="int" value="2"/>
+        <value type="int" value="3"/>
+        <value type="int" value="6"/>
+        <value type="int" value="7"/>
+        <value type="int" value="8"/>
+        <value type="int" value="9"/>
+      </property>
+    </property>
+  </property>
+  <property name="plugins" type="empty">
+    <property name="plugin-2" type="string" value="tasklist">
+      <property name="grouping" type="uint" value="1"/>
+    </property>
+    <property name="plugin-3" type="string" value="separator">
+      <property name="expand" type="bool" value="true"/>
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <property name="plugin-6" type="string" value="systray">
+      <property name="square-icons" type="bool" value="true"/>
+      <property name="known-legacy-items" type="array">
+        <value type="string" value="ethernet network connection “wired connection 1” active"/>
+      </property>
+    </property>
+    <property name="plugin-7" type="string" value="separator">
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <property name="plugin-8" type="string" value="clock"/>
+    <property name="plugin-9" type="string" value="separator">
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <property name="plugin-4" type="string" value="whiskermenu">
+      <property name="show-button-title" type="bool" value="true"/>
+      <property name="button-title" type="string" value=" Apps"/>
+      <property name="position-categories-horizontal" type="bool" value="false"/>
+      <property name="position-categories-alternate" type="bool" value="true"/>
+      <property name="position-profile-alternate" type="bool" value="true"/>
+      <property name="position-search-alternate" type="bool" value="true"/>
+      <property name="position-commands-alternate" type="bool" value="false"/>
+      <property name="hover-switch-category" type="bool" value="true"/>
+    </property>
+    <property name="plugin-5" type="string" value="xfce4-clipman-plugin"/>
+  </property>
+</channel>
+'';
 
         # Window manager (xfwm4): WhiteSur-Dark decorations to match the GTK
         # side, minimize/maximize/close on the right, and the built-in
@@ -140,10 +204,12 @@
 '';
 
         # Self-healing: wipe ALL XFCE user state at every boot so the panel
-        # and theme start fresh. There is no custom /etc/xdg panel config, so
-        # xfce4-panel regenerates its own stock default each login — a clean
-        # slate guarantees no stale user file (the actual cause of the
-        # "Plugin '(null)' could not be loaded" dialog) is ever in effect.
+        # and theme start fresh from the /etc/xdg defaults above. xfconfd
+        # merges any user-level xfce4-panel.xml on top of /etc/xdg (user file
+        # wins), and a stale user file is exactly what caused the
+        # "Plugin '(null)' could not be loaded" dialog before — a clean slate
+        # guarantees the consistent embedded panel config is what the panel
+        # always reads.
         systemd.tmpfiles.rules = let
           home = config.users.users.mario.home;
         in [
