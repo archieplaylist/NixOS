@@ -72,9 +72,11 @@
       # XFCE is X11-based, so it relies on the shared `services.xserver` block
       # above. The core session (xfwm4, xfdesktop, xfce4-panel, xfce4-session)
       # comes from services.xserver.desktopManager.xfce; user-facing config
-      # (single bottom panel, window theme, xsettings) is shipped as
-      # system-wide xfconf defaults below. The extra packages are the thin apps
-      # the stock session doesn't ship (mirroring Plasma's dolphin/konsole).
+      # (window theme, xsettings) is shipped as system-wide xfconf defaults
+      # below. The panel is left at XFCE's stock default — custom panel XML
+      # kept producing the "(null)" plugin dialog, so there is none. The extra
+      # packages are the thin apps the stock session doesn't ship (mirroring
+      # Plasma's dolphin/konsole).
       #
       # Note: LightDM still lives at the legacy `services.xserver.displayManager.*`
       # path — the display-manager refactor moved GDM/SDDM/lemurs to the new
@@ -94,71 +96,12 @@
           mousepad
         ];
 
-        # Panel: one bottom panel, no dock. XFCE 4.20's out-of-the-box default
-        # is actually TWO panels (a top panel plus a bottom dock) — not what we
-        # want — so a single /etc/xdg xfce4-panel.xml overrides it: one bottom
-        # panel with the stock plugins (applications menu, tasklist, separator,
-        # clock, pager, systray). A complete, valid XML is critical: every id
-        # in `plugin-ids` must have a matching /plugins/plugin-N entry, else
-        # xfce4-panel shows the "Plugin '(null)' could not be loaded" dialog.
-        # (That dialog previously came from a stale user-level xfce4-panel.xml
-        # overriding /etc/xdg; the tmpfiles wipe below removes any user config
-        # at boot so /etc/xdg is the only source. The channel is deliberately
-        # NOT locked so the panel stays tweakable from the GUI.)
-        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
-<?xml version="1.0" encoding="UTF-8"?>
-
-<channel name="xfce4-panel" version="1.0">
-  <property name="configver" type="int" value="2"/>
-  <property name="panels" type="array">
-    <value type="int" value="1"/>
-    <property name="panel-1" type="empty">
-      <property name="position" type="string" value="p=6;x=0;y=0"/>
-      <property name="length" type="uint" value="100"/>
-      <property name="position-locked" type="bool" value="true"/>
-      <property name="icon-size" type="uint" value="22"/>
-      <property name="size" type="uint" value="30"/>
-      <property name="plugin-ids" type="array">
-        <value type="int" value="1"/>
-        <value type="int" value="2"/>
-        <value type="int" value="3"/>
-        <value type="int" value="4"/>
-        <value type="int" value="5"/>
-        <value type="int" value="6"/>
-      </property>
-      <property name="background-style" type="int" value="1"/>
-      <property name="background-alpha" type="uint" value="100"/>
-      <property name="span-monitors" type="bool" value="false"/>
-    </property>
-  </property>
-  <property name="plugins" type="empty">
-    <property name="plugin-1" type="empty">
-      <property name="type" type="string" value="applicationsmenu"/>
-      <property name="show-button-title" type="bool" value="false"/>
-      <property name="show-button-icon" type="bool" value="true"/>
-    </property>
-    <property name="plugin-2" type="empty">
-      <property name="type" type="string" value="tasklist"/>
-      <property name="grouping" type="int" value="0"/>
-    </property>
-    <property name="plugin-3" type="empty">
-      <property name="type" type="string" value="separator"/>
-      <property name="expand" type="bool" value="true"/>
-      <property name="style" type="uint" value="0"/>
-    </property>
-    <property name="plugin-4" type="empty">
-      <property name="type" type="string" value="clock"/>
-      <property name="digital-time-format" type="string" value="%H:%M"/>
-    </property>
-    <property name="plugin-5" type="empty">
-      <property name="type" type="string" value="pager"/>
-    </property>
-    <property name="plugin-6" type="empty">
-      <property name="type" type="string" value="systray"/>
-    </property>
-  </property>
-</channel>
-'';
+        # Panel: XFCE's stock default. Every custom /etc/xdg xfce4-panel.xml we
+        # shipped (Whisker menu, then plain stock plugins) STILL produced the
+        # "Plugin '(null)' could not be loaded" dialog, so the panel config is
+        # left entirely to xfce4-panel's own defaults — no custom XML at all.
+        # (Note: XFCE 4.20's stock layout is a top panel plus a bottom dock —
+        # two panels, but XFCE's own consistent config, so no error.)
 
         # Window manager (xfwm4): WhiteSur-Dark decorations to match the GTK
         # side, minimize/maximize/close on the right, and the built-in
@@ -196,13 +139,11 @@
 </channel>
 '';
 
-        # Self-healing: wipe ALL XFCE user state at every boot so the panel and
-        # theme start fresh from the /etc/xdg defaults above. xfconfd merges
-        # any user-level xfce4-panel.xml on top of /etc/xdg (user file wins),
-        # and a stale or half-written user file carrying a dangling plugin id
-        # is exactly what reproduced the "Plugin '(null)' could not be loaded"
-        # dialog — a clean slate every boot guarantees only the consistent
-        # single-bottom-panel config is ever in effect.
+        # Self-healing: wipe ALL XFCE user state at every boot so the panel
+        # and theme start fresh. There is no custom /etc/xdg panel config, so
+        # xfce4-panel regenerates its own stock default each login — a clean
+        # slate guarantees no stale user file (the actual cause of the
+        # "Plugin '(null)' could not be loaded" dialog) is ever in effect.
         systemd.tmpfiles.rules = let
           home = config.users.users.mario.home;
         in [
