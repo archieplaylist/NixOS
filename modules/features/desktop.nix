@@ -71,10 +71,12 @@
       # XFCE stack. Display manager: LightDM. Unlike GNOME/Plasma (Wayland),
       # XFCE is X11-based, so it relies on the shared `services.xserver` block
       # above. The core session (xfwm4, xfdesktop, xfce4-panel, xfce4-session)
-      # comes from services.xserver.desktopManager.xfce; user-facing config
-      # (window theme, xsettings, panel, Super-key shortcut) is shipped as
-      # system-wide xfconf defaults below. The extra packages are the thin apps
-      # the stock session doesn't ship (mirroring Plasma's dolphin/konsole).
+      # comes from services.xserver.desktopManager.xfce; user-facing theming
+      # (window theme, xsettings) is shipped as system-wide xfconf defaults
+      # below. The panel uses XFCE's own stock single bottom panel — no custom
+      # xfce4-panel.xml, since a custom one kept producing the "(null)" plugin
+      # dialog. The extra packages are the thin apps the stock session doesn't
+      # ship (mirroring Plasma's dolphin/konsole).
       #
       # Note: LightDM still lives at the legacy `services.xserver.displayManager.*`
       # path — the display-manager refactor moved GDM/SDDM/lemurs to the new
@@ -94,90 +96,14 @@
           mousepad
         ];
 
-        # Default panel for the XFCE session. XFCE reads channel defaults from
-        # /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/ and merges them into the
-        # user's config on first login, so this gives every user the same stock
-        # bottom panel with the Whisker menu replacing the Applications menu.
-        # A complete, valid XML is critical: a plugin id in the `plugin-ids`
-        # array without a matching /plugins/plugin-N entry is exactly what
-        # produces the "Plugin '(null)' could not be loaded" dialog.
-        #
-        # The channel is LOCKED for the user (locked="mario"): xfconfd then
-        # ignores any user-level xfce4-panel.xml and rejects writes to the
-        # channel, so the panel always reads exactly this /etc/xdg config.
-        # This is what finally kills the "(null)" dialog — a stale or
-        # half-written user file (leftover from an earlier setup, or written by
-        # the panel itself mid-session) used to override /etc/xdg with a
-        # plugin-ids array that was missing a /plugins/plugin-N type.
-        # (Note: xfconf's lock list matches usernames/@groups, not "*".)
-        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
-<?xml version="1.0" encoding="UTF-8"?>
-
-<channel name="xfce4-panel" version="1.0" locked="mario">
-  <property name="configver" type="int" value="2"/>
-  <property name="panels" type="array">
-    <value type="int" value="1"/>
-    <property name="panel-1" type="empty">
-      <property name="position" type="string" value="p=6;x=0;y=0"/>
-      <property name="length" type="uint" value="100"/>
-      <property name="position-locked" type="bool" value="true"/>
-      <property name="icon-size" type="uint" value="24"/>
-      <property name="size" type="uint" value="30"/>
-      <property name="plugin-ids" type="array">
-        <value type="int" value="1"/>
-        <value type="int" value="2"/>
-        <value type="int" value="3"/>
-        <value type="int" value="4"/>
-        <value type="int" value="5"/>
-        <value type="int" value="6"/>
-      </property>
-      <property name="background-style" type="int" value="1"/>
-      <property name="background-alpha" type="uint" value="100"/>
-      <property name="span-monitors" type="bool" value="false"/>
-    </property>
-  </property>
-  <property name="plugins" type="empty">
-    <property name="plugin-1" type="empty">
-      <property name="type" type="string" value="whiskermenu"/>
-      <property name="show-button-title" type="bool" value="false"/>
-      <property name="show-button-icon" type="bool" value="true"/>
-    </property>
-    <property name="plugin-2" type="empty">
-      <property name="type" type="string" value="tasklist"/>
-      <property name="grouping" type="int" value="0"/>
-    </property>
-    <property name="plugin-3" type="empty">
-      <property name="type" type="string" value="separator"/>
-      <property name="expand" type="bool" value="true"/>
-      <property name="style" type="uint" value="0"/>
-    </property>
-    <property name="plugin-4" type="empty">
-      <property name="type" type="string" value="clock"/>
-      <property name="digital-time-format" type="string" value="%H:%M"/>
-    </property>
-    <property name="plugin-5" type="empty">
-      <property name="type" type="string" value="pager"/>
-    </property>
-    <property name="plugin-6" type="empty">
-      <property name="type" type="string" value="systray"/>
-    </property>
-  </property>
-</channel>
-'';
-
-        # Make the bare Super (Meta) key open the Whisker menu, also as a
-        # system xfconf default (same /etc/xdg mechanism as the panel above).
-        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml".text = ''
-<?xml version="1.0" encoding="UTF-8"?>
-
-<channel name="xfce4-keyboard-shortcuts" version="1.0">
-  <property name="commands" type="empty">
-    <property name="custom" type="empty">
-      <property name="<Super>" type="string" value="xfce4-popup-whiskermenu"/>
-    </property>
-  </property>
-</channel>
-'';
+        # Panel: use XFCE's stock default instead of a custom one. The custom
+        # /etc/xdg xfce4-panel.xml (Whisker menu + locked channel) STILL
+        # produced the "Plugin '(null)' could not be loaded" dialog, so it's
+        # dropped entirely: with no panel config anywhere, xfce4-panel writes
+        # its own consistent single bottom panel (applications menu, tasklist,
+        # separator, clock, pager, systray) on first login — and the tmpfiles
+        # wipe below gives it a clean slate every boot. The Super-key → Whisker
+        # binding is gone too (Whisker menu no longer lives in the panel).
 
         # Window manager (xfwm4): WhiteSur-Dark decorations to match the GTK
         # side, minimize/maximize/close on the right, and the built-in
@@ -215,16 +141,13 @@
 </channel>
 '';
 
-        # Self-healing: wipe ALL XFCE user state at every boot so the /etc/xdg
-        # defaults above are the only source of panel/theme/shortcut config.
-        #
-        # Why this is needed: xfconfd writes through any user-level xfconf XML
-        # it finds (a leftover from an earlier setup becomes a real file that
-        # then overrides /etc/xdg and can carry dangling plugin ids), and
-        # xfce4-session can restore a stale panel state on login. Either one
-        # reproduces the "Plugin '(null)' could not be loaded" dialog even
-        # though /etc/xdg itself is consistent. A clean slate guarantees a
-        # pristine default panel (Whisker menu included) on every fresh login.
+        # Self-healing: wipe ALL XFCE user state at every boot so the panel and
+        # theme start fresh. There is no custom /etc/xdg panel config anymore,
+        # so on first login xfce4-panel writes its own stock single bottom
+        # panel — a clean slate every boot means that default is regenerated
+        # consistently (no stale user config left to carry a dangling plugin id
+        # that would reproduce the "Plugin '(null)' could not be loaded"
+        # dialog).
         systemd.tmpfiles.rules = let
           home = config.users.users.mario.home;
         in [
