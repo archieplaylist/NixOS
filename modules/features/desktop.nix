@@ -101,10 +101,19 @@
         # A complete, valid XML is critical: a plugin id in the `plugin-ids`
         # array without a matching /plugins/plugin-N entry is exactly what
         # produces the "Plugin '(null)' could not be loaded" dialog.
+        #
+        # The channel is LOCKED for the user (locked="mario"): xfconfd then
+        # ignores any user-level xfce4-panel.xml and rejects writes to the
+        # channel, so the panel always reads exactly this /etc/xdg config.
+        # This is what finally kills the "(null)" dialog — a stale or
+        # half-written user file (leftover from an earlier setup, or written by
+        # the panel itself mid-session) used to override /etc/xdg with a
+        # plugin-ids array that was missing a /plugins/plugin-N type.
+        # (Note: xfconf's lock list matches usernames/@groups, not "*".)
         environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
 <?xml version="1.0" encoding="UTF-8"?>
 
-<channel name="xfce4-panel" version="1.0">
+<channel name="xfce4-panel" version="1.0" locked="mario">
   <property name="configver" type="int" value="2"/>
   <property name="panels" type="array">
     <value type="int" value="1"/>
