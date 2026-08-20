@@ -3,7 +3,8 @@
 #
 # Usage:
 #   sudo ./setup.sh            interactive setup
-#   sudo ./setup.sh --yes      noninteractive (answers yes to all prompts)
+#   sudo ./setup.sh --yes      noninteractive (answers yes to all prompts except
+#                              destructive disk wipe — disk path + WIPE still required)
 #   sudo ./setup.sh --help     show usage
 #
 # Steps (each is idempotent and non-destructive — skips when already done):
@@ -30,7 +31,16 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOSTS_DIR="$REPO_ROOT/modules/hosts"
-AGE_DIR="${SOPS_AGE_DIR:-$HOME/.config/sops/age}"
+# Age key location: honour SOPS_AGE_DIR if set, otherwise use /root's home
+# when running as root (sudo) so it matches modules/features/secrets.nix
+# keyFile = "/root/.config/sops/age/keys.txt" regardless of $HOME preservation.
+if [[ -n "${SOPS_AGE_DIR:-}" ]]; then
+  AGE_DIR="$SOPS_AGE_DIR"
+elif [[ $EUID -eq 0 ]]; then
+  AGE_DIR="/root/.config/sops/age"
+else
+  AGE_DIR="$HOME/.config/sops/age"
+fi
 AGE_KEY_PATH="$AGE_DIR/keys.txt"
 SOPS_YAML_EXAMPLE="$REPO_ROOT/secrets/.sops.yaml.example"
 SOPS_YAML="$REPO_ROOT/secrets/.sops.yaml"
@@ -124,7 +134,9 @@ preflight() {
 # ---------------------------------------------------------------------------
 # Step 2 — OPTIONAL: guided partitioning (destructive!)
 # ---------------------------------------------------------------------------
-DISK_PATTERN='^(/dev/(sd|vd|hd)[a-z]|/dev/nvme[0-9]+n[0-9]+|/dev/mmcblk[0-9]+)$'
+# Allow multi-letter sd/vd/hd devices (sdaa+ on large arrays / virtual disks beyond sdz);
+# nvme/mmcblk partition suffix 'p' is handled via pfx logic below (p1/p2 vs 1/2).
+DISK_PATTERN='^(/dev/(sd|vd|hd)[a-z]+|/dev/nvme[0-9]+n[0-9]+|/dev/mmcblk[0-9]+)$'
 
 # Safe to partition only on the installer ISO: installed systems have a
 # real root filesystem, the ISO boots from a squashfs-overlay/tmpfs.
@@ -338,15 +350,15 @@ step_secrets() {
   if confirm "Create an initial encrypted secrets/secrets.yaml?"; then
     # An empty sops file needs at least a comment to store something.
     local tmp
-    tmp="$(mktemp)"
+    tmp="$(mktemp --suffix=.yaml)"
+    trap 'rm -f "$tmp"' RETURN
     printf '# secrets.yaml\n# key: value\n' > "$tmp"
-    if sops -i -e "$tmp"; then
+    if sops --config "$SOPS_YAML" -i -e "$tmp"; then
       cp "$tmp" "$SECRETS_FILE"
       info "created encrypted $SECRETS_FILE (edit with: sops $SECRETS_FILE)"
     else
       warn "sops encryption failed — secrets file not created"
     fi
-    rm -f "$tmp"
   else
     warn "secrets file skipped"
   fi
@@ -377,10 +389,12 @@ step_deploy() {
     fi
     name="${HOSTS[$((choice - 1))]%.nix}"
 
-    # libgit2 refuses repos not owned by the current user (root on installer).
-    git config --global --add safe.directory "$REPO_ROOT"
-
     if is_installer_env; then
+      # libgit2 refuses repos not owned by the current user (root on installer).
+      # Only on installer ISO (ephemeral tmpfs) to avoid polluting /root/.gitconfig.
+      git config --global --add safe.directory "$REPO_ROOT"
+      # Ensure /mnt is cleaned up on failure (secondary to findmnt guards below).
+      trap 'umount -l /mnt/boot 2>/dev/null || true; umount -l /mnt 2>/dev/null || true' ERR
       # Installer ISO: install to the target disk (not the running tmpfs).
       # Mount by filesystem label (created by step_partition); the target
       # isn't mounted yet, so by-label (not by-uuid) is used. XFS target:
@@ -389,16 +403,24 @@ step_deploy() {
       [[ -e "$rootdev" ]] || rootdev="$(blkid -L nixos-root 2>/dev/null || true)"
       [[ -n "$rootdev" && -e "$rootdev" ]] || { warn "no device with label 'nixos-root' found — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
 
-      info "mounting $rootdev at /mnt (XFS layout)"
-      mount "$rootdev" /mnt
+      if findmnt -n /mnt >/dev/null 2>&1; then
+        info "/mnt already mounted — skipping root mount"
+      else
+        info "mounting $rootdev at /mnt (XFS layout)"
+        mount "$rootdev" /mnt || die "failed to mount $rootdev at /mnt"
+      fi
       mkdir -p /mnt/boot
       local bootdev="/dev/disk/by-label/nixos-boot"
       [[ -e "$bootdev" ]] || bootdev="$(blkid -L nixos-boot 2>/dev/null || true)"
       if [[ -n "$bootdev" && -e "$bootdev" ]]; then
-        info "mounting $bootdev at /mnt/boot"
-        # Mask so /boot (vfat) is root-only; avoids the systemd-boot
-        # "world accessible ... security hole" warning during install.
-        mount -o fmask=0077,dmask=0077 "$bootdev" /mnt/boot
+        if findmnt -n /mnt/boot >/dev/null 2>&1; then
+          info "/mnt/boot already mounted — skipping"
+        else
+          info "mounting $bootdev at /mnt/boot"
+          # Mask so /boot (vfat) is root-only; avoids the systemd-boot
+          # "world accessible ... security hole" warning during install.
+          mount -o fmask=0077,dmask=0077 "$bootdev" /mnt/boot || die "failed to mount $bootdev at /mnt/boot"
+        fi
       fi
 
       # Copy the flake into the target — including dotfiles (.git, .gitignore,
@@ -444,7 +466,7 @@ step_deploy() {
         info "wrote /etc/hashed-password"
       fi
       info "-> nixos-rebuild for '$name'"
-      sudo nixos-rebuild switch --flake ".#$name"
+      nixos-rebuild switch --flake ".#$name"
     fi
   else
     if is_installer_env; then
