@@ -181,6 +181,28 @@
           </channel>
         '';
       };
+
+      # Desktop icons (xfdesktop): disabled entirely. xfdesktop only renders
+      # icons when /desktop-icons/file-manager names a file manager (e.g.
+      # "Thunar"); an empty string means no Home/Filesystem/Trash icons and no
+      # mounted-volume icons on the desktop. The wallpaper still shows.
+      "xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml" = {
+        force = true;
+        text = ''
+          <?xml version="1.0" encoding="UTF-8"?>
+          
+          <channel name="xfce4-desktop" version="1.0">
+            <property name="desktop-icons" type="empty">
+              <property name="file-icons" type="empty">
+                <property name="show-removable" type="bool" value="false"/>
+                <property name="show-trash" type="bool" value="false"/>
+                <property name="show-filesystem" type="bool" value="false"/>
+                <property name="show-home" type="bool" value="false"/>
+              </property>
+            </property>
+          </channel>
+        '';
+      };
     };
   };
 }
