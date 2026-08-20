@@ -54,6 +54,7 @@
                   <value type="int" value="2"/>
                   <value type="int" value="3"/>
                   <value type="int" value="6"/>
+                  <value type="int" value="1"/>
                   <value type="int" value="5"/>
                   <value type="int" value="7"/>
                   <value type="int" value="8"/>
@@ -93,6 +94,9 @@
                 <property name="hover-switch-category" type="bool" value="true"/>
               </property>
               <property name="plugin-5" type="string" value="xfce4-clipman-plugin"/>
+              <property name="plugin-1" type="string" value="pulseaudio">
+                <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
+              </property>
             </property>
           </channel>
         '';
@@ -190,7 +194,7 @@
         force = true;
         text = ''
           <?xml version="1.0" encoding="UTF-8"?>
-          
+
           <channel name="xfce4-desktop" version="1.0">
             <property name="desktop-icons" type="empty">
               <property name="file-icons" type="empty">
