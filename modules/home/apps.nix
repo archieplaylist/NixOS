@@ -17,15 +17,14 @@
         gparted
         zip
         unrar
-        nodejs
       ])
       # Development tooling.
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
+        git
+        lazygit
         nodejs
         gh
         docker-compose
-        jq
-        yq
       ]))
       # General-purpose applications (browsers, media, editors).
       (lib.mkIf osConfig.mySystem.appGroups.general.enable (with pkgs; [
