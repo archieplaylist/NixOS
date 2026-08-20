@@ -4,8 +4,8 @@ A modular, flake-based NixOS configuration for Mario's machines (NixOS 26.05,
 GNOME, Intel), organized with the
 [dendritic pattern](https://github.com/mightyiam/dendritic): every Nix file
 except the entry point is a top-level (flake-parts) module, auto-imported from
-`modules/`. Four hosts share the same baseline: `nixos-desktop`,
-`nixos-laptop`, `nixos-work`, and `vm-host` (a VM guest).
+`modules/`. Four hosts share the same baseline: `desktop`,
+`laptop`, `work`, and `vm` (a VM guest).
 
 ## Layout
 
@@ -39,7 +39,7 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── fastfetch.nix
 │   │   └── scripts/     # plain bash scripts -> ~/.local/bin
 │   └── hosts/           # per-machine modules (imports + mySystem flags)
-│       └── <host>.nix   # e.g. nixos-desktop.nix -> nixos.hosts.nixos-desktop
+│       └── <host>.nix   # e.g. desktop.nix -> nixos.hosts.desktop
 └── secrets/             # sops-nix placeholders (encrypted secrets never in git)
 ```
 
@@ -141,7 +141,7 @@ PATH via `home.sessionPath` in `modules/home/user.nix`):
 - `tomp3 file...` — converts any ffmpeg-supported file to a 192 kbps MP3 in
   place.
 - `switch-de <gnome|plasma|xfce>` — flips `mySystem.desktop` in this host's module,
-  builds the new system with `nixos-rebuild boot` (nothing activates until
+  builds the new system with `nh os boot` (nothing activates until
   reboot), and archives the dormant DE's runtime state to
   `~/.local/share/de-archive/` so the home directory stays clean. HM-managed
   config (symlinks), caches and KWallet data are never touched. Reboot after
@@ -175,7 +175,7 @@ and SDDM), XFCE on X11 under LightDM.
 ### Switching desktop environments
 
 1. Run `switch-de <gnome|plasma|xfce>` — it flips `mySystem.desktop` in this host's
-   module, builds the new system with `nixos-rebuild boot` (the running session
+   module, builds the new system with `nh os boot` (the running session
    is untouched), and moves the dormant DE's leftover runtime state into
    `~/.local/share/de-archive/`.
 2. Reboot. The new display manager (GDM for GNOME, SDDM for Plasma, LightDM
@@ -194,7 +194,7 @@ Flatpak apps are declared declaratively via
 [nix-flatpak](https://github.com/gmodena/nix-flatpak). The daemon and wiring
 live in `modules/features/desktop.nix`; each host picks its own apps with
 `mySystem.flatpakApps = [ ... ]`. Current shared set: EasyEffects, LocalSend,
-GearLever, Flatseal, Extension Manager (`nixos-work` additionally has
+GearLever, Flatseal, Extension Manager (`work` additionally has
 Insomnia).
 
 ## First-time setup
@@ -289,8 +289,8 @@ does is also documented manually below.
 4. Rebuild a host:
 
    ```bash
-   sudo nixos-rebuild switch --flake .#nixos-desktop
-   # or: make rebuild HOST=nixos-laptop
+   sudo nixos-rebuild switch --flake .#desktop
+   # or: make rebuild HOST=laptop
    ```
 
 5. **Set the user password** (manual fallback — setup.sh does this for
@@ -327,7 +327,7 @@ mount /dev/sdX2 /mnt
 mkdir -p /mnt/boot && mount /dev/sdX1 /mnt/boot
 nixos-generate-config --root /mnt
 # copy the flake into /mnt/etc/nixos, then:
-nixos-install --flake /mnt/etc/nixos#nixos-desktop
+nixos-install --flake /mnt/etc/nixos#desktop
 ```
 
 ## Day-to-day maintenance
@@ -343,18 +343,57 @@ A `Makefile` wraps the common commands (run `make help` for the full list):
 | `make check` | `nix flake check` — builds every host config to catch errors |
 | `make fmt-check` | fails if `nix fmt` would change anything |
 | `make update` | `nix flake update` — refresh all inputs |
-| `make build` / `make rebuild` | build / build+activate the `HOST` (default `nixos-desktop`) |
+| `make build` / `make rebuild` | build / build+activate the `HOST` (default `desktop`) |
+| `make nh-build` / `make nh-boot` / `make nh-switch` | nh equivalents of build/boot/switch for the `HOST` |
+| `make nh-clean` | `nh clean all` — enhanced garbage collection |
 | `make hooks` | install git hooks (`core.hooksPath` → `.githooks`, once per clone) |
 | `make develop` | `nix develop` — formatter + Nix linters (nixpkgs-fmt, deadnix, statix) |
 
 Some cleanup runs automatically already (see `modules/features/optimisation.nix`):
 
-- **`nix.gc.automatic = true`** — weekly `nix-collect-garbage --delete-older-than 7d`
+- **`programs.nh.clean`** — weekly `nh clean all` (keeps 3 generations + 7 days,
+  preserves direnv gcroots) via the `nh-clean` timer
 - **`nix.settings.auto-optimise-store = true`** — dedupe store paths
 - **`nix.settings.min-free` / `max-free`** — auto-GC when the store drops below 5 GiB free
 - **`services.fstrim.enable = true`** — weekly SSD TRIM
 - **`systemd.tmpfiles.rules`** — daily cleanup of browser caches, thumbnails, and `/tmp/nix-build-*`
 - **`services.journald.extraConfig`** — journal capped at 500 MiB / 30 days
+
+### nh — Nix CLI helper
+
+[nh](https://github.com/nix-community/nh) is installed system-wide
+(`programs.nh` in `modules/features/optimisation.nix`) as a friendlier
+replacement for the common `nixos-rebuild` / `nix-collect-garbage` /
+`home-manager` workflows. It's configured with:
+
+- `programs.nh.flake = "/home/mario/nixos"` — sets `NH_FLAKE`, so you can omit
+  the path to the repo in every command below.
+- `programs.nh.clean` — a weekly `nh-clean` timer that runs `nh clean all`
+  (replaces the old `nix.gc.automatic`).
+
+| Task | Old command | nh command |
+|------|-------------|------------|
+| Build + activate | `sudo nixos-rebuild switch --flake .#<host>` | `nh os switch -H <host>` |
+| Build + set as next boot | `sudo nixos-rebuild boot --flake .#<host>` | `nh os boot -H <host>` |
+| Build only (dry run) | `sudo nixos-rebuild build --flake .#<host>` | `nh os build -H <host>` |
+| Roll back | `sudo nixos-rebuild switch --rollback` | `nh os rollback` |
+| Garbage collect | `sudo nix-collect-garbage -d` | `nh clean all` |
+| Search packages | `nix search nixpkgs <query>` | `nh search <query>` |
+| Diff generations | — | `nh diff` |
+
+Notes:
+
+- `-H <host>` is the **flake output name** (`desktop`, `laptop`,
+  `work`, `vm`), not the machine hostname (`nixdesks`, `nixlappys`,
+  `nixworks`, `nixvms`) — nh auto-resolves by machine hostname, which doesn't
+  match the flake keys here.
+- nh self-elevates with `sudo` when needed; flakes are already enabled
+  (`nix.settings.experimental-features`).
+- Home-manager is configured **inside** the flake, so `nh os switch` updates it
+  too — no separate `nh home switch` needed (it exists if you ever want to test
+  just the user environment: `nh home switch -c mario`).
+- `nh clean all` also cleans gcroots; `--no-direnv` (set in the config) keeps
+  nix-direnv's caches alive.
 
 ### Regular update (weekly)
 
@@ -368,7 +407,7 @@ nix flake update              # update nixpkgs, home-manager, sops-nix together
 git diff flake.lock           # review what changed before committing/building
 nix fmt                       # keep formatting clean
 git add flake.nix flake.lock && git commit -m "chore: update flake inputs"
-sudo nixos-rebuild switch --flake .#nixos-desktop   # or: make rebuild
+nh os switch -H desktop   # or: make rebuild (nixos-rebuild)
 systemctl --failed            # confirm nothing broke
 ```
 
@@ -382,9 +421,9 @@ systemctl --failed            # confirm nothing broke
 ### Rebuild safely (before flipping the switch)
 
 ```bash
-sudo nixos-rebuild build --flake .#nixos-desktop   # build only, don't activate (make build)
-sudo nixos-rebuild boot --flake .#nixos-desktop    # build + set as next boot
-sudo nixos-rebuild switch --flake .#nixos-desktop  # build + activate now (make rebuild)
+nh os build -H desktop    # build only, don't activate (make build)
+nh os boot -H desktop     # build + set as next boot
+nh os switch -H desktop   # build + activate now (make rebuild)
 ```
 
 - `build` is a harmless dry run for syntax/config errors; `switch` changes the
@@ -400,7 +439,7 @@ system profile (useful for quick experiments):
 
 ```bash
 nix fmt
-sudo nixos-rebuild switch --flake .#nixos-desktop
+sudo nixos-rebuild switch --flake .#desktop
 # or, to test just the user environment:
 nix run home-manager/release-26.05 -- switch --flake .
 ```
@@ -413,7 +452,7 @@ reliable because it works even if modules fail to load:
 | Method | When to use | Command |
 |--------|-------------|---------|
 | Boot menu | system won't boot / you want the old snapshot | restart, pick an older **systemd-boot** entry |
-| Rebuild switch | system boots but you want the previous profile | `sudo nixos-rebuild switch --rollback` |
+| Rebuild switch | system boots but you want the previous profile | `nh os rollback` (or `sudo nixos-rebuild switch --rollback`) |
 | Older gen | roll back to a specific past generation | `sudo nix-env --profile /nix/var/nix/profiles/system --list-generations` |
 
 - systemd-boot keeps every generation up to
@@ -431,7 +470,8 @@ Garbage collection is automatic, but you may want to reclaim space manually
 or shrink logs:
 
 ```bash
-sudo nix-collect-garbage -d  # delete all unused paths (incl. old generations)
+nh clean all                 # enhanced GC: keeps 3 gens + 7 days, cleans gcroots
+sudo nix-collect-garbage -d  # fallback: delete all unused paths (incl. old generations)
 sudo nix-store --optimise    # dedupe hardlinks (you have auto-optimise on)
 sudo du -sh /nix/store        # total store size
 sudo ncdu /nix                # interactive: find big /nix paths
@@ -439,18 +479,17 @@ journalctl --vacuum-size=1G  # cap the system journal to 1 GB
 sudo nixos-rebuild list-generations   # see system generations + how old
 ```
 
-- `nix-collect-garbage -d` clears *all* old generations, so you lose the
-  boot-menu rollback history — keep at least one before it (use `list-generations`
-  first).
-- To drop only old/broken generations, keep running weekly GC and rely on the
-  default `--delete-older-than 7d`.
+- `nh clean all` keeps 3 generations + anything newer than 7 days (the weekly
+  `nh-clean` timer does this automatically); `sudo nix-collect-garbage -d`
+  clears *all* old generations, so you lose the boot-menu rollback history —
+  keep at least one before it (use `list-generations` first).
 
 ### Practical schedule
 
 | Frequency | Action |
 |-----------|--------|
-| Weekly | `nix flake update` → `nixos-rebuild switch` → `systemctl --failed` |
-| Monthly | `sudo nix-collect-garbage -d` + `journalctl --vacuum-size=...` |
+| Weekly | `nix flake update` → `nh os switch -H <host>` → `systemctl --failed` |
+| Monthly | `nh clean all` + `journalctl --vacuum-size=...` |
 | After install | verify with `systemctl --failed`, `lsblk -f` (labels match) |
 
 ## Notes
@@ -459,7 +498,7 @@ sudo nixos-rebuild list-generations   # see system generations + how old
    `systemd-boot.configurationLimit` — see `modules/features/hardware/uefi.nix`), so
   opening the boot menu lets you boot a previous system state ("snapshot").
   Every entry carries a kernel+initrd on the ESP (~100MB), so the limit keeps
-  the 1 GiB ESP from filling up; GC (`nix.gc.automatic`) prunes old store
+  the 1 GiB ESP from filling up; the weekly `nh-clean` timer prunes old store
   generations in parallel.
 - **First login**: the password is whatever you set during setup — the hash
   is stored on the machine at `/etc/hashed-password` (read at activation). If

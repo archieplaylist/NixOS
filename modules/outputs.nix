@@ -48,7 +48,7 @@ let
           })
           # Fix VirtualBox GuestAdditions 7.2.14 for modern kernels (see
           # patchVboxGuestAdditions above). Applied to the default and pinned
-          # kernel sets so vm-host can use the default kernel.
+          # kernel sets so vm can use the default kernel.
           (final: prev: {
             linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
             linuxPackages_6_12 = patchVboxGuestAdditions (prev.linuxPackages_6_12 or prev.linuxPackages);

@@ -1,7 +1,7 @@
-# nixos-desktop host: picks the `base`, `desktop`, `intel` and `uefi` feature
+# desktop host: picks the `base`, `desktop`, `intel` and `uefi` feature
 # slots and sets the per-host `mySystem` flags.
 { config, ... }: {
-  config.nixos.hosts.nixos-desktop = {
+  config.nixos.hosts.desktop = {
     imports = [
       config.nixos.modules.base
       config.nixos.modules.desktop

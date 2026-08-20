@@ -1,10 +1,11 @@
 # Day-to-day commands for this flake.
 #   make help                list all targets
 #   make check               build every host config (nix flake check)
-#   make rebuild HOST=<host> rebuild a specific host (default: nixos-desktop)
-HOST ?= nixos-desktop
+#   make rebuild HOST=<host> rebuild a specific host (default: desktop)
+#   make nh-switch HOST=<host> rebuild via nh (default: desktop)
+HOST ?= desktop
 
-.PHONY: help check fmt fmt-check hooks build rebuild update develop
+.PHONY: help check fmt fmt-check hooks build rebuild nh-build nh-boot nh-switch nh-clean update develop
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' Makefile | sed 's/:.*##/:/' | sort
@@ -28,6 +29,18 @@ build: ## Build the host config without activating (HOST=...)
 
 rebuild: ## Build and activate the host config (HOST=...)
 	sudo nixos-rebuild switch --flake .#$(HOST)
+
+nh-build: ## Build the host config via nh without activating (HOST=...)
+	nh os build . -H $(HOST)
+
+nh-boot: ## Build the host config via nh and set as next boot (HOST=...)
+	nh os boot . -H $(HOST)
+
+nh-switch: ## Build and activate the host config via nh (HOST=...)
+	nh os switch . -H $(HOST)
+
+nh-clean: ## Enhanced garbage collection via nh
+	nh clean all
 
 update: ## Refresh flake inputs (nixpkgs, home-manager, sops-nix, nix-flatpak)
 	nix flake update

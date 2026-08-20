@@ -2,7 +2,7 @@
 # switch-de <gnome|plasma|xfce>
 #
 # Switches this machine's desktop environment: flips the mySystem.desktop line
-# in the host module, builds the new system with `nixos-rebuild boot` (nothing
+# in the host module, builds the new system with `nh os boot` (nothing
 # is activated until reboot), then archives the dormant DE's runtime state so
 # the home directory doesn't accumulate dead config.
 #
@@ -36,10 +36,10 @@ xfce_paths=(
 
 host_module() {
   case "$(hostname)" in
-    nixdesks) echo "nixos-desktop" ;;
-    nixlappys) echo "nixos-laptop" ;;
-    nixworks) echo "nixos-work" ;;
-    nixvms) echo "vm-host" ;;
+    nixdesks) echo "desktop" ;;
+    nixlappys) echo "laptop" ;;
+    nixworks) echo "work" ;;
+    nixvms) echo "vm" ;;
     *) echo "error: no host module known for hostname '$(hostname)'" >&2
        echo "add it to host_module() in $HOME/.local/bin/switch-de" >&2
        exit 1 ;;
@@ -98,7 +98,7 @@ git -C "$REPO" diff --color=always -- "$HOST_FILE" 2>/dev/null || true
 # The DE switch (display manager included) only takes effect on reboot, so we
 # `boot` rather than `switch`: the running session stays untouched and the new
 # system is picked up at the next boot.
-if ! sudo nixos-rebuild boot --flake "$REPO#$HOST"; then
+if ! nh os boot "$REPO" -H "$HOST"; then
   echo "error: rebuild failed; restoring $HOST_FILE" >&2
   mv "$HOST_FILE.bak" "$HOST_FILE"
   exit 1

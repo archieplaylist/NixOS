@@ -1,8 +1,8 @@
-# nixos-work host: workstation — same as the desktop host but without
+# work host: workstation — same as the desktop host but without
 # Tailscale, plus a VirtualBox host, work apps (dbeaver, filezilla, remmina)
 # and the declarative Flatpak apps below.
 { config, ... }: {
-  config.nixos.hosts.nixos-work = {
+  config.nixos.hosts.work = {
     imports = [
       config.nixos.modules.base
       config.nixos.modules.desktop
