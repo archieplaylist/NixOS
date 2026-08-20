@@ -1,10 +1,11 @@
 # Desktop environment slot: shared services plus the GNOME and KDE Plasma
-# stacks (Wayland); the XFCE stack (X11, LightDM) lives in xfce.nix (same
-# slot). Shared: Bluetooth, NetworkManager and Flatpak (nix-flatpak). Display
-# manager follows the DE: GNOME runs under GDM, Plasma under SDDM, XFCE under
-# LightDM. Audio lives in audio.nix, gaming in gaming.nix (same slot, same
-# enableDesktop gate). The DE is chosen per host via `mySystem.desktop` (see
-# mySystem.nix). Contributes a NixOS module to the `desktop` slot, gated on
+# stacks (Wayland); the XFCE stack (X11, LightDM) lives in lightdm.nix (system
+# side) and modules/home/xfce.nix (user side, home-manager). Shared:
+# Bluetooth, NetworkManager and Flatpak (nix-flatpak). Display manager follows
+# the DE: GNOME runs under GDM, Plasma under SDDM, XFCE under LightDM. Audio
+# lives in audio.nix, gaming in gaming.nix (same slot, same enableDesktop
+# gate). The DE is chosen per host via `mySystem.desktop` (see mySystem.nix).
+# Contributes a NixOS module to the `desktop` slot, gated on
 # `mySystem.enableDesktop`.
 { ... }: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
