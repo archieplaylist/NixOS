@@ -13,7 +13,7 @@
     mySystem.enableSmartd = false;
 
     mySystem.hostname = "nixvms";
-    mySystem.desktop = "gnome";
+    mySystem.desktop = "xfce";
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;
     mySystem.enableDocker = false;
@@ -26,7 +26,6 @@
       "org.localsend.localsend_app"
       "it.mijorus.gearlever"
       "com.github.tchx84.Flatseal"
-      "com.mattjakeman.ExtensionManager"
     ];
 
     # The VM doesn't need heavy gaming or development packages.

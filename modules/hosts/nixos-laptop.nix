@@ -30,7 +30,6 @@
       "org.localsend.localsend_app"
       "it.mijorus.gearlever"
       "com.github.tchx84.Flatseal"
-      "com.mattjakeman.ExtensionManager"
     ];
 
     # If SSH is enabled on this host, put your real public keys here.
