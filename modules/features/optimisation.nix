@@ -26,7 +26,7 @@
         clean = {
           enable = true;
           dates = "weekly";
-          extraArgs = "--keep 3 --keep-since 7d --no-direnv";
+          extraArgs = "--keep 5 --keep-since 7d --no-direnv";
         };
       };
 
@@ -40,7 +40,7 @@
       services.journald.extraConfig = ''
         SystemMaxUse=500M
         SystemKeepFree=1G
-        MaxRetentionSec=30day
+        MaxRetentionSec=14day
       '';
 
       # Clear browser caches and other disposable data on a schedule

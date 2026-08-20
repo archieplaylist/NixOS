@@ -395,6 +395,46 @@ Notes:
 - `nh clean all` also cleans gcroots; `--no-direnv` (set in the config) keeps
   nix-direnv's caches alive.
 
+### direnv — automatic dev shells
+
+[direnv](https://direnv.net/) loads a directory's environment automatically
+when you `cd` into it. It's configured in `modules/home/shell.nix`
+(`programs.direnv` with `nix-direnv.enable = true`), so it's installed and
+hooked into bash on every host. `.direnv` is also in the global git exclude
+(`modules/home/tooling.nix`), so the cache never gets committed.
+
+To get this repo's dev shell (`nixpkgs-fmt`, `deadnix`, `statix` — the same
+tools as `make develop`) automatically, create a `.envrc` at the repo root:
+
+```bash
+echo "use flake" > .envrc
+direnv allow
+```
+
+Now every time you `cd` into the repo, direnv builds and enters the flake's
+`devShells.default` — no manual `nix develop` needed. Leave the directory and
+the tools drop off your PATH again.
+
+Common commands:
+
+| Command | What it does |
+|---------|--------------|
+| `direnv allow` | approve the `.envrc` in the current directory |
+| `direnv reload` | re-run after editing `.envrc` |
+| `direnv deny` | revoke approval |
+| `direnv edit` | open `.envrc` in `$EDITOR` |
+| `direnv status` | debug current state |
+
+Other useful `.envrc` variants:
+
+- `use flake .#name` — enter a specific devShell
+- `use nix` — legacy `shell.nix`-based shell
+- `export FOO=bar` — plain environment variables
+
+> The weekly `nh-clean` timer runs `nh clean all --no-direnv` (see
+> `modules/features/optimisation.nix`), which preserves nix-direnv's cached
+> gcroots so your dev shells don't get garbage-collected out from under you.
+
 ### Regular update (weekly)
 
 The most common task: pull the latest packages, rebuild, and switch to the
