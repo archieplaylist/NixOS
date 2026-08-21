@@ -54,13 +54,17 @@
       # Auto-enabled targets (autoEnable=true) already cover gtk/qt/gnome/
       # xfce/kde/lightdm, but be explicit so intent is clear and survives
       # `autoEnable = false` if the user flips it.
+      # GNOME + KDE need stylix on both HM and NixOS; NixOS greeters need
+      # lightdm/gdm/sddm wiring — set all so switching DE doesn't lose palette.
       targets = {
-        gnome.enable = true;
+        gnome.enable = true; # also GDM greeter
         kde.enable = true;
         xfce.enable = true;
         gtk.enable = true;
         qt.enable = true;
         lightdm.enable = true;
+        grub.enable = true;
+        console.enable = true;
       };
     };
 
@@ -88,14 +92,30 @@
   # Home Manager side — inherits the NixOS palette via
   # `stylix.homeManagerIntegration.followSystem` (default true). Explicit
   # target toggles here ensure Qt + Flatpak get themed even if autoEnable is off.
+  # NOTE: stylix xfce module has `autoEnable = false` (upstream issue #180), so
+  # it MUST be forced on. The xfconf channels below hand Stylix real theme
+  # names — with only fonts it fell back to default GTK/XFWM/cursor (Adwaita).
   config.home.modules.mario = { ... }: {
     stylix.targets = {
+      gtk.enable = true;
       gtk.flatpakSupport.enable = true;
       qt.enable = true;
       qt.platform = "qtct";
       kde.enable = true;
       xfce.enable = true;
       gnome.enable = true;
+    };
+    # Stylix xfce only sets fonts; feed xfconf the Stylix GTK/XFWM/icon/cursor
+    # names so xsettings (Net/ThemeName, IconThemeName, CursorThemeName) and
+    # xfwm4 (general/theme) don't stay Adwaita/default.
+    xfconf.settings = {
+      xsettings = {
+        "Net/ThemeName" = "adw-gtk3";
+        "Net/IconThemeName" = "Papirus-Dark";
+        "Gtk/CursorThemeName" = "Bibata-Modern-Classic";
+        "Gtk/CursorThemeSize" = 24;
+      };
+      xfwm4."general/theme" = "adw-gtk3";
     };
   };
 }

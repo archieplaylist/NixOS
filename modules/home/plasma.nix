@@ -49,14 +49,14 @@
         ];
       };
 
-      # Appearance: Stylix drives Breeze colors/icons/cursor/wallpaper from
-      # the shared base16 scheme. Keep plasma-manager out of theming — only
-      # set layout/behaviour here so Stylix and plasma-manager don't fight.
-      # Remove this block or set `stylix.targets.kde.enable = false` to
-      # hand theming back to plasma-manager/WhiteSur.
-      workspace = {
-        # lookAndFeel/theme/colorScheme/iconTheme/cursor/wallpaper managed by Stylix
-      };
+      # Appearance: Stylix provides a full lookAndFeel package "Stylix"
+      # (Breeze colorscheme + wallpaper, see stylix kde hm.nix) via
+      # `stylix.targets.kde`. With plasma-manager `overrideConfig = true`,
+      # leaving workspace{} empty makes Plasma regenerate defaults that can
+      # mask Stylix's lookAndFeel. Must not set workspace.lookAndFeel/theme
+      # here — Stylix writes kdeglobals/lookAndFeel via themePackage. If you
+      # need a non-Stylix Plasma theme, set `stylix.targets.kde.enable = false`.
+      # Intentionally no workspace.lookAndFeel here.
 
       # Classic single bottom panel: launcher, pinned tasks, system tray, clock.
       panels = [

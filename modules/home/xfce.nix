@@ -47,16 +47,11 @@
           source = ./assets/xfce/xfce4-keyboard-shortcuts.xml;
         };
 
-        # Window manager (xfwm4): Stylix manages the theme. Keep the xml
-        # for non-theme bits (button layout, compositing, workspace count)
-        # but Stylix's `stylix.targets.xfce` will override ThemeName.
-        # Either keep this channel disabled here or let Stylix win.
-        # We keep the file but comment explains Stylix ownership.
-
-        # xsettings: Stylix manages GTK/icon/cursor via xfsettingsd. The
-        # xsettings.xml with WhiteSur values is now superseded — Stylix
-        # writes the themed values. Keeping the file would fight Stylix,
-        # so disable it when Stylix is enabled (see below).
+        # Window manager (xfwm4) + xsettings: Stylix now owns ThemeName,
+        # IconThemeName and CursorThemeName via xfconf.settings in
+        # modules/features/stylix.nix (adw-gtk3 / Papirus-Dark / Bibata).
+        # Keep xfwm4/xsettings xml only for non-theme bits if needed, but
+        # they are now superseded — xfconf.settings wins over xdg.configFile.
 
         # Screensaver (xfce4-screensaver): disabled entirely — no blanking, no
         # lock after idle, and no lock on suspend. The DPMS monitor power-off is

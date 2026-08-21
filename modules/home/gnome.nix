@@ -9,13 +9,14 @@
     dconf = {
       enable = true;
       settings = lib.mkIf (osConfig.mySystem.desktop == "gnome") {
+        # Stylix manages GNOME theming via stylix.targets.gnome (user-theme
+        # "Stylix", background, color-scheme, fonts). It does NOT own the
+        # enabled-extensions list — that stays as single source
+        # `mySystem.gnomeExtensions` (see desktop.nix). The two now coexist:
+        # Stylix writes theme/background, this module writes extensions + prefs.
         "org/gnome/shell" = {
           enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
         };
-        # User Themes extension: Stylix now manages the shell theme
-        # (stylix.targets.gnome). Keep the key so `user-themes` extension
-        # stays enabled; Stylix writes the actual theme name.
-        # "org/gnome/shell/extensions/user-theme".name is set by Stylix.
         # Titlebar buttons: minimize, maximize and close on the right.
         "org/gnome/desktop/wm/preferences" = {
           button-layout = "appmenu:minimize,maximize,close";
