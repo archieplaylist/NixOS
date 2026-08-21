@@ -68,6 +68,11 @@ let
             imports = [
               config.home.modules.mario
               inputs.plasma-manager.homeModules.plasma-manager
+              # Stylix HM module: nixosModules.stylix auto-imports via
+              # stylix.homeManagerIntegration.autoImport, but the dendritic
+              # slot `home.modules.mario` is evaluated outside that path —
+              # import explicitly so `stylix.targets.*` exists.
+              inputs.stylix.homeModules.stylix
             ];
           };
         };
