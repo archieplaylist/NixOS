@@ -7,9 +7,9 @@
 #
 # The panel XML is the user's own working config (a single bottom panel with
 # Whisker menu) — the one layout that finally stopped the "(null)" plugin
-# dialog. It is consistent: every id in `plugin-ids` (4,2,3,6,1,5,7,8,9) has a
-# matching /plugins/plugin-N entry (1=pulseaudio, 4=whiskermenu), which is
-# what keeps the "(null)" dialog away.
+# dialog. It is consistent: every id in `plugin-ids` (4,2,3,6,1,10,5,7,8,9) has a
+# matching /plugins/plugin-N entry (1=pulseaudio, 4=whiskermenu,
+# 10=power-manager-plugin), which is what keeps the "(null)" dialog away.
 #
 # force = true: xfconfd writes runtime state back into these XMLs (panel
 # tweaks, window positions), and home-manager by default skips replacing files
@@ -29,6 +29,7 @@
         xfce4-screenshooter
         xfce4-clipman-plugin
         xfce4-whiskermenu-plugin
+        xfce.xfce4-power-manager
         mousepad
         seahorse
         # Nordic theme so xfwm4 (window decorations) and GTK apps can find it.
