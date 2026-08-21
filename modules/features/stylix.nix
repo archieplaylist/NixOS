@@ -20,8 +20,9 @@
     stylix = {
       enable = true;
       polarity = "dark";
-      # Handmade scheme — swap for any other base16-schemes file or set
-      # `image = ./wallpaper.jpg` and delete this line to auto-generate.
+      # Gruvbox Dark Hard — matches gruvbox hard elsewhere (nvim etc.).
+      # Swap for any file in pkgs.base16-schemes/share/themes/*.yaml
+      # or delete and set `image = ./wallpaper.jpg` to auto-generate.
       base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-hard.yaml";
       # image = pkgs.fetchurl {
       #   url = "https://example.com/wallpaper.jpg";
@@ -32,6 +33,12 @@
         package = pkgs.bibata-cursors;
         name = "Bibata-Modern-Classic";
         size = 24;
+      };
+      icons = {
+        enable = true;
+        package = pkgs.papirus-icon-theme;
+        dark = "Papirus-Dark";
+        light = "Papirus";
       };
       fonts = {
         sansSerif = { package = pkgs.noto-fonts; name = "Noto Sans"; };
