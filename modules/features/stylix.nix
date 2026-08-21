@@ -80,10 +80,14 @@
     # system-wide overrides make the theme visible to *all* flatpaks
     # (GTK and Qt) regardless of whether they run as system or user installs.
     # nix-flatpak merges this with per-app overrides from `mySystem.flatpakApps`.
-    environment.systemPackages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 ];
+    # Theme/icon/cursor packages on the SYSTEM profile so
+    # /run/current-system/sw/share/{themes,icons} has them (XFCE + flatpaks
+    # read these). gruvbox-dark-gtk is the real gruvbox GTK2/3 theme;
+    # adw-gtk3 stays as the GTK4/libadwaita dark fallback.
+    environment.systemPackages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 gruvbox-dark-gtk ];
     # Flatpak theming for ALL apps:
-    #  - GTK flatpaks: stylix.targets.gtk.flatpakSupport (HM) exposes the
-    #    flattened gruvbox adw-gtk3 theme + GTK_THEME env automatically.
+    #  - GTK flatpaks: GTK_THEME=gruvbox-dark (below) + the theme in
+    #    ~/.local/share/themes (HM xdg.dataFile) + xdg-data/themes exposed.
     #  - Qt flatpaks: sandboxes can't see qtct/kvantum plugins, so force the
     #    GTK platform theme (bundled in qtbase) → they render with the same
     #    gruvbox GTK theme as everything else.
@@ -102,6 +106,7 @@
       Environment = {
         XCURSOR_PATH = "/run/host/user-share/icons:/run/host/share/icons";
         QT_QPA_PLATFORMTHEME = "gtk3";
+        GTK_THEME = "gruvbox-dark";
       };
     };
   };
@@ -114,13 +119,42 @@
   # names — with only fonts it fell back to default GTK/XFWM/cursor (Adwaita).
   config.home.modules.mario = { pkgs, ... }: {
     stylix.targets = {
-      gtk.enable = true;
-      gtk.flatpakSupport.enable = true;
+      # GTK is handled by the real gruvbox-dark theme below. Stylix's gtk
+      # target only themed via adw-gtk3 + a generated gtk.css, which was NOT
+      # being written (missing ~/.config/gtk-3.0/gtk.css) — so no gruvbox
+      # colors appeared. Using the theme directly is robust and named gruvbox.
+      gtk.enable = false;
+      gtk.flatpakSupport.enable = false;
       qt.enable = true;
       qt.platform = "qtct";
       kde.enable = true;
       xfce.enable = true;
       gnome.enable = true;
+    };
+    # Real gruvbox GTK2/3 theme (name literally "gruvbox-dark"); GTK4/
+    # libadwaita falls back to adw-gtk3-dark + prefer-dark from dconf below.
+    gtk = {
+      enable = true;
+      colorScheme = "dark";
+      theme = {
+        package = pkgs.gruvbox-dark-gtk;
+        name = "gruvbox-dark";
+      };
+      gtk4.theme = {
+        package = pkgs.adw-gtk3;
+        name = "adw-gtk3-dark";
+      };
+      iconTheme = {
+        package = pkgs.papirus-icon-theme;
+        name = "Papirus-Dark";
+      };
+      cursorTheme = {
+        package = pkgs.bibata-cursors;
+        name = "Bibata-Modern-Classic";
+        size = 24;
+      };
+      # Overwrite ~/.gtkrc-2.0 without backing up (same pattern as old themes.nix).
+      gtk2.force = true;
     };
     # Stylix xfce only sets fonts; feed xfconf the Stylix GTK/XFWM/icon/cursor
     # names so xsettings (Net/ThemeName, IconThemeName, CursorThemeName) and
@@ -130,7 +164,7 @@
     # Papirus-Dark comes from stylix.icons (added above); Bibata from stylix.cursor.
     xfconf.settings = {
       xsettings = {
-        "Net/ThemeName" = "adw-gtk3-dark";
+        "Net/ThemeName" = "gruvbox-dark";
         "Net/IconThemeName" = "Papirus-Dark";
         "Gtk/CursorThemeName" = "Bibata-Modern-Classic";
         "Gtk/CursorThemeSize" = 24;
@@ -140,7 +174,12 @@
     # Ensure themes/icons/cursors are actually on disk even if Stylix's
     # auto-install is missed (HM vs NixOS split). Papirus was still empty
     # in /run/current-system/sw/share/icons (only in HM profile).
-    home.packages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 ];
+    home.packages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 gruvbox-dark-gtk ];
+    # Also drop the gruvbox theme into ~/.local/share/themes so flatpaks
+    # (exposed via xdg-data/themes:ro in the NixOS overrides) can load it.
+    xdg.dataFile."themes/gruvbox-dark" = {
+      source = "${pkgs.gruvbox-dark-gtk}/share/themes/gruvbox-dark";
+    };
     # Force dark for GTK/libadwaita under every DE (XFCE reads dconf too).
     # Same value Stylix's gnome target writes, so they merge cleanly.
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
