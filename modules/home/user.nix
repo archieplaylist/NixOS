@@ -17,6 +17,7 @@
       XDG_DATA_HOME = "$HOME/.local/share";
       XDG_STATE_HOME = "$HOME/.local/state";
       XDG_CACHE_HOME = "$HOME/.cache";
+      SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
     };
 
     # XDG user dirs, declared so ~/.config/user-dirs.dirs stays reproducible.

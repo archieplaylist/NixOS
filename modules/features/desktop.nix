@@ -17,7 +17,9 @@
         # Bluetooth. Radio stays off at boot (can be toggled on via the DE).
         hardware.bluetooth.enable = true;
         hardware.bluetooth.powerOnBoot = false;
-        services.blueman.enable = true;
+        # Blueman is the Bluetooth tray manager for GNOME/XFCE. Plasma ships
+        # its own Bluetooth manager (Bluedevil), so don't start Blueman there.
+        services.blueman.enable = config.mySystem.desktop != "plasma";
 
         # Network management.
         networking.networkmanager.enable = true;

@@ -35,6 +35,10 @@
         };
       };
 
+      services.gnome.gnome-keyring.enable = true;
+
+      security.pam.services.lightdm.enableGnomeKeyring = true;
+
       # The XFCE session itself must be enabled system-wide (it provides
       # xfce4-session, xfwm4, xfdesktop, xfce4-panel from nixpkgs). User-facing
       # config is managed per-user in modules/home/xfce.nix.

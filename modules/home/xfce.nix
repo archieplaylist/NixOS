@@ -30,6 +30,7 @@
         xfce4-clipman-plugin
         xfce4-whiskermenu-plugin
         mousepad
+        seahorse
         # Nordic theme so xfwm4 (window decorations) and GTK apps can find it.
         nordic
       ];
