@@ -81,6 +81,14 @@
     # (GTK and Qt) regardless of whether they run as system or user installs.
     # nix-flatpak merges this with per-app overrides from `mySystem.flatpakApps`.
     environment.systemPackages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 ];
+    # Flatpak theming for ALL apps:
+    #  - GTK flatpaks: stylix.targets.gtk.flatpakSupport (HM) exposes the
+    #    flattened gruvbox adw-gtk3 theme + GTK_THEME env automatically.
+    #  - Qt flatpaks: sandboxes can't see qtct/kvantum plugins, so force the
+    #    GTK platform theme (bundled in qtbase) → they render with the same
+    #    gruvbox GTK theme as everything else.
+    #  - Expose the theme/icon/cursor data dirs + xdg-config for apps that
+    #    bundle their own qtct/kvantum.
     services.flatpak.overrides.settings.global = {
       Context.filesystems = [
         "xdg-config/gtk-3.0:ro"
@@ -93,6 +101,7 @@
       ];
       Environment = {
         XCURSOR_PATH = "/run/host/user-share/icons:/run/host/share/icons";
+        QT_QPA_PLATFORMTHEME = "gtk3";
       };
     };
   };
@@ -132,9 +141,8 @@
     # auto-install is missed (HM vs NixOS split). Papirus was still empty
     # in /run/current-system/sw/share/icons (only in HM profile).
     home.packages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 ];
-    # Force dark for GTK/libadwaita — Stylix already sets polarity=dark
-    # via gnome dconf, but XFCE's xfsettingsd also needs this.
+    # Force dark for GTK/libadwaita under every DE (XFCE reads dconf too).
+    # Same value Stylix's gnome target writes, so they merge cleanly.
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
-    gtk.gtk3.extraCss = ""; # keep Stylix's generated gruvbox css, just ensure gtk4 follows
   };
 }
