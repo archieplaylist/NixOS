@@ -115,6 +115,9 @@
     # Stylix xfce only sets fonts; feed xfconf the Stylix GTK/XFWM/icon/cursor
     # names so xsettings (Net/ThemeName, IconThemeName, CursorThemeName) and
     # xfwm4 (general/theme) don't stay Adwaita/default.
+    # adw-gtk3 is Stylix's GTK theme; xfwm needs an xfwm4 theme — Default is
+    # always present (built into xfwm4) so it won't fallback to "(default)".
+    # Papirus-Dark comes from stylix.icons (added above); Bibata from stylix.cursor.
     xfconf.settings = {
       xsettings = {
         "Net/ThemeName" = "adw-gtk3";
@@ -122,7 +125,11 @@
         "Gtk/CursorThemeName" = "Bibata-Modern-Classic";
         "Gtk/CursorThemeSize" = 24;
       };
-      xfwm4."general/theme" = "adw-gtk3";
+      xfwm4."general/theme" = "Default";
     };
+    # Fallback: ensure themes/icons/cursors are actually on disk even if
+    # Stylix's auto-install is missed (HM vs NixOS split). Papirus was
+    # missing in /run/current-system/sw/share/icons.
+    home.packages = with pkgs; [ papirus-icon-theme bibata-cursors ];
   };
 }
