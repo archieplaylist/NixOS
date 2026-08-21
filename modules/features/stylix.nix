@@ -102,7 +102,7 @@
   # NOTE: stylix xfce module has `autoEnable = false` (upstream issue #180), so
   # it MUST be forced on. The xfconf channels below hand Stylix real theme
   # names — with only fonts it fell back to default GTK/XFWM/cursor (Adwaita).
-  config.home.modules.mario = { ... }: {
+  config.home.modules.mario = { pkgs, ... }: {
     stylix.targets = {
       gtk.enable = true;
       gtk.flatpakSupport.enable = true;
