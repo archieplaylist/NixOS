@@ -1,36 +1,8 @@
-# WhiteSur dark theme (GTK), icons and cursor. home-manager's `gtk` module
-# installs the packages, writes ~/.config/gtk-3.0/settings.ini, and sets
-# org.gnome.desktop.interface in dconf (including color-scheme=prefer-dark
-# for libadwaita apps).
-{ ... }: {
-  config.home.modules.mario = { pkgs, ... }: {
-    gtk = {
-      enable = true;
-      colorScheme = "dark";
-      theme = {
-        name = "WhiteSur-Dark";
-        package = pkgs.whitesur-gtk-theme;
-      };
-      iconTheme = {
-        name = "WhiteSur-dark";
-        package = pkgs.whitesur-icon-theme;
-      };
-      cursorTheme = {
-        name = "WhiteSur-cursors";
-        package = pkgs.whitesur-cursors;
-      };
-      # Overwrite ~/.gtkrc-2.0 without backing up: the gtk module writes the
-      # same content every generation, and the leftover .hm-backup otherwise
-      # makes home-manager fail with a clobber error on every activation.
-      gtk2.force = true;
-    };
-
-    # Apply the WhiteSur-dark shell theme via the User Themes extension
-    # (user-theme@gnome-shell-extensions.gcampax.github.com is in the enabled
-    # extensions list). The extension reads themes from ~/.themes and
-    # ~/.local/share/themes, so link the GNOME Shell variant there.
-    home.file.".themes/WhiteSur-Dark" = {
-      source = "${pkgs.whitesur-gtk-theme}/share/themes/WhiteSur-Dark";
-    };
-  };
-}
+# Stylix now owns GTK/icon/cursor theming (modules/features/stylix.nix).
+# This file is kept as a no-op so `gtk` is not double-managed. Stylix writes
+# ~/.config/gtk-3.0/settings.ini and dconf (color-scheme=prefer-dark for
+# libadwaita) plus exposes the theme to Flatpaks via `gtk.flatpakSupport`.
+# To fork GTK away from Stylix, set `stylix.targets.gtk.enable = false` in
+# home.modules.mario and re-add a `gtk` block here. The old WhiteSur block is
+# archived below for reference.
+{ ... }: { config.home.modules.mario = { ... }: { }; }

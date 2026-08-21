@@ -1,18 +1,11 @@
 # KDE Plasma: fully declarative via plasma-manager, active only when this host
 # runs Plasma (mySystem.desktop == "plasma"; see modules/features/mySystem.nix).
 #
-# WhiteSur dark look to match the GTK side (modules/home/themes.nix): theme
-# assets come from pkgs.whitesur-kde (installed via home.packages so Plasma can
-# find the look-and-feel, desktop theme and Aurorae decorations at runtime),
-# plus the already-installed whitesur-icon-theme / whitesur-cursors.
+# Stylix now owns the theme (Breeze + generated palette, modules/features/stylix.nix).
+# plasma-manager keeps layout/input/shortcuts; colors/icons/cursor/wallpaper
+# come from Stylix so GTK/Qt/Plasma share one base16 scheme.
 { ... }: {
-  config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
-    # The WhiteSur theme files live in the user environment so Plasma's theme
-    # lookup (via XDG_DATA_DIRS) finds them. Without this, lookAndFeel and the
-    # decorations silently fall back to Plasma defaults.
-    home.packages = lib.mkIf (osConfig.mySystem.desktop == "plasma") [
-      pkgs.whitesur-kde
-    ];
+  config.home.modules.mario = { lib, osConfig, ... }: {
 
     programs.plasma = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
       enable = true;
@@ -56,22 +49,13 @@
         ];
       };
 
-      # WhiteSur dark theme stack. `lookAndFeel` applies the global theme
-      # (colors, icons, window decorations, splash) on every login; the
-      # explicit settings below win over its defaults. We deliberately do NOT
-      # set `workspace.windowDecorations` here — the theme's own defaults
-      # provide the same WhiteSur-dark Aurorae decorations, and plasma-manager
-      # warns against declaring them alongside lookAndFeel.
+      # Appearance: Stylix drives Breeze colors/icons/cursor/wallpaper from
+      # the shared base16 scheme. Keep plasma-manager out of theming — only
+      # set layout/behaviour here so Stylix and plasma-manager don't fight.
+      # Remove this block or set `stylix.targets.kde.enable = false` to
+      # hand theming back to plasma-manager/WhiteSur.
       workspace = {
-        lookAndFeel = "com.github.vinceliuice.WhiteSur-dark";
-        theme = "WhiteSur-dark";
-        colorScheme = "${pkgs.whitesur-kde}/share/color-schemes/WhiteSurDark.colors";
-        iconTheme = "WhiteSur-dark";
-        cursor = {
-          theme = "WhiteSur-cursors";
-          size = 24;
-        };
-        wallpaper = "${pkgs.whitesur-kde}/share/wallpapers/WhiteSur-dark/contents/images/3840x2160.jpg";
+        # lookAndFeel/theme/colorScheme/iconTheme/cursor/wallpaper managed by Stylix
       };
 
       # Classic single bottom panel: launcher, pinned tasks, system tray, clock.

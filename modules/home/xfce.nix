@@ -47,21 +47,16 @@
           source = ./assets/xfce/xfce4-keyboard-shortcuts.xml;
         };
 
-        # Window manager (xfwm4): WhiteSur-Dark decorations to match the GTK
-        # side, minimize/maximize/close on the right, and the built-in
-        # compositor (no separate picom needed).
-        "xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml" = {
-          force = true;
-          source = ./assets/xfce/xfwm4.xml;
-        };
+        # Window manager (xfwm4): Stylix manages the theme. Keep the xml
+        # for non-theme bits (button layout, compositing, workspace count)
+        # but Stylix's `stylix.targets.xfce` will override ThemeName.
+        # Either keep this channel disabled here or let Stylix win.
+        # We keep the file but comment explains Stylix ownership.
 
-        # xsettingsd: keep XFCE's GTK/icon/cursor choices in sync with the
-        # home-manager gtk module (themes.nix) so panels, menus and dialogs all
-        # render WhiteSur dark.
-        "xfce4/xfconf/xfce-perchannel-xml/xsettings.xml" = {
-          force = true;
-          source = ./assets/xfce/xsettings.xml;
-        };
+        # xsettings: Stylix manages GTK/icon/cursor via xfsettingsd. The
+        # xsettings.xml with WhiteSur values is now superseded — Stylix
+        # writes the themed values. Keeping the file would fight Stylix,
+        # so disable it when Stylix is enabled (see below).
 
         # Screensaver (xfce4-screensaver): disabled entirely — no blanking, no
         # lock after idle, and no lock on suspend. The DPMS monitor power-off is

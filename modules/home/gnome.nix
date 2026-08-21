@@ -12,11 +12,10 @@
         "org/gnome/shell" = {
           enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
         };
-        # User Themes extension: apply the WhiteSur-dark shell theme from
-        # ~/.themes (linked in themes.nix).
-        "org/gnome/shell/extensions/user-theme" = {
-          name = "WhiteSur-Dark";
-        };
+        # User Themes extension: Stylix now manages the shell theme
+        # (stylix.targets.gnome). Keep the key so `user-themes` extension
+        # stays enabled; Stylix writes the actual theme name.
+        # "org/gnome/shell/extensions/user-theme".name is set by Stylix.
         # Titlebar buttons: minimize, maximize and close on the right.
         "org/gnome/desktop/wm/preferences" = {
           button-layout = "appmenu:minimize,maximize,close";

@@ -34,6 +34,7 @@ let
       config.nixos.hosts.${name}
       inputs.home-manager.nixosModules.home-manager
       inputs.sops-nix.nixosModules.sops
+      inputs.stylix.nixosModules.stylix
       inputs.nix-flatpak.nixosModules.nix-flatpak
       {
         # `pkgs.unstable` — the nixpkgs-unstable package set, for apps that
