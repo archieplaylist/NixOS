@@ -33,7 +33,6 @@
     # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix,
     # flathub remote is added by the module by default).
     mySystem.flatpakApps = [
-      "com.github.wwmm.easyeffects"
       "rest.insomnia.Insomnia"
       "org.localsend.localsend_app"
       "it.mijorus.gearlever"

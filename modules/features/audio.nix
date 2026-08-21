@@ -2,8 +2,11 @@
 # low-latency tuning for gaming. Contributes a NixOS module to the `desktop`
 # slot, gated on `mySystem.enableDesktop` like the rest of the desktop stack.
 { ... }: {
-  config.nixos.modules.desktop = { config, lib, ... }: {
+  config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkIf config.mySystem.enableDesktop {
+      # Native EasyEffects (migrated from Flatpak com.github.wwmm.easyeffects).
+      environment.systemPackages = [ pkgs.easyeffects ];
+
       # rtkit grants realtime scheduling; ALSA (incl. 32-bit) covers apps that
       # talk to ALSA directly instead of Pulse/JACK.
       security.rtkit.enable = true;
