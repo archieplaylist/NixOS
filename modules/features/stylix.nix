@@ -137,5 +137,4 @@
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
     gtk.gtk3.extraCss = ""; # keep Stylix's generated gruvbox css, just ensure gtk4 follows
   };
-  };
 }
