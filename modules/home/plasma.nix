@@ -1,11 +1,17 @@
 # KDE Plasma: fully declarative via plasma-manager, active only when this host
 # runs Plasma (mySystem.desktop == "plasma"; see modules/features/mySystem.nix).
 #
-# Stylix now owns the theme (Breeze + generated palette, modules/features/stylix.nix).
-# plasma-manager keeps layout/input/shortcuts; colors/icons/cursor/wallpaper
-# come from Stylix so GTK/Qt/Plasma share one base16 scheme.
+# Nordic dark look to match the GTK side (modules/home/themes.nix): theme
+# assets come from pkgs.nordic (installed via home.packages so Plasma can find
+# the look-and-feel, desktop theme and Aurorae decorations at runtime), plus
+# papirus-icon-theme / bibata-cursors.
 { ... }: {
-  config.home.modules.mario = { lib, osConfig, ... }: {
+  config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
+    # The Nordic theme files live in the user environment so Plasma's theme
+    # lookup (via XDG_DATA_DIRS) finds them.
+    home.packages = lib.mkIf (osConfig.mySystem.desktop == "plasma") [
+      pkgs.nordic
+    ];
 
     programs.plasma = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
       enable = true;
@@ -49,14 +55,27 @@
         ];
       };
 
-      # Appearance: Stylix provides a full lookAndFeel package "Stylix"
-      # (Breeze colorscheme + wallpaper, see stylix kde hm.nix) via
-      # `stylix.targets.kde`. With plasma-manager `overrideConfig = true`,
-      # leaving workspace{} empty makes Plasma regenerate defaults that can
-      # mask Stylix's lookAndFeel. Must not set workspace.lookAndFeel/theme
-      # here — Stylix writes kdeglobals/lookAndFeel via themePackage. If you
-      # need a non-Stylix Plasma theme, set `stylix.targets.kde.enable = false`.
-      # Intentionally no workspace.lookAndFeel here.
+      # Nordic dark theme stack. `lookAndFeel` applies the global theme
+      # (colors, icons, window decorations, splash) on every login; the
+      # explicit settings below win over its defaults. We deliberately do NOT
+      # set `workspace.windowDecorations` here — the theme's own defaults
+      # provide the Nordic Aurorae decorations, and plasma-manager warns
+      # against declaring them alongside lookAndFeel.
+      workspace = {
+        lookAndFeel = "Nordic";
+        theme = "Nordic";
+        colorScheme = "${pkgs.nordic}/share/color-schemes/Nordic.colors";
+        iconTheme = "Papirus-Dark";
+        cursor = {
+          theme = "Bibata-Modern-Classic";
+          size = 24;
+        };
+        # Pick the first image shipped in the Nordic wallpapers dir.
+        wallpaper = let
+          wallpapers = builtins.readDir "${pkgs.nordic}/share/wallpapers/Nordic";
+          images = lib.filter (n: lib.hasSuffix ".png" n || lib.hasSuffix ".jpg" n) (builtins.attrNames wallpapers);
+        in "${pkgs.nordic}/share/wallpapers/Nordic/${builtins.head images}";
+      };
 
       # Classic single bottom panel: launcher, pinned tasks, system tray, clock.
       panels = [

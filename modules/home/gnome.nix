@@ -9,13 +9,13 @@
     dconf = {
       enable = true;
       settings = lib.mkIf (osConfig.mySystem.desktop == "gnome") {
-        # Stylix manages GNOME theming via stylix.targets.gnome (user-theme
-        # "Stylix", background, color-scheme, fonts). It does NOT own the
-        # enabled-extensions list — that stays as single source
-        # `mySystem.gnomeExtensions` (see desktop.nix). The two now coexist:
-        # Stylix writes theme/background, this module writes extensions + prefs.
         "org/gnome/shell" = {
           enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
+        };
+        # User Themes extension: apply the Nordic shell theme from ~/.themes
+        # (linked in themes.nix).
+        "org/gnome/shell/extensions/user-theme" = {
+          name = "Nordic";
         };
         # Titlebar buttons: minimize, maximize and close on the right.
         "org/gnome/desktop/wm/preferences" = {
@@ -24,6 +24,9 @@
         # Middle-click pastes the primary selection.
         "org/gnome/desktop/interface" = {
           gtk-enable-primary-paste = true;
+          font-name = "Noto Sans 11";
+          monospace-font-name = "JetBrainsMono Nerd Font 11";
+          document-font-name = "Noto Sans 11";
         };
         # Overamplification: allow volume above 100%.
         "org/gnome/desktop/sound" = {

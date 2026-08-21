@@ -30,6 +30,8 @@
         xfce4-clipman-plugin
         xfce4-whiskermenu-plugin
         mousepad
+        # Nordic theme so xfwm4 (window decorations) and GTK apps can find it.
+        nordic
       ];
 
       xdg.configFile = {
@@ -47,11 +49,21 @@
           source = ./assets/xfce/xfce4-keyboard-shortcuts.xml;
         };
 
-        # Window manager (xfwm4) + xsettings: Stylix now owns ThemeName,
-        # IconThemeName and CursorThemeName via xfconf.settings in
-        # modules/features/stylix.nix (adw-gtk3 / Papirus-Dark / Bibata).
-        # Keep xfwm4/xsettings xml only for non-theme bits if needed, but
-        # they are now superseded — xfconf.settings wins over xdg.configFile.
+        # Window manager (xfwm4): Nordic decorations to match the GTK side,
+        # minimize/maximize/close on the right, and the built-in compositor
+        # (no separate picom needed).
+        "xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml" = {
+          force = true;
+          source = ./assets/xfce/xfwm4.xml;
+        };
+
+        # xsettingsd: keep XFCE's GTK/icon/cursor choices in sync with the
+        # home-manager gtk module (themes.nix) so panels, menus and dialogs
+        # all render Nordic dark with Papirus-Dark / Bibata.
+        "xfce4/xfconf/xfce-perchannel-xml/xsettings.xml" = {
+          force = true;
+          source = ./assets/xfce/xsettings.xml;
+        };
 
         # Screensaver (xfce4-screensaver): disabled entirely — no blanking, no
         # lock after idle, and no lock on suspend. The DPMS monitor power-off is

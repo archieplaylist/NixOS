@@ -1,8 +1,45 @@
-# Stylix now owns GTK/icon/cursor theming (modules/features/stylix.nix).
-# This file is kept as a no-op so `gtk` is not double-managed. Stylix writes
-# ~/.config/gtk-3.0/settings.ini and dconf (color-scheme=prefer-dark for
-# libadwaita) plus exposes the theme to Flatpaks via `gtk.flatpakSupport`.
-# To fork GTK away from Stylix, set `stylix.targets.gtk.enable = false` in
-# home.modules.mario and re-add a `gtk` block here. The old WhiteSur block is
-# archived below for reference.
-{ ... }: { config.home.modules.mario = { ... }: { }; }
+# Shared GTK / icon / cursor / font theming via home-manager's gtk module
+# (GTK2/3 + dconf org.gnome.desktop.interface, incl. color-scheme=dark for
+# libadwaita). Chosen set (2026-08-21):
+#   theme = Nordic (pkgs.nordic) · icons = Papirus-Dark · cursor =
+#   Bibata-Modern-Classic · font = Noto Sans · monospace = JetBrainsMono NF
+# Per-DE extras: gnome.nix (shell user-theme), plasma.nix (lookAndFeel),
+# xfce.nix (xfconf), lightdm.nix (greeter).
+{ ... }: {
+  config.home.modules.mario = { pkgs, ... }: {
+    gtk = {
+      enable = true;
+      colorScheme = "dark";
+      font = {
+        package = pkgs.noto-fonts;
+        name = "Noto Sans";
+        size = 11;
+      };
+      theme = {
+        name = "Nordic";
+        package = pkgs.nordic;
+      };
+      iconTheme = {
+        name = "Papirus-Dark";
+        package = pkgs.papirus-icon-theme;
+      };
+      cursorTheme = {
+        name = "Bibata-Modern-Classic";
+        package = pkgs.bibata-cursors;
+        size = 24;
+      };
+      # Overwrite ~/.gtkrc-2.0 without backing up: the gtk module writes the
+      # same content every generation, and the leftover .hm-backup otherwise
+      # makes home-manager fail with a clobber error on every activation.
+      gtk2.force = true;
+    };
+
+    # Apply the Nordic shell theme via the User Themes extension
+    # (user-theme@gnome-shell-extensions.gcampax.github.com is in the enabled
+    # extensions list). The extension reads themes from ~/.themes, so link the
+    # GNOME Shell variant there.
+    home.file.".themes/Nordic" = {
+      source = "${pkgs.nordic}/share/themes/Nordic";
+    };
+  };
+}
