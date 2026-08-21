@@ -3,6 +3,11 @@
 # read from the NixOS config via `osConfig`.
 { ... }: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
+    programs.vscode = lib.mkIf osConfig.mySystem.appGroups.general.enable {
+      enable = true;
+      package = pkgs.vscode;
+    };
+
     home.packages = lib.mkMerge [
       # Shell utilities (not gated; used everywhere).
       (with pkgs; [
@@ -40,7 +45,6 @@
         joplin-desktop
         onlyoffice-desktopeditors
         libreoffice-fresh
-        vscode
         pkgs.unstable.discord
       ]))
       # Gaming applications.
