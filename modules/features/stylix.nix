@@ -80,6 +80,7 @@
     # system-wide overrides make the theme visible to *all* flatpaks
     # (GTK and Qt) regardless of whether they run as system or user installs.
     # nix-flatpak merges this with per-app overrides from `mySystem.flatpakApps`.
+    environment.systemPackages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 ];
     services.flatpak.overrides.settings.global = {
       Context.filesystems = [
         "xdg-config/gtk-3.0:ro"
@@ -120,16 +121,21 @@
     # Papirus-Dark comes from stylix.icons (added above); Bibata from stylix.cursor.
     xfconf.settings = {
       xsettings = {
-        "Net/ThemeName" = "adw-gtk3";
+        "Net/ThemeName" = "adw-gtk3-dark";
         "Net/IconThemeName" = "Papirus-Dark";
         "Gtk/CursorThemeName" = "Bibata-Modern-Classic";
         "Gtk/CursorThemeSize" = 24;
       };
       xfwm4."general/theme" = "Default";
     };
-    # Fallback: ensure themes/icons/cursors are actually on disk even if
-    # Stylix's auto-install is missed (HM vs NixOS split). Papirus was
-    # missing in /run/current-system/sw/share/icons.
-    home.packages = with pkgs; [ papirus-icon-theme bibata-cursors ];
+    # Ensure themes/icons/cursors are actually on disk even if Stylix's
+    # auto-install is missed (HM vs NixOS split). Papirus was still empty
+    # in /run/current-system/sw/share/icons (only in HM profile).
+    home.packages = with pkgs; [ papirus-icon-theme bibata-cursors adw-gtk3 ];
+    # Force dark for GTK/libadwaita — Stylix already sets polarity=dark
+    # via gnome dconf, but XFCE's xfsettingsd also needs this.
+    dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
+    gtk.gtk3.extraCss = ""; # keep Stylix's generated gruvbox css, just ensure gtk4 follows
+  };
   };
 }
