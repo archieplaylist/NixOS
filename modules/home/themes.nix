@@ -12,11 +12,11 @@
       colorScheme = "dark";
       font = {
         package = pkgs.noto-fonts;
-        name = "Noto Sans";
-        size = 11;
+        name = "Noto Sans Reguler";
+        size = 10;
       };
       theme = {
-        name = "Nordic";
+        name = "Nordic-darker";
         package = pkgs.nordic;
       };
       iconTheme = {
@@ -26,7 +26,7 @@
       cursorTheme = {
         name = "Bibata-Modern-Classic";
         package = pkgs.bibata-cursors;
-        size = 24;
+        size = 20;
       };
       # Overwrite ~/.gtkrc-2.0 without backing up: the gtk module writes the
       # same content every generation, and the leftover .hm-backup otherwise
