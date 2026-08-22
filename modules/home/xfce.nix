@@ -17,6 +17,12 @@
 # every rebuild — the "self-healing" behaviour the old boot-time tmpfiles wipe
 # provided, now at rebuild time (same philosophy as plasma-manager's
 # overrideConfig).
+#
+# Deploy-order caveat: xfconfd holds channel state in memory and writes it
+# back at session end, so rebuilding while logged into XFCE lets a stale
+# logout clobber freshly-deployed XMLs (panel plugins / key bindings vanish
+# again). Rebuild from a TTY while logged out (or re-run hm activation and
+# restart xfconfd) so the next login reads the declarative files.
 { ... }: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }:
     lib.mkIf (osConfig.mySystem.desktop == "xfce") {
@@ -29,12 +35,36 @@
         xfce4-screenshooter
         xfce4-clipman-plugin
         xfce4-whiskermenu-plugin
-        xfce.xfce4-power-manager
+        xfce4-power-manager
         mousepad
         seahorse
         # Nordic theme so xfwm4 (window decorations) and GTK apps can find it.
         nordic
       ];
+
+      # Mid-session rebuilds: xfconfd holds channel state in RAM and writes it
+      # back at logout, clobbering freshly deployed xfconf XMLs (panel plugins,
+      # key bindings, pointers). This runs as part of home-manager activation —
+      # i.e. after the new XMLs are already on disk — so if an XFCE session is
+      # live we SIGKILL xfconfd (no flush possible) and best-effort reload the
+      # panel; the daemon respawns on demand and reads the new config. Boot-time
+      # activation is a no-op (no session running). Caveat: keyboard shortcuts
+      # that are new/changed need their xfconf property toggled (or one
+      # relogin) before the running xfsettingsd picks them up mid-session.
+      home.activation.resetXfconfd = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+        xfce_pid=$(${pkgs.procps}/bin/pgrep -u $USER -x xfce4-session || true)
+        if [ -n "$xfce_pid" ]; then
+          ${pkgs.procps}/bin/pkill -9 -x -u $USER xfconfd || true
+          # Best-effort panel reload using the live session's environment
+          session_env=$(tr '\0' '\n' < "/proc/$xfce_pid/environ" || true)
+          display=$(printf '%s\n' "$session_env" | ${pkgs.gnugrep}/bin/grep '^DISPLAY=' | ${pkgs.coreutils}/bin/cut -d= -f2- || true)
+          dbus_addr=$(printf '%s\n' "$session_env" | ${pkgs.gnugrep}/bin/grep '^DBUS_SESSION_BUS_ADDRESS=' | ${pkgs.coreutils}/bin/cut -d= -f2- || true)
+          if [ -n "$display" ] && [ -n "$dbus_addr" ]; then
+            env DISPLAY="$display" DBUS_SESSION_BUS_ADDRESS="$dbus_addr" \
+              ${pkgs.xfce4-panel}/bin/xfce4-panel -r || true
+          fi
+        fi
+      '';
 
       xdg.configFile = {
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml" = {
@@ -73,6 +103,14 @@
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml" = {
           force = true;
           source = ./assets/xfce/xfce4-screensaver.xml;
+        };
+
+        # Touchpad: natural scrolling (macOS-style), mirroring the plasma.nix
+        # input.touchpads.naturalScroll setting for the same SynPS/2 Synaptics
+        # TouchPad (device name with spaces -> underscores in xfconf).
+        "xfce4/xfconf/xfce-perchannel-xml/pointers.xml" = {
+          force = true;
+          source = ./assets/xfce/pointers.xml;
         };
 
         # Desktop icons (xfdesktop): disabled entirely. xfdesktop only renders
