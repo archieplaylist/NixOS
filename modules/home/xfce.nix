@@ -114,6 +114,8 @@
         # overlay key swallows Super and GNOME's activate-window-menu binding
         # swallows Alt+Space before they reach the VM (verified: xdotool-injected
         # Super_L pops the menu fine). Kept as-is — they work on physical hosts.
+        # Super+L is likewise a no-op under a GNOME viewer: it is GNOME's own
+        # screen-lock chord, so it locks the host instead.
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml" = {
           force = true;
           source = ./assets/xfce/xfce4-keyboard-shortcuts.xml;

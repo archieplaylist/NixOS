@@ -7,6 +7,10 @@
       <property name="Super_R" type="string" value="xfce4-popup-whiskermenu"/>
       <!-- Appfinder owns Alt+Space (toggle-window). -->
       <property name="&lt;Alt&gt;space" type="string" value="xfce4-appfinder --toggle-window"/>
+      <!-- Lock the screen on demand: xflock4 (from xfce4-session) delegates to
+           the running xfce4-screensaver daemon; the auto-lock/blanking
+           disabled in xfce4-screensaver.xml does not affect this. -->
+      <property name="&lt;Super&gt;l" type="string" value="xflock4"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">
