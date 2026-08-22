@@ -165,7 +165,11 @@
 
         # Touchpad: natural scrolling (macOS-style), mirroring the plasma.nix
         # input.touchpads.naturalScroll setting for the same SynPS/2 Synaptics
-        # TouchPad (device name with spaces -> underscores in xfconf).
+        # TouchPad. xfsettingsd mangles the device name to SynPS2_Synaptics_
+        # TouchPad (keep [A-Za-z0-9_-], ' ' -> '_', drop '/') and only reads
+        # the ReverseScrolling property (applied to libinput devices as
+        # "libinput Natural Scrolling Enabled") — a "NaturalScroll" property
+        # is silently ignored, which is why this never worked before.
         "xfce4/xfconf/xfce-perchannel-xml/pointers.xml" = {
           force = true;
           source = ./assets/xfce/pointers.xml;

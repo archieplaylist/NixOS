@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <channel name="pointers" version="1.0">
+  <!-- Device key: xfsettingsd keeps [A-Za-z0-9_-] and maps ' ' -> '_' while
+       dropping everything else, so "SynPS/2 Synaptics TouchPad" becomes
+       SynPS2_Synaptics_TouchPad. The property MUST be ReverseScrolling
+       (bool): that is the name xfsettingsd reads; on libinput devices it
+       sets "libinput Natural Scrolling Enabled". A "NaturalScroll" property
+       would simply be ignored. -->
   <property name="SynPS2_Synaptics_TouchPad" type="empty">
-    <property name="NaturalScroll" type="bool" value="true"/>
+    <property name="ReverseScrolling" type="bool" value="true"/>
   </property>
 </channel>
