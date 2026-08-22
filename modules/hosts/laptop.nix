@@ -1,7 +1,7 @@
 # laptop host: like the desktop host plus the `laptop` power-management
 # slot, and no heavy development tooling.
 { config, ... }: {
-  config.nixos.hosts.laptop = { pkgs, ... }: {
+  config.nixos.hosts.laptop = { lib, pkgs, ... }: {
     imports = [
       config.nixos.modules.base
       config.nixos.modules.desktop
@@ -13,6 +13,11 @@
     # Newest mainline kernel for the latest laptop hardware support
     # (overrides the channel-default kernel in basics.nix).
     boot.kernelPackages = pkgs.linuxPackages_latest;
+
+    # Boot device is SATA-only on this machine: slim the initrd module set
+    # from the intel slot (no NVMe, no boot-from-USB). mkForce replaces the
+    # slot's list instead of concatenating with it.
+    boot.initrd.availableKernelModules = lib.mkForce [ "ahci" "xhci_pci" "sd_mod" ];
 
     mySystem.hostname = "nixlappys";
     mySystem.desktop = "xfce";
