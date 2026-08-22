@@ -108,6 +108,12 @@
         # dropped its own `super-key` xfconf option, so bind the bare key via the
         # keyboard-shortcuts channel: xfce4-popup-whiskermenu pops the menu
         # (needs plugin-4 whiskermenu in the panel above).
+        #
+        # Caveat for VM guests: these commands/custom binds only fire when the
+        # guest actually receives the keys. Viewed from a GNOME host, mutter's
+        # overlay key swallows Super and GNOME's activate-window-menu binding
+        # swallows Alt+Space before they reach the VM (verified: xdotool-injected
+        # Super_L pops the menu fine). Kept as-is — they work on physical hosts.
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml" = {
           force = true;
           source = ./assets/xfce/xfce4-keyboard-shortcuts.xml;
@@ -154,6 +160,10 @@
         # workspace. The asset XML carries an @WALLPAPER@ placeholder that gets
         # substituted with the wallpaper's nix store path here, so xfdesktop
         # always points at a path that exists for the current generation.
+        # Entries are keyed by X connector name; besides the physical hosts'
+        # eDP-1/HDMI-A-1/DP-1, the asset also carries the VM guests' Virtual-1
+        # (QEMU/virt-manager, VirtualBox VMSVGA) and VBOX0 (VirtualBox
+        # VBoxSVGA) — xfdesktop ignores entries for absent monitors.
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml" = {
           force = true;
           source = pkgs.writeText "xfce4-desktop.xml"

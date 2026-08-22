@@ -13,6 +13,11 @@
     <!-- One setting shared by every virtual workspace. -->
     <property name="single-workspace-mode" type="bool" value="true"/>
     <property name="screen0" type="empty">
+      <!-- Entries are keyed by X connector name; xfdesktop ignores the ones
+           for monitors that aren't plugged in, so physical hosts (eDP-1,
+           HDMI-A-1, DP-1) and VM guests share this file. VM connector names:
+           Virtual-1 under QEMU/virt-manager and VirtualBox VMSVGA, VBOX0
+           under VirtualBox VBoxSVGA (confirmed via /sys/class/drm). -->
       <property name="monitoreDP-1" type="empty">
         <property name="workspace0" type="empty">
           <property name="color-style" type="uint" value="0"/>
@@ -28,6 +33,20 @@
         </property>
       </property>
       <property name="monitorDP-1" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="color-style" type="uint" value="0"/>
+          <property name="image-style" type="uint" value="4"/>
+          <property name="last-image" type="string" value="@WALLPAPER@"/>
+        </property>
+      </property>
+      <property name="monitorVirtual-1" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="color-style" type="uint" value="0"/>
+          <property name="image-style" type="uint" value="4"/>
+          <property name="last-image" type="string" value="@WALLPAPER@"/>
+        </property>
+      </property>
+      <property name="monitorVBOX0" type="empty">
         <property name="workspace0" type="empty">
           <property name="color-style" type="uint" value="0"/>
           <property name="image-style" type="uint" value="4"/>
