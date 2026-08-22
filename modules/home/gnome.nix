@@ -32,6 +32,14 @@
         "org/gnome/desktop/sound" = {
           allow-volume-above-100-percent = true;
         };
+        # Wallpaper: the shared repo image (same one XFCE and Plasma use).
+        # Both URIs are set because the theme stack pins the dark preference,
+        # and GNOME reads picture-uri-dark when color-scheme is prefer-dark.
+        "org/gnome/desktop/background" = {
+          picture-uri = "file://${./assets/wallpaper.png}";
+          picture-uri-dark = "file://${./assets/wallpaper.png}";
+          picture-options = "zoom";
+        };
       };
     };
   };

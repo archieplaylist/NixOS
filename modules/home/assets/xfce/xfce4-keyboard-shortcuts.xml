@@ -5,6 +5,15 @@
     <property name="custom" type="empty">
       <property name="Super_L" type="string" value="xfce4-popup-whiskermenu"/>
       <property name="Super_R" type="string" value="xfce4-popup-whiskermenu"/>
+      <property name="&lt;Alt&gt;space" type="string" value="xfce4-appfinder --toggle-window"/>
+    </property>
+  </property>
+  <property name="xfwm4" type="empty">
+    <property name="custom" type="empty">
+      <!-- Appfinder owns Alt+Space; clear xfwm4's window-menu grab on it
+           (window operations stay reachable via titlebar right-click). -->
+      <property name="&lt;Alt&gt;space" type="string" value=""/>
+      <property name="override" type="bool" value="true"/>
     </property>
   </property>
 </channel>

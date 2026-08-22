@@ -108,13 +108,9 @@
             library = "org.kde.kwin.aurorae.v2";
             theme = "__aurorae__svg__Nordic";
           };
-          # Pick the first image shipped in the Nordic wallpapers dir.
-          wallpaper =
-            let
-              wallpapers = builtins.readDir "${nordic}/share/wallpapers/Nordic";
-              images = lib.filter (n: lib.hasSuffix ".png" n || lib.hasSuffix ".jpg" n) (builtins.attrNames wallpapers);
-            in
-            "${nordic}/share/wallpapers/Nordic/${builtins.head images}";
+          # Shared repo wallpaper (modules/home/assets/wallpaper.png), the
+          # same image set for GNOME (gnome.nix) and XFCE (xfce.nix).
+          wallpaper = "${./assets/wallpaper.png}";
         };
 
         # Classic single bottom panel: launcher, pinned tasks, system tray, clock.

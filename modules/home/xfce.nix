@@ -24,7 +24,7 @@
 # again). Rebuild from a TTY while logged out (or re-run hm activation and
 # restart xfconfd) so the next login reads the declarative files.
 { ... }: {
-  config.home.modules.mario = { lib, pkgs, osConfig, ... }:
+  config.home.modules.mario = { config, lib, pkgs, osConfig, ... }:
     lib.mkIf (osConfig.mySystem.desktop == "xfce") {
       # Extra apps the stock XFCE session doesn't ship (mirroring Plasma's
       # dolphin/konsole/gwenview). These used to be system packages in
@@ -36,6 +36,7 @@
         xfce4-clipman-plugin
         xfce4-whiskermenu-plugin
         xfce4-power-manager
+        xfce4-appfinder
         mousepad
         seahorse
         # Nordic theme so xfwm4 (window decorations) and GTK apps can find it.
@@ -65,6 +66,37 @@
           fi
         fi
       '';
+
+      # Enforce the declarative xfconf channels at EVERY login. Something
+      # inside running XFCE sessions keeps rewriting/removing channel values
+      # (key bindings vanished repeatedly, even across clean reboots), so
+      # trusting the on-disk state after a logout is not enough. This unit runs
+      # when systemd --user starts (default.target) — before any XFCE app can
+      # spawn xfconfd — and copies the home-manager-managed channel files into
+      # place. Complements the resetXfconfd activation hook above, which covers
+      # mid-session rebuilds.
+      systemd.user.services.enforce-xfconf = {
+        Unit = {
+          Description = "Restore home-manager xfconf channels before XFCE starts";
+          After = [ "local-fs.target" ];
+          Before = [ "graphical-session-pre.target" ];
+        };
+        Install.WantedBy = [ "default.target" ];
+        Service = {
+          Type = "oneshot";
+          ExecStart = pkgs.writeShellScript "enforce-xfconf" ''
+            conf="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+            mkdir -p "$conf"
+            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".source} "$conf/xfce4-panel.xml"
+            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml".source} "$conf/xfce4-keyboard-shortcuts.xml"
+            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml".source} "$conf/xfwm4.xml"
+            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xsettings.xml".source} "$conf/xsettings.xml"
+            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml".source} "$conf/xfce4-screensaver.xml"
+            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml".source} "$conf/xfce4-desktop.xml"
+            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/pointers.xml".source} "$conf/pointers.xml"
+          '';
+        };
+      };
 
       xdg.configFile = {
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml" = {
@@ -115,11 +147,20 @@
 
         # Desktop icons (xfdesktop): disabled entirely. xfdesktop only renders
         # icons when /desktop-icons/file-icons shows them; all show-* are false
-        # so no Home/Filesystem/Trash or mounted-volume icons appear. Wallpaper
-        # still shows.
+        # so no Home/Filesystem/Trash or mounted-volume icons appear.
+        #
+        # Wallpaper: the shared repo image (modules/home/assets/wallpaper.png,
+        # same one set for GNOME and Plasma), zoomed to fill, applied to every
+        # workspace. The asset XML carries an @WALLPAPER@ placeholder that gets
+        # substituted with the wallpaper's nix store path here, so xfdesktop
+        # always points at a path that exists for the current generation.
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml" = {
           force = true;
-          source = ./assets/xfce/xfce4-desktop.xml;
+          source = pkgs.writeText "xfce4-desktop.xml"
+            (builtins.replaceStrings
+              [ "@WALLPAPER@" ]
+              [ "${./assets/wallpaper.png}" ]
+              (builtins.readFile ./assets/xfce/xfce4-desktop.xml));
         };
       };
     };
