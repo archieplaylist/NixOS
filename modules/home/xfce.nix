@@ -67,14 +67,19 @@
         fi
       '';
 
-      # Enforce the declarative xfconf channels at EVERY login. Something
-      # inside running XFCE sessions keeps rewriting/removing channel values
-      # (key bindings vanished repeatedly, even across clean reboots), so
-      # trusting the on-disk state after a logout is not enough. This unit runs
-      # when systemd --user starts (default.target) — before any XFCE app can
-      # spawn xfconfd — and copies the home-manager-managed channel files into
-      # place. Complements the resetXfconfd activation hook above, which covers
-      # mid-session rebuilds.
+      # Enforce the declarative xfconf channels at EVERY login. xfsettingsd's
+      # "commands" shortcuts provider (libxfce4kbd-private) used to wipe
+      # /commands/custom on every startup because the channel file lacked
+      # /commands/custom/override — that reset-to-defaults was the real reason
+      # the key bindings vanished across clean reboots. That is fixed in the
+      # asset (override=true, full canonical structure), but this unit still
+      # guards the remaining channel files (panel, xfwm4, xsettings, ...)
+      # against runtime state written back by xfconfd at logout. It runs when
+      # systemd --user starts (default.target) and copies the
+      # home-manager-managed channel files into place, then kills any
+      # already-spawned xfconfd so the daemon re-reads the fresh files on next
+      # use (closing the early-spawn race). Complements the resetXfconfd
+      # activation hook above, which covers mid-session rebuilds.
       systemd.user.services.enforce-xfconf = {
         Unit = {
           Description = "Restore home-manager xfconf channels before XFCE starts";
@@ -94,6 +99,10 @@
             install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml".source} "$conf/xfce4-screensaver.xml"
             install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml".source} "$conf/xfce4-desktop.xml"
             install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/pointers.xml".source} "$conf/pointers.xml"
+            # Drop any xfconfd that raced us (spawned by an early autostart
+            # before the installs above); it respawns on demand and re-reads
+            # the declarative files.
+            ${pkgs.procps}/bin/pkill -x -u "$USER" xfconfd 2>/dev/null || true
           '';
         };
       };
@@ -104,10 +113,19 @@
           source = ./assets/xfce/xfce4-panel.xml;
         };
 
-        # Super (Meta) key opens the Whisker menu. The whiskermenu plugin (2.8+)
-        # dropped its own `super-key` xfconf option, so bind the bare key via the
-        # keyboard-shortcuts channel: xfce4-popup-whiskermenu pops the menu
-        # (needs plugin-4 whiskermenu in the panel above).
+        # Keyboard shortcuts: Super (Meta) key opens the Whisker menu, Alt+Space
+        # toggles the appfinder, Super+L locks the screen.
+        #
+        # The whiskermenu plugin (2.8+) dropped its own `super-key` xfconf
+        # option, so the bare keysym is bound via this channel:
+        # xfce4-popup-whiskermenu pops the menu (needs plugin-4 whiskermenu in
+        # the panel above).
+        #
+        # The asset MUST carry /commands/custom/override=true plus the full
+        # canonical structure: without override, xfsettingsd's shortcuts
+        # provider (libxfce4kbd-private) resets /commands/custom to the built-in
+        # defaults on every login, silently dropping these bindings (that was
+        # the "custom shortcuts gone after relogin" bug).
         #
         # Caveat for VM guests: these commands/custom binds only fire when the
         # guest actually receives the keys. Viewed from a GNOME host, mutter's
