@@ -46,6 +46,18 @@
         memoryPercent = 100;
       };
 
+      # VM tuning for zram-only swap (responsiveness under memory pressure):
+      # read no extra pages on fault (readahead pays off on real disks, not in
+      # compressed RAM), prefer keeping anonymous pages compressed over
+      # evicting page cache, and smooth reclaim so kswapd bursts don't stall
+      # the desktop.
+      boot.kernel.sysctl = {
+        "vm.page-cluster" = 0;
+        "vm.swappiness" = 180;
+        "vm.watermark_boost_factor" = 0;
+        "vm.watermark_scale_factor" = 125;
+      };
+
       # Keep the journal bounded so it can't fill the disk.
       services.journald.extraConfig = ''
         SystemMaxUse=500M
