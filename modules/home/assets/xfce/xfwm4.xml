@@ -7,6 +7,19 @@
     <property name="use_compositing" type="bool" value="true"/>
     <property name="vblank_mode" type="string" value="glx"/>
     <property name="unredirect_overlays" type="bool" value="false"/>
+    <!-- Compositor tweaks (native xfwm4, no blur): -->
+    <!-- 0-100 scale (100 = opaque). Inactive windows slightly translucent so -->
+    <!-- the active window pops; move/resize more translucent for feedback.   -->
+    <property name="frame_opacity" type="int" value="100"/>
+    <property name="inactive_opacity" type="int" value="92"/>
+    <property name="move_opacity" type="int" value="85"/>
+    <property name="resize_opacity" type="int" value="85"/>
+    <property name="popup_opacity" type="int" value="95"/>
+    <!-- Shadow: 50 = half opacity, soft shadow under windows (0-100). -->
+    <property name="shadow_opacity" type="int" value="50"/>
+    <property name="show_frame_shadow" type="bool" value="true"/>
+    <property name="show_popup_shadow" type="bool" value="true"/>
+    <property name="show_dock_shadow" type="bool" value="false"/>
     <property name="workspace_count" type="int" value="4"/>
     <property name="placement_mode" type="string" value="center"/>
     <property name="edge_resistance" type="int" value="10"/>
