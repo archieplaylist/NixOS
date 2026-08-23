@@ -78,9 +78,11 @@ in
   flake.checks.${system} = lib.mapAttrs (_: cfg: cfg.config.system.build.toplevel) hosts;
 
   perSystem = { pkgs, ... }: {
-    # `nix develop` — formatter and Nix linters.
+    # `nix develop` — formatter, linters, and `make` so `make help/check` works
+    # on minimal NixOS installs where gnumake isn't system-wide.
     devShells.default = pkgs.mkShell {
       packages = with pkgs; [
+        gnumake
         nixpkgs-fmt
         deadnix
         statix
