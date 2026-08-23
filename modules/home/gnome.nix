@@ -22,9 +22,11 @@
           button-layout = "appmenu:minimize,maximize,close";
         };
         # Middle-click pastes the primary selection.
+        # font-name is owned by themes.nix (gtk.font = Noto Sans 10); don't
+        # duplicate it here — gtk3.nix writes the same dconf key and would
+        # conflict (10 vs 11). Keep monospace/document here (gtk module doesn't set them).
         "org/gnome/desktop/interface" = {
           gtk-enable-primary-paste = true;
-          font-name = "Noto Sans 11";
           monospace-font-name = "JetBrainsMono Nerd Font 11";
           document-font-name = "Noto Sans 11";
         };
