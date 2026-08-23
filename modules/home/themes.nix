@@ -1,10 +1,10 @@
 # Shared GTK / icon / cursor / font theming via home-manager's gtk module
 # (GTK2/3 + dconf org.gnome.desktop.interface, incl. color-scheme=dark for
-# libadwaita). Chosen set (2026-08-21):
-#   theme = Nordic (pkgs.nordic) · icons = Papirus-Dark · cursor =
-#   Bibata-Modern-Classic · font = Noto Sans · monospace = JetBrainsMono NF
+# libadwaita). Chosen set (2026-08-21, updated cfe667a):
+#   theme = Nordic-darker (pkgs.nordic) · icons = Papirus-Dark · cursor =
+#   Bibata-Modern-Classic 20px · font = Noto Sans 10 · monospace = JetBrainsMono NF
 # Per-DE extras: gnome.nix (shell user-theme), plasma.nix (lookAndFeel),
-# xfce.nix (xfconf), lightdm.nix (greeter).
+# xfce.nix (xfconf), lightdm.nix (greeter) — all synced to Nordic-darker.
 { ... }: {
   config.home.modules.mario = { pkgs, ... }: {
     gtk = {
@@ -13,7 +13,7 @@
       gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
       font = {
         package = pkgs.noto-fonts;
-        name = "Noto Sans Reguler";
+        name = "Noto Sans";
         size = 10;
       };
       theme = {

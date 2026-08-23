@@ -23,7 +23,7 @@
         enable = true;
         theme = {
           package = pkgs.nordic;
-          name = "Nordic";
+          name = "Nordic-darker";
         };
         iconTheme = {
           package = pkgs.papirus-icon-theme;

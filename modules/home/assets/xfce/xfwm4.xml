@@ -2,9 +2,11 @@
 
 <channel name="xfwm4" version="1.0">
   <property name="general" type="empty">
-    <property name="theme" type="string" value="Nordic"/>
+    <property name="theme" type="string" value="Nordic-darker"/>
     <property name="button_layout" type="string" value="O|HMC"/>
     <property name="use_compositing" type="bool" value="true"/>
+    <property name="vblank_mode" type="string" value="glx"/>
+    <property name="unredirect_overlays" type="bool" value="false"/>
     <property name="workspace_count" type="int" value="4"/>
     <property name="placement_mode" type="string" value="center"/>
     <property name="edge_resistance" type="int" value="10"/>
