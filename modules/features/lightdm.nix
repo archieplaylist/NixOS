@@ -42,7 +42,7 @@
       # explicit one or mount/reboot dialogs fail silent. Brightness Fn keys
       # already work natively on X260, so no `light` needed.
       security.polkit.enable = true;
-      environment.systemPackages = [ pkgs.xfce.xfce4-polkit ];
+      environment.systemPackages = [ pkgs.polkit_gnome ];
 
       security.pam.services.lightdm.enableGnomeKeyring = true;
 
