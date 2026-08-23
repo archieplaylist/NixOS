@@ -20,27 +20,30 @@
         # Low-latency audio for gaming (adapted from
         # https://github.com/Swam-web/customConfig/modules/audio.nix): fixed
         # 48 kHz clock, 128-frame quantum, and no ALSA device auto-suspend.
-        # Applied only when the gaming group is on.
-        extraConfig.pipewire."99-lowlatency.conf" = lib.mkIf config.mySystem.appGroups.gaming.enable {
-          "context.properties" = {
-            "default.clock.rate" = 48000;
-            "default.clock.quantum" = 128;
-            "default.clock.min-quantum" = 64;
-            "default.clock.max-quantum" = 512;
+        # Applied only when the gaming group is on (uses optionalAttrs so the
+        # attr disappears cleanly when gaming is off, instead of null).
+        extraConfig.pipewire."99-lowlatency.conf" =
+          lib.optionalAttrs config.mySystem.appGroups.gaming.enable {
+            "context.properties" = {
+              "default.clock.rate" = 48000;
+              "default.clock.quantum" = 128;
+              "default.clock.min-quantum" = 64;
+              "default.clock.max-quantum" = 512;
+            };
           };
-        };
-        wireplumber.extraConfig."99-lowlatency.conf" = lib.mkIf config.mySystem.appGroups.gaming.enable {
-          "monitor.rules" = [
-            {
-              matches = [{ "node.name" = "~alsa_output.*"; }];
-              "actions.update-props" = {
-                "api.alsa.period-size" = 128;
-                "api.alsa.headroom" = 128;
-                "session.suspend-timeout-seconds" = 0;
-              };
-            }
-          ];
-        };
+        wireplumber.extraConfig."99-lowlatency.conf" =
+          lib.optionalAttrs config.mySystem.appGroups.gaming.enable {
+            "monitor.rules" = [
+              {
+                matches = [{ "node.name" = "~alsa_output.*"; }];
+                "actions.update-props" = {
+                  "api.alsa.period-size" = 128;
+                  "api.alsa.headroom" = 128;
+                  "session.suspend-timeout-seconds" = 0;
+                };
+              }
+            ];
+          };
       };
     };
   };

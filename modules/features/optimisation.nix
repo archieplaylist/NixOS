@@ -21,7 +21,7 @@
       # nh — the Nix CLI helper (https://github.com/nix-community/nh), installed
       # system-wide. `NH_FLAKE` points at this repo so `nh os switch -H <host>`
       # works without a path. The weekly `nh-clean` timer runs `nh clean all`
-      # (keeps 3 generations + anything newer than 7 days, preserves nix-direnv
+      # (keeps 5 generations + anything newer than 7 days, preserves nix-direnv
       # gcroots via --no-direnv) and replaces the old nix.gc.automatic.
       programs.nh = {
         enable = true;

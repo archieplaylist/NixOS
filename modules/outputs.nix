@@ -9,19 +9,22 @@
 let
   system = "x86_64-linux";
 
-  # VirtualBox GuestAdditions 7.2.14 predate the kernel's fbdev emulation
-  # change that removed drm_fb_helper_alloc_info (present in 6.12+), so its
-  # vboxvideo driver fails to build against modern kernels. Patch vbox_fb.c to
-  # use the new API where the fb_info lives on the helper, mirroring upstream
-  # VirtualBox. The NULL guard fails fbdev setup cleanly instead of crashing.
+  # VirtualBox GuestAdditions predate the kernel's fbdev emulation change
+  # that removed drm_fb_helper_alloc_info (present in 6.12+), so its
+  # vboxvideo driver fails to build against modern kernels. Patch vbox_fb.c
+  # to use the new API where the fb_info lives on the helper, mirroring
+  # upstream VirtualBox. Uses a wildcard src/vboxguest-*/... so it doesn't
+  # hardcode a specific GuestAdditions version (e.g. 7.2.14). The NULL guard
+  # fails fbdev setup cleanly instead of crashing.
   patchVboxGuestAdditions = kernelPackages:
     kernelPackages.extend (_final: prev: {
       virtualboxGuestAdditions = prev.virtualboxGuestAdditions.overrideAttrs (old: {
         prePatch = (old.prePatch or "") + ''
-          sed -i 's@info = drm_fb_helper_alloc_info(helper);@info = helper->info;@' \
-            src/vboxguest-7.2.14_NixOS/vboxvideo/vbox_fb.c
-          sed -i 's@if (IS_ERR(info))@if (IS_ERR(info) || !info)@' \
-            src/vboxguest-7.2.14_NixOS/vboxvideo/vbox_fb.c
+          fb=$(find src -name vbox_fb.c 2>/dev/null | head -n1)
+          if [ -n "$fb" ]; then
+            sed -i 's@info = drm_fb_helper_alloc_info(helper);@info = helper->info;@' "$fb"
+            sed -i 's@if (IS_ERR(info))@if (IS_ERR(info) || !info)@' "$fb"
+          fi
         '';
       });
     });

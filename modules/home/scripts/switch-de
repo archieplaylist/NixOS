@@ -13,7 +13,19 @@
 
 set -euo pipefail
 
-REPO="$HOME/nixos"
+# Repo location: canonical is ~/NixOS (capital N), fallback to ~/nixos for
+# backwards-compat or env override via $REPO / $NIXOS_REPO.
+if [ -n "${REPO:-}" ]; then
+  :
+elif [ -n "${NIXOS_REPO:-}" ]; then
+  REPO="$NIXOS_REPO"
+elif [ -d "$HOME/NixOS" ]; then
+  REPO="$HOME/NixOS"
+elif [ -d "$HOME/nixos" ]; then
+  REPO="$HOME/nixos"
+else
+  REPO="$HOME/NixOS"
+fi
 ARCHIVE_DIR="$HOME/.local/share/de-archive"
 
 # Runtime state owned by each DE, relative to $HOME (glob patterns).

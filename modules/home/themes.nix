@@ -9,7 +9,8 @@
   config.home.modules.mario = { pkgs, ... }: {
     gtk = {
       enable = true;
-      colorScheme = "dark";
+      gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
+      gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
       font = {
         package = pkgs.noto-fonts;
         name = "Noto Sans Reguler";
@@ -33,6 +34,8 @@
       # makes home-manager fail with a clobber error on every activation.
       gtk2.force = true;
     };
+
+    dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
     # Apply the Nordic shell theme via the User Themes extension
     # (user-theme@gnome-shell-extensions.gcampax.github.com is in the enabled

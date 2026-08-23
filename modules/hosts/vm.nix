@@ -30,5 +30,17 @@
     # The VM doesn't need heavy gaming or development packages.
     mySystem.appGroups.gaming.enable = false;
     mySystem.appGroups.dev.enable = false;
+
+    # QEMU VM variant for `nixos-rebuild build-vm --flake .#vm` — test the
+    # config without VirtualBox. Uses virtio and a small disk.
+    virtualisation.vmVariant = {
+      virtualisation = {
+        memorySize = 4096;
+        cores = 4;
+        diskSize = 8192;
+        graphics = true;
+        qemu.options = [ "-device virtio-vga" ];
+      };
+    };
   };
 }
