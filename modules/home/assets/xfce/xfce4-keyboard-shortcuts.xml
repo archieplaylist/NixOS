@@ -38,6 +38,7 @@
       <property name="&lt;Primary&gt;&lt;Alt&gt;f" type="empty"/>
       <property name="&lt;Primary&gt;&lt;Alt&gt;Escape" type="empty"/>
       <property name="&lt;Primary&gt;&lt;Shift&gt;Escape" type="empty"/>
+      <property name="&lt;Super&gt;Return" type="empty"/>
       <property name="&lt;Super&gt;r" type="empty">
         <property name="startup-notify" type="empty"/>
       </property>
@@ -86,6 +87,7 @@
            the running xfce4-screensaver daemon; the auto-lock/blanking
            disabled in xfce4-screensaver.xml does not affect this. -->
       <property name="&lt;Super&gt;l" type="string" value="xflock4"/>
+      <property name="&lt;Super&gt;Return" type="string" value="kitty"/>
       <!-- CRITICAL: without override=true xfsettingsd treats this list as
            unconfigured and resets /commands/custom to defaults on login. -->
       <property name="override" type="bool" value="true"/>
@@ -139,6 +141,7 @@
       <property name="&lt;Primary&gt;&lt;Alt&gt;Right" type="empty"/>
       <property name="&lt;Primary&gt;&lt;Alt&gt;d" type="empty"/>
       <property name="&lt;Primary&gt;&lt;Alt&gt;Up" type="empty"/>
+      <property name="&lt;Super&gt;q" type="empty"/>
       <property name="&lt;Super&gt;Tab" type="empty"/>
       <property name="&lt;Primary&gt;F1" type="empty"/>
       <property name="&lt;Primary&gt;F2" type="empty"/>
@@ -165,6 +168,7 @@
       <property name="&lt;Primary&gt;F12" type="string" value="workspace_12_key"/>
       <property name="&lt;Super&gt;KP_Down" type="string" value="tile_down_key"/>
       <property name="&lt;Alt&gt;F4" type="string" value="close_window_key"/>
+      <property name="&lt;Super&gt;q" type="string" value="close_window_key"/>
       <property name="&lt;Primary&gt;&lt;Alt&gt;KP_3" type="string" value="move_window_workspace_3_key"/>
       <property name="&lt;Primary&gt;F2" type="string" value="workspace_2_key"/>
       <property name="&lt;Primary&gt;F6" type="string" value="workspace_6_key"/>

@@ -31,6 +31,7 @@
       # modules/features/xfce.nix; moved here so the whole XFCE stack is
       # user-managed.
       home.packages = with pkgs; [
+        kitty
         xfce4-terminal
         xfce4-screenshooter
         xfce4-clipman-plugin
@@ -71,6 +72,10 @@
       '';
 
       xdg.configFile = {
+        "kitty/kitty.conf" = {
+          source = ./assets/kitty/kitty.conf;
+        };
+
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml" = {
           force = true;
           source = ./assets/xfce/xfce4-panel.xml;

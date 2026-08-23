@@ -39,6 +39,7 @@
       # The Nordic theme files live in the user environment so Plasma's theme
       # lookup (via XDG_DATA_DIRS) finds them.
       home.packages = lib.mkIf (osConfig.mySystem.desktop == "plasma") [
+        pkgs.kitty
         nordic
       ];
 
@@ -148,6 +149,7 @@
             "Switch Window Left" = "Meta+H";
             "Switch Window Right" = "Meta+L";
             "Switch Window Up" = "Meta+K";
+            "Window Close" = "Meta+Q";
           };
         };
       };
