@@ -38,11 +38,10 @@
       services.gnome.gnome-keyring.enable = true;
       services.upower.enable = true;
 
-      # Polkit + brightness for laptop XFCE. GNOME/Plasma ship their own agents;
-      # XFCE needs an explicit one or mount/reboot dialogs fail silent. `light`
-      # covers Fn brightness without extra portal work.
+      # Polkit for XFCE. GNOME/Plasma ship their own agents; XFCE needs an
+      # explicit one or mount/reboot dialogs fail silent. Brightness Fn keys
+      # already work natively on X260, so no `light` needed.
       security.polkit.enable = true;
-      programs.light.enable = true;
       environment.systemPackages = [ pkgs.xfce.xfce4-polkit ];
 
       security.pam.services.lightdm.enableGnomeKeyring = true;

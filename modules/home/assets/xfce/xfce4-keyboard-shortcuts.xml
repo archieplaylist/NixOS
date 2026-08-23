@@ -86,8 +86,6 @@
            the running xfce4-screensaver daemon; the auto-lock/blanking
            disabled in xfce4-screensaver.xml does not affect this. -->
       <property name="&lt;Super&gt;l" type="string" value="xflock4"/>
-      <property name="XF86MonBrightnessUp" type="string" value="light -A 5"/>
-      <property name="XF86MonBrightnessDown" type="string" value="light -U 5"/>
       <!-- CRITICAL: without override=true xfsettingsd treats this list as
            unconfigured and resets /commands/custom to defaults on login. -->
       <property name="override" type="bool" value="true"/>
