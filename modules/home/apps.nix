@@ -40,31 +40,29 @@
         mpv
         yt-dlp
         ffmpeg
-        # Discord is not on the stable channel; pulled from nixpkgs-unstable
-        # via the `pkgs.unstable` overlay (see modules/outputs.nix).
+        discord
         joplin-desktop
         onlyoffice-desktopeditors
         libreoffice-fresh
-        pkgs.unstable.discord
       ]))
       # Gaming applications.
       (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
         heroic
         cartridges
         vulkan-tools
-        pkgs.unstable.mangohud
-        pkgs.unstable.goverlay
+        mangohud
+        goverlay
         # Per-game Proton-GE management (install GE versions from the app).
-        pkgs.unstable.protonup-qt
+        protonup-qt
         # Shader injection (reshade-style); activates per game via
         # `ENABLE_VKBASALT=1 %command%`.
-        pkgs.unstable.vkbasalt
+        vkbasalt
       ]))
       # Work applications.
       (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
         dbeaver-bin
         remmina
-        pkgs.unstable.filezilla
+        filezilla
       ]))
     ];
   };

@@ -52,6 +52,9 @@
       # activation is a no-op (no session running). Caveat: keyboard shortcuts
       # that are new/changed need their xfconf property toggled (or one
       # relogin) before the running xfsettingsd picks them up mid-session.
+      # Single enforcement: resetXfconfd covers mid-session `nh os switch` (xfconfd holds
+      # state in RAM). Reboot case is already handled by `force = true` + the
+      # fixed keyboard-shortcuts asset (override=true), no systemd unit needed.
       home.activation.resetXfconfd = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         xfce_pid=$(${pkgs.procps}/bin/pgrep -u $USER -x xfce4-session || true)
         if [ -n "$xfce_pid" ]; then
@@ -66,46 +69,6 @@
           fi
         fi
       '';
-
-      # Enforce the declarative xfconf channels at EVERY login. xfsettingsd's
-      # "commands" shortcuts provider (libxfce4kbd-private) used to wipe
-      # /commands/custom on every startup because the channel file lacked
-      # /commands/custom/override — that reset-to-defaults was the real reason
-      # the key bindings vanished across clean reboots. That is fixed in the
-      # asset (override=true, full canonical structure), but this unit still
-      # guards the remaining channel files (panel, xfwm4, xsettings, ...)
-      # against runtime state written back by xfconfd at logout. It runs when
-      # systemd --user starts (default.target) and copies the
-      # home-manager-managed channel files into place, then kills any
-      # already-spawned xfconfd so the daemon re-reads the fresh files on next
-      # use (closing the early-spawn race). Complements the resetXfconfd
-      # activation hook above, which covers mid-session rebuilds.
-      systemd.user.services.enforce-xfconf = {
-        Unit = {
-          Description = "Restore home-manager xfconf channels before XFCE starts";
-          After = [ "local-fs.target" ];
-          Before = [ "graphical-session-pre.target" ];
-        };
-        Install.WantedBy = [ "default.target" ];
-        Service = {
-          Type = "oneshot";
-          ExecStart = pkgs.writeShellScript "enforce-xfconf" ''
-            conf="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
-            mkdir -p "$conf"
-            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".source} "$conf/xfce4-panel.xml"
-            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml".source} "$conf/xfce4-keyboard-shortcuts.xml"
-            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml".source} "$conf/xfwm4.xml"
-            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xsettings.xml".source} "$conf/xsettings.xml"
-            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml".source} "$conf/xfce4-screensaver.xml"
-            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml".source} "$conf/xfce4-desktop.xml"
-            install -m 644 ${config.xdg.configFile."xfce4/xfconf/xfce-perchannel-xml/pointers.xml".source} "$conf/pointers.xml"
-            # Drop any xfconfd that raced us (spawned by an early autostart
-            # before the installs above); it respawns on demand and re-reads
-            # the declarative files.
-            ${pkgs.procps}/bin/pkill -x -u "$USER" xfconfd 2>/dev/null || true
-          '';
-        };
-      };
 
       xdg.configFile = {
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml" = {

@@ -39,16 +39,7 @@ let
       inputs.sops-nix.nixosModules.sops
       inputs.nix-flatpak.nixosModules.nix-flatpak
       {
-        # `pkgs.unstable` — the nixpkgs-unstable package set, for apps that
-        # aren't on the stable channel (discord). Unfree is allowed here so
-        # discord resolves regardless of the stable config.
         nixpkgs.overlays = [
-          (_final: _prev: {
-            unstable = import inputs.nixpkgs-unstable {
-              localSystem = { inherit system; };
-              config.allowUnfree = true;
-            };
-          })
           # Fix VirtualBox GuestAdditions 7.2.14 for modern kernels (see
           # patchVboxGuestAdditions above). Applied to the default and pinned
           # kernel sets so vm can use the default kernel.
