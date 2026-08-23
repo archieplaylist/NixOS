@@ -1,6 +1,4 @@
-# Gaming user config: declarative MangoHud settings, active only when the
-# gaming group is on. Packages live in apps.nix; system-side gaming tweaks
-# live in modules/features/gaming.nix.
+# MangoHud — only when gaming group enabled
 { ... }: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     home.file.".config/MangoHud/MangoHud.conf" = lib.mkIf osConfig.mySystem.appGroups.gaming.enable {

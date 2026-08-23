@@ -1,7 +1,4 @@
-# Git user setup plus a global exclude file. git reads
-# $XDG_CONFIG_HOME/git/ignore automatically, so these patterns apply to every
-# repo on this machine (unlike a ~/.gitignore, which git never consults
-# unless the root of the repo happens to be $HOME).
+# Git config + global excludes (applies via $XDG_CONFIG_HOME/git/ignore)
 { ... }: {
   config.home.modules.mario = {
     programs.git = {

@@ -1,21 +1,9 @@
-# Flake output wiring (flake-parts machinery, not a feature module).
-#
-# Reads the top-level config's slot options and emits:
-#   - nixosConfigurations.<host>  for every entry in nixos.hosts
-#   - checks."x86_64-linux".<host> (toplevel derivations, so `nix flake check`
-#     builds every host config)
-#   - perSystem devShells (nix develop) and formatter (nix fmt)
+# Flake wiring: nixosConfigurations + checks + devShell (flake-parts)
 { config, lib, inputs, ... }:
 let
   system = "x86_64-linux";
 
-  # VirtualBox GuestAdditions predate the kernel's fbdev emulation change
-  # that removed drm_fb_helper_alloc_info (present in 6.12+), so its
-  # vboxvideo driver fails to build against modern kernels. Patch vbox_fb.c
-  # to use the new API where the fb_info lives on the helper, mirroring
-  # upstream VirtualBox. Uses a wildcard src/vboxguest-*/... so it doesn't
-  # hardcode a specific GuestAdditions version (e.g. 7.2.14). The NULL guard
-  # fails fbdev setup cleanly instead of crashing.
+  # VirtualBox GuestAdditions fix for kernel 6.12+ (drm_fb_helper_alloc_info removed)
   patchVboxGuestAdditions = kernelPackages:
     kernelPackages.extend (_final: prev: {
       virtualboxGuestAdditions = prev.virtualboxGuestAdditions.overrideAttrs (old: {
@@ -29,8 +17,6 @@ let
       });
     });
 
-  # Build a NixOS configuration for a host whose NixOS module is stored in the
-  # top-level slot `config.nixos.hosts.${name}`.
   buildHost = name: inputs.nixpkgs.lib.nixosSystem {
     inherit system;
     modules = [
@@ -40,9 +26,6 @@ let
       inputs.nix-flatpak.nixosModules.nix-flatpak
       {
         nixpkgs.overlays = [
-          # Fix VirtualBox GuestAdditions 7.2.14 for modern kernels (see
-          # patchVboxGuestAdditions above). Applied to the default and pinned
-          # kernel sets so vm can use the default kernel.
           (final: prev: {
             linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
             linuxPackages_6_12 = patchVboxGuestAdditions (prev.linuxPackages_6_12 or prev.linuxPackages);
@@ -51,8 +34,6 @@ let
         ];
       }
       {
-        # Home-manager is configured inside the flake, so `nixos-rebuild switch`
-        # updates it too — no separate `home-manager switch` needed.
         home-manager = {
           useGlobalPkgs = true;
           useUserPackages = true;
@@ -72,14 +53,9 @@ let
 in
 {
   flake.nixosConfigurations = hosts;
-
-  # `nix flake check` builds every host config — catches module errors before
-  # you rebuild on a real machine.
   flake.checks.${system} = lib.mapAttrs (_: cfg: cfg.config.system.build.toplevel) hosts;
 
   perSystem = { pkgs, ... }: {
-    # `nix develop` — formatter, linters, and `make` so `make help/check` works
-    # on minimal NixOS installs where gnumake isn't system-wide.
     devShells.default = pkgs.mkShell {
       packages = with pkgs; [
         gnumake
@@ -89,7 +65,6 @@ in
       ];
     };
 
-    # `nix fmt` uses this.
     formatter = pkgs.nixpkgs-fmt;
   };
 }

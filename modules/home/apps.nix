@@ -1,6 +1,4 @@
-# User packages. Each group is gated on the single source of truth:
-# `mySystem.appGroups.<group>.enable` (see modules/features/mySystem.nix),
-# read from the NixOS config via `osConfig`.
+# User packages — gated on mySystem.appGroups.*
 { ... }: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.general.enable {
@@ -9,7 +7,6 @@
     };
 
     home.packages = lib.mkMerge [
-      # Shell utilities (not gated; used everywhere).
       (with pkgs; [
         fzf
         bat
@@ -23,7 +20,6 @@
         zip
         unrar
       ])
-      # Development tooling.
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
         git
         lazygit
@@ -31,7 +27,6 @@
         gh
         docker-compose
       ]))
-      # General-purpose applications (browsers, media, editors).
       (lib.mkIf osConfig.mySystem.appGroups.general.enable (with pkgs; [
         firefox
         chromium
@@ -45,20 +40,15 @@
         onlyoffice-desktopeditors
         libreoffice-fresh
       ]))
-      # Gaming applications.
       (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
         heroic
         cartridges
         vulkan-tools
         mangohud
         goverlay
-        # Per-game Proton-GE management (install GE versions from the app).
         protonup-qt
-        # Shader injection (reshade-style); activates per game via
-        # `ENABLE_VKBASALT=1 %command%`.
         vkbasalt
       ]))
-      # Work applications.
       (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
         dbeaver-bin
         remmina

@@ -8,8 +8,7 @@
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Full declarative KDE Plasma configuration (panels, widgets, shortcuts);
-    # used only when a host sets mySystem.desktop = "plasma".
+    # plasma-manager — only needed when mySystem.desktop == "plasma"
     plasma-manager = {
       url = "github:nix-community/plasma-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,10 +23,7 @@
   outputs = inputs@{ flake-parts, nixpkgs, ... }:
     let
       lib = nixpkgs.lib;
-
-      # The dendritic pattern: every .nix file under ./modules is a top-level
-      # (flake-parts) module, imported directly into the top-level evaluation.
-      # File paths name features only; they carry no other meaning.
+      # dendritic: every .nix under ./modules is a top-level flake-parts module
       importTree = dir:
         let
           entries = builtins.readDir dir;

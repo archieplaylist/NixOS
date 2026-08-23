@@ -1,14 +1,9 @@
-# Audio: PipeWire with ALSA/Pulse/JACK, realtime scheduling (rtkit) and
-# low-latency tuning for gaming. Contributes a NixOS module to the `desktop`
-# slot, gated on `mySystem.enableDesktop` like the rest of the desktop stack.
+# PipeWire + RTKit + low-latency gaming audio (desktop slot)
 { ... }: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkIf config.mySystem.enableDesktop {
-      # Native EasyEffects (migrated from Flatpak com.github.wwmm.easyeffects).
       environment.systemPackages = [ pkgs.easyeffects ];
 
-      # rtkit grants realtime scheduling; ALSA (incl. 32-bit) covers apps that
-      # talk to ALSA directly instead of Pulse/JACK.
       security.rtkit.enable = true;
       services.pipewire = {
         enable = true;
@@ -17,11 +12,7 @@
         alsa.support32Bit = true;
         pulse.enable = true;
         jack.enable = true;
-        # Low-latency audio for gaming (adapted from
-        # https://github.com/Swam-web/customConfig/modules/audio.nix): fixed
-        # 48 kHz clock, 128-frame quantum, and no ALSA device auto-suspend.
-        # Applied only when the gaming group is on (uses optionalAttrs so the
-        # attr disappears cleanly when gaming is off, instead of null).
+        # 48kHz / 128 quantum — only when gaming enabled
         extraConfig.pipewire."99-lowlatency.conf" =
           lib.optionalAttrs config.mySystem.appGroups.gaming.enable {
             "context.properties" = {

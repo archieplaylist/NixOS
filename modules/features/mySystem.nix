@@ -1,8 +1,4 @@
-# mySystem: per-host flags and the single source of truth for GNOME extensions.
-#
-# Contributes a NixOS module to the `base` slot: the system side
-# (desktop.nix) and the user side (home/* via `osConfig.mySystem`) both read
-# these, never home-manager options directly.
+# Per-host flags + GNOME extensions source of truth (base slot)
 { ... }: {
   config.nixos.modules.base = { lib, ... }: {
     options.mySystem = {
@@ -46,9 +42,6 @@
         default = false;
         description = "Enable the VirtualBox host (with kernel modules).";
       };
-      # Per-host application group toggles. Single source of truth: the system
-      # side (desktop.nix, e.g. Steam/32-bit OpenGL) and the user side
-      # (home/*.nix packages via `osConfig.mySystem.appGroups`) both read these.
       appGroups = lib.mkOption {
         type = lib.types.submodule {
           options = {
@@ -105,10 +98,6 @@
         default = false;
         description = "Enable the smartd disk health monitoring service.";
       };
-      # Single source of truth for GNOME Shell extensions: enabled in the user's
-      # dconf db (modules/home/gnome.nix) and the matching package installed
-      # (desktop.nix). Each entry maps an extension-gnome.org UUID to a
-      # pkgs.gnomeExtensions attr.
       gnomeExtensions = lib.mkOption {
         type = lib.types.listOf (lib.types.submodule {
           options = {
@@ -127,16 +116,12 @@
       };
     };
 
-    # Base Flatpaks shared by every desktop host (hosts append via mkAfter).
     config.mySystem.flatpakApps = [
       "org.localsend.localsend_app"
       "it.mijorus.gearlever"
       "com.github.tchx84.Flatseal"
     ];
 
-    # Base extension list as a regular definition: modules extending it (e.g.
-    # the gamemode extension gated on mySystem.appGroups.gaming in desktop.nix)
-    # use mkAfter at the same priority, so both lists merge.
     config.mySystem.gnomeExtensions = [
       { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
       { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }

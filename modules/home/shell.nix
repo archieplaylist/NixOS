@@ -1,4 +1,4 @@
-# Shell: bash aliases, direnv, and the user scripts `yt` / `tomp3`.
+# Bash + direnv + ~/.local/bin scripts (yt, tomp3, switch-de)
 { ... }: {
   config.home.modules.mario = {
     programs.bash = {
@@ -18,9 +18,6 @@
       nix-direnv.enable = true;
     };
 
-    # `yt`, `tomp3` and `switch-de` live as plain bash scripts (no Nix string
-    # escaping, easy to test) in ~/.local/bin, which is put on PATH via
-    # home.sessionPath (modules/home/user.nix).
     home.file.".local/bin/yt" = {
       source = ./scripts/yt;
       executable = true;

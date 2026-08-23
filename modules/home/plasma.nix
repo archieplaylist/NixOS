@@ -1,22 +1,8 @@
-# KDE Plasma: fully declarative via plasma-manager, active only when this host
-# runs Plasma (mySystem.desktop == "plasma"; see modules/features/mySystem.nix).
-#
-# Nordic dark look to match the GTK side (modules/home/themes.nix): theme
-# assets come from pkgs.nordic (installed via home.packages so Plasma can find
-# the look-and-feel, desktop theme and Aurorae decorations at runtime), plus
-# papirus-icon-theme / bibata-cursors.
+# Plasma via plasma-manager — Nordic dark, only when desktop == plasma
 { ... }: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }:
     let
-      # Plasma 6 discovers global themes (KPackage type "Plasma/LookAndFeel")
-      # by scanning for metadata.json — but pkgs.nordic only ships
-      # metadata.desktop, so `plasma-apply-lookandfeel -a Nordic` reports
-      # "Unable to find the theme named Nordic" and the theme is absent from
-      # System Settings → Global Theme. Bake a metadata.json into the
-      # look-and-feel dirs so the Nordic global theme is discoverable and
-      # selectable. (We don't auto-apply it via `workspace.lookAndFeel` — see
-      # the comment in the workspace block below — but it's available for
-      # manual selection and any future use.)
+      # Nordic ships metadata.desktop, Plasma 6 needs metadata.json for lookAndFeel discovery
       nordicMetadata = theme: pkgs.writeText "nordic-${theme}-lf-metadata.json" (builtins.toJSON {
         KPackageStructure = "Plasma/LookAndFeel";
         KPlugin = {
@@ -36,8 +22,6 @@
       });
     in
     {
-      # The Nordic theme files live in the user environment so Plasma's theme
-      # lookup (via XDG_DATA_DIRS) finds them.
       home.packages = lib.mkIf (osConfig.mySystem.desktop == "plasma") [
         pkgs.kitty
         nordic
@@ -45,24 +29,14 @@
 
       programs.plasma = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
         enable = true;
-        # Truly declarative: options not set here reset to Plasma defaults at
-        # login, and all managed KDE config files are regenerated on every
-        # home-manager activation. Runtime tweaks via System Settings are
-        # overwritten by the next rebuild (that's the point).
         overrideConfig = true;
 
-        # Start with an empty session at login instead of restoring the previous
-        # session's open applications (ksmserverrc [General] loginMode).
         session = {
           sessionRestore = {
             restoreOpenApplicationsOnLogin = "startWithEmptySession";
           };
         };
 
-        # KWallet: enabled, and the wallet is unlocked at SDDM login by the PAM
-        # module (security.pam.services.sddm.kwallet.enable in desktop.nix) when
-        # the wallet password matches the login password. `First Use=false`
-        # because the kdewallet already exists; kwalletd rewrites this file.
         configFile."kwalletrc" = {
           Wallet = {
             Enabled = true;
@@ -70,9 +44,6 @@
           };
         };
 
-        # Natural scrolling (macOS-style) for the built-in touchpad, matching the
-        # device in /proc/bus/input/devices. Add more touchpads/mice (e.g. an
-        # external mouse) the same way.
         input = {
           touchpads = [
             {
@@ -85,15 +56,7 @@
           ];
         };
 
-        # Nordic dark theme stack. We deliberately do NOT auto-apply the
-        # global theme (`workspace.lookAndFeel`): plasma-manager's apply
-        # script runs `plasma-apply-lookandfeel -a Nordic` at login, which in
-        # Plasma 6 wipes the explicitly-set window decorations (back to
-        # Breeze). Instead every theme component is set explicitly below —
-        # colors, Plasma theme, icons, cursor, decorations and wallpaper —
-        # which is deterministic and survives logins. The Nordic global theme
-        # itself is still installed and selectable in System Settings (see the
-        # metadata.json override at the top of this module).
+        # Explicit theme components — don't use workspace.lookAndFeel (wipes Aurorae in Plasma 6)
         workspace = {
           theme = "Nordic";
           colorScheme = "${nordic}/share/color-schemes/Nordic.colors";
@@ -102,19 +65,13 @@
             theme = "Bibata-Modern-Classic";
             size = 24;
           };
-          # Nordic Aurorae window decorations (the aurorae theme ships in the
-          # same nordic package). `__aurorae__svg__Nordic` is the KDecoration2
-          # id for the Aurorae SVG theme "Nordic".
           windowDecorations = {
             library = "org.kde.kwin.aurorae.v2";
             theme = "__aurorae__svg__Nordic";
           };
-          # Shared repo wallpaper (modules/home/assets/wallpaper.png), the
-          # same image set for GNOME (gnome.nix) and XFCE (xfce.nix).
           wallpaper = "${./assets/wallpaper.png}";
         };
 
-        # Classic single bottom panel: launcher, pinned tasks, system tray, clock.
         panels = [
           {
             location = "bottom";

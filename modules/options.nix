@@ -1,10 +1,4 @@
-# Top-level (flake-parts) options for the dendritic pattern.
-#
-# Lower-level modules (NixOS and home-manager) are stored as option values of
-# this top-level configuration. Each slot below is an `attrsOf` of
-# `lib.types.deferredModule`, so multiple top-level modules can merge their
-# contribution into one slot, and a slot can be read back as a module to feed
-# into a lower-level evaluation.
+# Dendritic slots: nixos.modules / nixos.hosts / home.modules (deferredModule)
 { lib, ... }: {
   options.nixos.modules = lib.mkOption {
     type = lib.types.attrsOf (lib.types.nullOr lib.types.deferredModule);

@@ -1,7 +1,4 @@
-# The primary user account. Contributes a NixOS module to the `base` slot.
-# The password hash is read at activation from the live filesystem
-# (/etc/hashed-password, written by setup.sh) — not from the flake, so there is
-# no git interplay.
+# User mario — hash from /etc/hashed-password (written by setup.sh, not stored in flake)
 { ... }: {
   config.nixos.modules.base = { config, lib, ... }: {
     config.users.users.mario = {

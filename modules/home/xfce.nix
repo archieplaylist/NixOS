@@ -1,35 +1,7 @@
-# XFCE user configuration, managed by home-manager (mirrors plasma.nix).
-# Active only when this host runs XFCE (mySystem.desktop == "xfce"). The
-# xfconf per-channel XMLs are written straight into the user's config dir
-# (~/.config/xfce4/xfconf/xfce-perchannel-xml), so xfconfd reads them
-# directly — there are no /etc/xdg system defaults anymore (they lived in the
-# old modules/features/xfce.nix, split in favour of home-manager management).
-#
-# The panel XML is the user's own working config (a single bottom panel with
-# Whisker menu) — the one layout that finally stopped the "(null)" plugin
-# dialog. It is consistent: every id in `plugin-ids` (4,2,3,6,1,10,5,7,8,9) has a
-# matching /plugins/plugin-N entry (1=pulseaudio, 4=whiskermenu,
-# 10=power-manager-plugin), which is what keeps the "(null)" dialog away.
-#
-# force = true: xfconfd writes runtime state back into these XMLs (panel
-# tweaks, window positions), and home-manager by default skips replacing files
-# modified externally since activation. force makes the declarative file win on
-# every rebuild — the "self-healing" behaviour the old boot-time tmpfiles wipe
-# provided, now at rebuild time (same philosophy as plasma-manager's
-# overrideConfig).
-#
-# Deploy-order caveat: xfconfd holds channel state in memory and writes it
-# back at session end, so rebuilding while logged into XFCE lets a stale
-# logout clobber freshly-deployed XMLs (panel plugins / key bindings vanish
-# again). Rebuild from a TTY while logged out (or re-run hm activation and
-# restart xfconfd) so the next login reads the declarative files.
+# XFCE via home-manager — xfconf XMLs, only when desktop == xfce
 { ... }: {
   config.home.modules.mario = { config, lib, pkgs, osConfig, ... }:
     lib.mkIf (osConfig.mySystem.desktop == "xfce") {
-      # Extra apps the stock XFCE session doesn't ship (mirroring Plasma's
-      # dolphin/konsole/gwenview). These used to be system packages in
-      # modules/features/xfce.nix; moved here so the whole XFCE stack is
-      # user-managed.
       home.packages = with pkgs; [
         kitty
         xfce4-terminal
@@ -40,27 +12,14 @@
         xfce4-appfinder
         mousepad
         seahorse
-        # Nordic theme so xfwm4 (window decorations) and GTK apps can find it.
         nordic
       ];
 
-      # Mid-session rebuilds: xfconfd holds channel state in RAM and writes it
-      # back at logout, clobbering freshly deployed xfconf XMLs (panel plugins,
-      # key bindings, pointers). This runs as part of home-manager activation —
-      # i.e. after the new XMLs are already on disk — so if an XFCE session is
-      # live we SIGKILL xfconfd (no flush possible) and best-effort reload the
-      # panel; the daemon respawns on demand and reads the new config. Boot-time
-      # activation is a no-op (no session running). Caveat: keyboard shortcuts
-      # that are new/changed need their xfconf property toggled (or one
-      # relogin) before the running xfsettingsd picks them up mid-session.
-      # Single enforcement: resetXfconfd covers mid-session `nh os switch` (xfconfd holds
-      # state in RAM). Reboot case is already handled by `force = true` + the
-      # fixed keyboard-shortcuts asset (override=true), no systemd unit needed.
+      # rebuild while logged in: xfconfd caches in RAM, so kill it and reload panel after new XMLs
       home.activation.resetXfconfd = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         xfce_pid=$(${pkgs.procps}/bin/pgrep -u $USER -x xfce4-session || true)
         if [ -n "$xfce_pid" ]; then
           ${pkgs.procps}/bin/pkill -9 -x -u $USER xfconfd || true
-          # Best-effort panel reload using the live session's environment
           session_env=$(tr '\0' '\n' < "/proc/$xfce_pid/environ" || true)
           display=$(printf '%s\n' "$session_env" | ${pkgs.gnugrep}/bin/grep '^DISPLAY=' | ${pkgs.coreutils}/bin/cut -d= -f2- || true)
           dbus_addr=$(printf '%s\n' "$session_env" | ${pkgs.gnugrep}/bin/grep '^DBUS_SESSION_BUS_ADDRESS=' | ${pkgs.coreutils}/bin/cut -d= -f2- || true)
@@ -76,86 +35,40 @@
           source = ./assets/kitty/kitty.conf;
         };
 
+        # panel: single bottom + whiskermenu (force=true so declarative wins over xfconfd runtime writes)
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml" = {
           force = true;
           source = ./assets/xfce/xfce4-panel.xml;
         };
 
-        # Keyboard shortcuts: Super (Meta) key opens the Whisker menu, Alt+Space
-        # toggles the appfinder, Super+L locks the screen.
-        #
-        # The whiskermenu plugin (2.8+) dropped its own `super-key` xfconf
-        # option, so the bare keysym is bound via this channel:
-        # xfce4-popup-whiskermenu pops the menu (needs plugin-4 whiskermenu in
-        # the panel above).
-        #
-        # The asset MUST carry /commands/custom/override=true plus the full
-        # canonical structure: without override, xfsettingsd's shortcuts
-        # provider (libxfce4kbd-private) resets /commands/custom to the built-in
-        # defaults on every login, silently dropping these bindings (that was
-        # the "custom shortcuts gone after relogin" bug).
-        #
-        # Caveat for VM guests: these commands/custom binds only fire when the
-        # guest actually receives the keys. Viewed from a GNOME host, mutter's
-        # overlay key swallows Super and GNOME's activate-window-menu binding
-        # swallows Alt+Space before they reach the VM (verified: xdotool-injected
-        # Super_L pops the menu fine). Kept as-is — they work on physical hosts.
-        # Super+L is likewise a no-op under a GNOME viewer: it is GNOME's own
-        # screen-lock chord, so it locks the host instead.
+        # shortcuts: Super->whiskermenu, Alt+Space->appfinder, Super+L->lock (override=true required)
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml" = {
           force = true;
           source = ./assets/xfce/xfce4-keyboard-shortcuts.xml;
         };
 
-        # Window manager (xfwm4): Nordic decorations to match the GTK side,
-        # minimize/maximize/close on the right, and the built-in compositor
-        # (no separate picom needed).
         "xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml" = {
           force = true;
           source = ./assets/xfce/xfwm4.xml;
         };
 
-        # xsettingsd: keep XFCE's GTK/icon/cursor choices in sync with the
-        # home-manager gtk module (themes.nix) so panels, menus and dialogs
-        # all render Nordic dark with Papirus-Dark / Bibata.
         "xfce4/xfconf/xfce-perchannel-xml/xsettings.xml" = {
           force = true;
           source = ./assets/xfce/xsettings.xml;
         };
 
-        # Screensaver (xfce4-screensaver): disabled entirely — no blanking, no
-        # lock after idle, and no lock on suspend. The DPMS monitor power-off is
-        # also off (the monitor stays on; that's the whole point).
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml" = {
           force = true;
           source = ./assets/xfce/xfce4-screensaver.xml;
         };
 
-        # Touchpad: natural scrolling (macOS-style), mirroring the plasma.nix
-        # input.touchpads.naturalScroll setting for the same SynPS/2 Synaptics
-        # TouchPad. xfsettingsd mangles the device name to SynPS2_Synaptics_
-        # TouchPad (keep [A-Za-z0-9_-], ' ' -> '_', drop '/') and only reads
-        # the ReverseScrolling property (applied to libinput devices as
-        # "libinput Natural Scrolling Enabled") — a "NaturalScroll" property
-        # is silently ignored, which is why this never worked before.
+        # touchpad natural scroll — xfsettingsd expects SynPS2_Synaptics_TouchPad + ReverseScrolling
         "xfce4/xfconf/xfce-perchannel-xml/pointers.xml" = {
           force = true;
           source = ./assets/xfce/pointers.xml;
         };
 
-        # Desktop icons (xfdesktop): disabled entirely. xfdesktop only renders
-        # icons when /desktop-icons/file-icons shows them; all show-* are false
-        # so no Home/Filesystem/Trash or mounted-volume icons appear.
-        #
-        # Wallpaper: the shared repo image (modules/home/assets/wallpaper.png,
-        # same one set for GNOME and Plasma), zoomed to fill, applied to every
-        # workspace. The asset XML carries an @WALLPAPER@ placeholder that gets
-        # substituted with the wallpaper's nix store path here, so xfdesktop
-        # always points at a path that exists for the current generation.
-        # Entries are keyed by X connector name; besides the physical hosts'
-        # eDP-1/HDMI-A-1/DP-1, the asset also carries the VM guests' Virtual-1
-        # (QEMU/virt-manager, VirtualBox VMSVGA) and VBOX0 (VirtualBox
-        # VBoxSVGA) — xfdesktop ignores entries for absent monitors.
+        # xfdesktop disabled icons + wallpaper wallpapers per output (eDP-1/HDMI/DP-1 + VM Virtual-1/VBOX0)
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml" = {
           force = true;
           source = pkgs.writeText "xfce4-desktop.xml"

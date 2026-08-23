@@ -1,5 +1,4 @@
-# laptop host: like the desktop host plus the `laptop` power-management
-# slot, and no heavy development tooling.
+# laptop — xfce + power-management, no dev packages
 { config, ... }: {
   config.nixos.hosts.laptop = { pkgs, ... }: {
     imports = [
@@ -10,8 +9,6 @@
       config.nixos.modules.laptop
     ];
 
-    # Newest mainline kernel for the latest laptop hardware support
-    # (overrides the channel-default kernel in basics.nix).
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     mySystem.hostname = "nixlappys";
@@ -24,13 +21,7 @@
     mySystem.enableSops = true;
     mySystem.enableSmartd = true;
 
-    # Flatpak: inherits base list from mySystem.nix (localsend/gearlever/flatseal).
-
-    # If SSH is enabled on this host, put your real public keys here.
     mySystem.sshAuthorizedKeys = [ ];
-
-    # Lighter host: no heavy development tooling.
     mySystem.appGroups.dev.enable = false;
   };
 }
-

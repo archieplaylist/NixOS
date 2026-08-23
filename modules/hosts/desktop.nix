@@ -1,5 +1,4 @@
-# desktop host: picks the `base`, `desktop`, `intel` and `uefi` feature
-# slots and sets the per-host `mySystem` flags.
+# desktop — gnome + intel/uefi, gaming performance governor
 { config, lib, ... }: {
   config.nixos.hosts.desktop = {
     imports = [
@@ -18,15 +17,9 @@
     mySystem.enableSops = true;
     mySystem.enableSmartd = true;
 
-    # Desktop gaming: no power-profiles-daemon on this host (laptop-only slot),
-    # so pin the CPU to the performance governor instead of the default EPP.
     powerManagement.cpuFreqGovernor = "performance";
 
-    # +Extension Manager on top of the base Flatpaks (mySystem.nix).
     mySystem.flatpakApps = lib.mkAfter [ "com.mattjakeman.ExtensionManager" ];
-
-    # SSH password auth is disabled (see services.nix), so the keys below are
-    # what actually grants access — add your real public keys here.
     mySystem.sshAuthorizedKeys = [ ];
   };
 }
