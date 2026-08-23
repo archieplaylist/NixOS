@@ -13,9 +13,6 @@
         auto-optimise-store = true;
         min-free = 5368709120; # 5 GiB floor; trigger GC below this
         max-free = 10737418240; # free up to 10 GiB per cycle
-        # Official binary cache for prebuilt packages.
-        substituters = [ "https://cache.nixos.org" ];
-        trusted-public-keys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
       };
 
       # nh — the Nix CLI helper (https://github.com/nix-community/nh), installed

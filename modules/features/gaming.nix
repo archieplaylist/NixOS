@@ -5,12 +5,8 @@
 # `mySystem.enableDesktop` like the rest of the desktop stack.
 { ... }: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
-    config = lib.mkIf config.mySystem.enableDesktop {
-      # GameMode flips the power profile to performance while a game runs
-      # (gamemoded runs as root, so no polkit needed) and gives the game a
-      # slight scheduling boost. NOTE: `renice` is a raw nice value — negative
-      # raises priority, positive lowers it.
-      programs.gamemode = lib.mkIf config.mySystem.appGroups.gaming.enable {
+    config = lib.mkIf (config.mySystem.enableDesktop && config.mySystem.appGroups.gaming.enable) {
+      programs.gamemode = {
         enable = true;
         settings = {
           general.renice = -5;
@@ -20,25 +16,14 @@
           };
         };
       };
-
-      # Compatibility: some games/emulators hang or crash with split-lock
-      # detection on modern kernels.
-      boot.kernelParams = lib.mkIf config.mySystem.appGroups.gaming.enable [
-        "split_lock_detect=off"
-      ];
-
-      # Memory pressure + OOM protection for the gaming desktop.
-      boot.kernel.sysctl."vm.max_map_count" = lib.mkIf config.mySystem.appGroups.gaming.enable 1048576;
-      systemd.oomd.enable = lib.mkIf config.mySystem.appGroups.gaming.enable true;
-
-      # Intel thermald: keeps sustained iGPU/CPU boost steady under load.
-      services.thermald.enable = lib.mkIf config.mySystem.appGroups.gaming.enable true;
-
-      # Controllers: Xbox (wired dongle + Bluetooth) and Steam hardware.
-      hardware.xone = lib.mkIf config.mySystem.appGroups.gaming.enable { enable = true; };
-      hardware.xpadneo = lib.mkIf config.mySystem.appGroups.gaming.enable { enable = true; };
-      hardware.steam-hardware = lib.mkIf config.mySystem.appGroups.gaming.enable { enable = true; };
-      programs.steam = lib.mkIf config.mySystem.appGroups.gaming.enable {
+      boot.kernelParams = [ "split_lock_detect=off" ];
+      boot.kernel.sysctl."vm.max_map_count" = 1048576;
+      systemd.oomd.enable = true;
+      services.thermald.enable = true;
+      hardware.xone.enable = true;
+      hardware.xpadneo.enable = true;
+      hardware.steam-hardware.enable = true;
+      programs.steam = {
         enable = true;
         remotePlay.openFirewall = true; # TCP+UDP 27036, UDP 27031-27035
         dedicatedServer.openFirewall = true; # TCP+UDP 27015
@@ -60,24 +45,17 @@
       # Wayland exposure (-e) and the MangoHud overlay (--mangoapp; mangoapp
       # ships with the mangohud package). Nested gamescope costs iGPU time, so
       # drop -e if a specific game misbehaves.
-      programs.gamescope = lib.mkIf config.mySystem.appGroups.gaming.enable {
+      programs.gamescope = {
         enable = true;
         capSysNice = true;
-        args = [
-          "-f"
-          "--rt"
-          "--adaptive-sync"
-          "--backend sdl"
-          "-e"
-          "--mangoapp"
-        ];
+        args = [ "-f" "--rt" "--adaptive-sync" "--backend sdl" "-e" "--mangoapp" ];
       };
       # Gamemode shell extension (shows GameMode state in the GNOME panel).
       # Appended via mkAfter so it follows the shared default extension list.
-      mySystem.gnomeExtensions = lib.mkIf config.mySystem.appGroups.gaming.enable (lib.mkAfter [
+      mySystem.gnomeExtensions = lib.mkAfter [
         { uuid = "gamemode@charlieq0137gmail.com"; package = "gamemode-shell-extension"; }
-      ]);
-      hardware.graphics.enable32Bit = lib.mkIf config.mySystem.appGroups.gaming.enable true;
+      ];
+      hardware.graphics.enable32Bit = true;
     };
   };
 }

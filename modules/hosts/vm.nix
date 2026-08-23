@@ -20,12 +20,7 @@
     mySystem.enableTailscale = false;
     mySystem.enableSops = false;
 
-    # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
-    mySystem.flatpakApps = [
-      "org.localsend.localsend_app"
-      "it.mijorus.gearlever"
-      "com.github.tchx84.Flatseal"
-    ];
+    # Flatpak: inherits base list from mySystem.nix (localsend/gearlever/flatseal).
 
     # The VM doesn't need heavy gaming or development packages.
     mySystem.appGroups.gaming.enable = false;

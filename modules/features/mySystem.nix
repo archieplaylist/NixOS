@@ -127,6 +127,13 @@
       };
     };
 
+    # Base Flatpaks shared by every desktop host (hosts append via mkAfter).
+    config.mySystem.flatpakApps = [
+      "org.localsend.localsend_app"
+      "it.mijorus.gearlever"
+      "com.github.tchx84.Flatseal"
+    ];
+
     # Base extension list as a regular definition: modules extending it (e.g.
     # the gamemode extension gated on mySystem.appGroups.gaming in desktop.nix)
     # use mkAfter at the same priority, so both lists merge.

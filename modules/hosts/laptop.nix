@@ -24,12 +24,7 @@
     mySystem.enableSops = true;
     mySystem.enableSmartd = true;
 
-    # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
-    mySystem.flatpakApps = [
-      "org.localsend.localsend_app"
-      "it.mijorus.gearlever"
-      "com.github.tchx84.Flatseal"
-    ];
+    # Flatpak: inherits base list from mySystem.nix (localsend/gearlever/flatseal).
 
     # If SSH is enabled on this host, put your real public keys here.
     mySystem.sshAuthorizedKeys = [ ];
@@ -38,3 +33,4 @@
     mySystem.appGroups.dev.enable = false;
   };
 }
+

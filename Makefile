@@ -1,11 +1,10 @@
-# Day-to-day commands for this flake.
+# Day-to-day commands for this flake (nh-only).
 #   make help                list all targets
 #   make check               build every host config (nix flake check)
-#   make rebuild HOST=<host> rebuild a specific host (default: desktop)
-#   make nh-switch HOST=<host> rebuild via nh (default: desktop)
+#   make switch HOST=<host>  rebuild + activate (default: desktop)
 HOST ?= desktop
 
-.PHONY: help check fmt fmt-check hooks build rebuild nh-build nh-boot nh-switch nh-clean update develop
+.PHONY: help check fmt fmt-check hooks build boot switch clean update develop
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' Makefile | sed 's/:.*##/:/' | sort
@@ -24,22 +23,16 @@ fmt-check: ## Fail if `nix fmt` would change anything
 hooks: ## Install the repo's git hooks (core.hooksPath -> .githooks, once per clone)
 	git config core.hooksPath .githooks
 
-build: ## Build the host config without activating (HOST=...)
-	sudo nixos-rebuild build --flake .#$(HOST)
-
-rebuild: ## Build and activate the host config (HOST=...)
-	sudo nixos-rebuild switch --flake .#$(HOST)
-
-nh-build: ## Build the host config via nh without activating (HOST=...)
+build: ## Build without activating (HOST=...) — nh
 	nh os build . -H $(HOST)
 
-nh-boot: ## Build the host config via nh and set as next boot (HOST=...)
+boot: ## Build + set as next boot (HOST=...)
 	nh os boot . -H $(HOST)
 
-nh-switch: ## Build and activate the host config via nh (HOST=...)
+switch: ## Build + activate now (HOST=...)
 	nh os switch . -H $(HOST)
 
-nh-clean: ## Enhanced garbage collection via nh
+clean: ## Garbage collect (nh clean all)
 	nh clean all
 
 update: ## Refresh flake inputs (nixpkgs, home-manager, sops-nix, nix-flatpak)

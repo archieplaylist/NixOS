@@ -1,7 +1,7 @@
 # work host: workstation — same as the desktop host but without
 # Tailscale, plus a VirtualBox host, work apps (dbeaver, filezilla, remmina)
 # and the declarative Flatpak apps below.
-{ config, ... }: {
+{ config, lib, ... }: {
   config.nixos.hosts.work = {
     imports = [
       config.nixos.modules.base
@@ -30,13 +30,9 @@
     # Workstation: no gaming packages (Steam, MangoHud, gamescope, Heroic).
     mySystem.appGroups.gaming.enable = false;
 
-    # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix,
-    # flathub remote is added by the module by default).
-    mySystem.flatpakApps = [
+    # +Insomnia + Extension Manager on top of the base Flatpaks (mySystem.nix).
+    mySystem.flatpakApps = lib.mkAfter [
       "rest.insomnia.Insomnia"
-      "org.localsend.localsend_app"
-      "it.mijorus.gearlever"
-      "com.github.tchx84.Flatseal"
       "com.mattjakeman.ExtensionManager"
     ];
   };

@@ -1,6 +1,6 @@
 # desktop host: picks the `base`, `desktop`, `intel` and `uefi` feature
 # slots and sets the per-host `mySystem` flags.
-{ config, ... }: {
+{ config, lib, ... }: {
   config.nixos.hosts.desktop = {
     imports = [
       config.nixos.modules.base
@@ -22,13 +22,8 @@
     # so pin the CPU to the performance governor instead of the default EPP.
     powerManagement.cpuFreqGovernor = "performance";
 
-    # Declarative Flatpak apps (nix-flatpak; daemon + wiring live in desktop.nix).
-    mySystem.flatpakApps = [
-      "org.localsend.localsend_app"
-      "it.mijorus.gearlever"
-      "com.github.tchx84.Flatseal"
-      "com.mattjakeman.ExtensionManager"
-    ];
+    # +Extension Manager on top of the base Flatpaks (mySystem.nix).
+    mySystem.flatpakApps = lib.mkAfter [ "com.mattjakeman.ExtensionManager" ];
 
     # SSH password auth is disabled (see services.nix), so the keys below are
     # what actually grants access — add your real public keys here.
