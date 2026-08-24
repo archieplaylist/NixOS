@@ -7,7 +7,7 @@
 
         hardware.bluetooth.enable = true;
         hardware.bluetooth.powerOnBoot = false;
-        services.blueman.enable = config.mySystem.desktop != "plasma";
+        services.blueman.enable = config.mySystem.desktop != "plasma" && config.mySystem.desktop != "pantheon";
 
         networking.networkmanager.enable = true;
 
@@ -44,6 +44,14 @@
           kdePackages.konsole
           kdePackages.gwenview
         ];
+      })
+
+      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "pantheon") {
+        # ponytail: minimal pantheon — module warns without lightdm, so enable it
+        services.desktopManager.pantheon.enable = true;
+        services.xserver.displayManager.lightdm.enable = true;
+        services.pantheon.apps.enable = true;
+        environment.systemPackages = with pkgs; [ pantheon-tweaks ];
       })
     ];
   };

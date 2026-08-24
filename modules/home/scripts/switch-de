@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# switch-de <gnome|plasma|xfce>
+# switch-de <gnome|plasma|xfce|pantheon>
 #
 # Switches this machine's desktop environment: flips the mySystem.desktop line
 # in the host module, builds the new system with `nh os boot` (nothing
@@ -45,6 +45,10 @@ xfce_paths=(
   ".config/xfce4" ".config/xfconf" ".config/xfce4-session"
   ".config/Thunar" ".local/share/xfce4"
 )
+pantheon_paths=(
+  ".config/plank" ".config/wingpanel" ".config/gala" ".config/switchboard"
+  ".local/share/plank" ".local/share/wingpanel" ".local/share/switchboard"
+)
 
 host_module() {
   case "$(hostname)" in
@@ -79,18 +83,18 @@ archive_de() {
 }
 
 usage() {
-  echo "usage: switch-de <gnome|plasma|xfce>" >&2
+  echo "usage: switch-de <gnome|plasma|xfce|pantheon>" >&2
   exit 1
 }
 
 TARGET="${1:-}"
-[ "$TARGET" = "gnome" ] || [ "$TARGET" = "plasma" ] || [ "$TARGET" = "xfce" ] || usage
+[ "$TARGET" = "gnome" ] || [ "$TARGET" = "plasma" ] || [ "$TARGET" = "xfce" ] || [ "$TARGET" = "pantheon" ] || usage
 
 HOST="$(host_module)"
 HOST_FILE="$REPO/modules/hosts/$HOST.nix"
 [ -f "$HOST_FILE" ] || { echo "error: $HOST_FILE not found" >&2; exit 1; }
 
-CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|plasma|xfce)"' "$HOST_FILE" | grep -Eo '"(gnome|plasma|xfce)"' | tr -d '"')"
+CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|plasma|xfce|pantheon)"' "$HOST_FILE" | grep -Eo '"(gnome|plasma|xfce|pantheon)"' | tr -d '"')"
 if [ -z "$CURRENT" ]; then
   echo "error: no 'mySystem.desktop = ...' line found in $HOST_FILE" >&2
   exit 1
@@ -123,6 +127,7 @@ case "$CURRENT" in
   plasma) archive_de plasma "${plasma_paths[@]}" ;;
   gnome) archive_de gnome "${gnome_paths[@]}" ;;
   xfce) archive_de xfce "${xfce_paths[@]}" ;;
+  pantheon) archive_de pantheon "${pantheon_paths[@]}" ;;
 esac
 
 echo
