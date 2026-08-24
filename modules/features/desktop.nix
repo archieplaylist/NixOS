@@ -17,6 +17,9 @@
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "gnome") {
         services.displayManager.gdm.enable = true;
+        services.gnome.gnome-keyring.enable = true;
+        security.pam.services.gdm.enableGnomeKeyring = true;
+        security.pam.services.gdm-password.enableGnomeKeyring = lib.mkDefault true;
         services.desktopManager.gnome = {
           enable = true;
           extraGSettingsOverrides = ''
@@ -50,6 +53,8 @@
         # ponytail: minimal pantheon — module warns without lightdm, so enable it
         services.desktopManager.pantheon.enable = true;
         services.xserver.displayManager.lightdm.enable = true;
+        services.gnome.gnome-keyring.enable = true;
+        security.pam.services.lightdm.enableGnomeKeyring = true;
         services.pantheon.apps.enable = true;
         environment.systemPackages = with pkgs; [ pantheon-tweaks ];
       })

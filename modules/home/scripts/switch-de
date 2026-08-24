@@ -7,9 +7,12 @@
 # the home directory doesn't accumulate dead config.
 #
 # Only real files/directories are archived; home-manager-managed entries are
-# symlinks into the nix store and are skipped. ~/.cache and KWallet data are
-# never touched. Declared settings (GNOME dconf, plasma-manager) survive the
-# switch through Nix itself; the archive is a recoverable copy you may delete.
+# symlinks into the nix store and are skipped. ~/.cache, gnome-keyring
+# (keyrings) and KWallet data are never touched — explicit deny-list below
+# keeps secrets across DE switches so no relogin is needed. Login password must
+# match Login keyring / kdewallet password for PAM auto-unlock. Declared
+# settings (GNOME dconf, plasma-manager) survive the switch through Nix itself;
+# the archive is a recoverable copy you may delete.
 
 set -euo pipefail
 
@@ -27,6 +30,9 @@ else
   REPO="$HOME/NixOS"
 fi
 ARCHIVE_DIR="$HOME/.local/share/de-archive"
+
+# ponytail: never archive secrets — keyrings/kwallet stay in place across DE switches (deny-list in archive_de)
+# Login password must == keyring password for PAM auto-unlock, else seahorse prompt once.
 
 # Runtime state owned by each DE, relative to $HOME (glob patterns).
 plasma_paths=(
@@ -71,8 +77,9 @@ archive_de() {
   for pat in "$@"; do
     for p in "$HOME"/$pat; do
       [ -e "$p" ] || [ -L "$p" ] || continue
+      # ponytail: explicit wallet preserve — never archive secrets, no relogin
       case "$p" in
-        */.cache/* | */kwalletd*) continue ;;
+        */.cache/* | *keyrings* | *kwalletd* | *kwalletrc* | *gnome-keyring* | *kwallet*) continue ;;
       esac
       # preserve relative path to avoid basename collision (.config/xfce4 vs .local/share/xfce4)
       rel="${p#$HOME/}"

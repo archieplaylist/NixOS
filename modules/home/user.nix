@@ -1,19 +1,24 @@
 # mario home — identity + XDG/session (other modules merge into same slot)
 { ... }: {
-  config.home.modules.mario = {
+  config.home.modules.mario = { lib, osConfig, ... }: {
     home = {
       username = "mario";
       homeDirectory = "/home/mario";
       stateVersion = "26.05";
     };
 
-    home.sessionVariables = {
-      XDG_CONFIG_HOME = "$HOME/.config";
-      XDG_DATA_HOME = "$HOME/.local/share";
-      XDG_STATE_HOME = "$HOME/.local/state";
-      XDG_CACHE_HOME = "$HOME/.cache";
-      SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
-    };
+    # ponytail: SSH_AUTH_SOCK only for gnome-keyring DEs — plasma uses kwallet, no relogin prompt
+    home.sessionVariables = lib.mkMerge [
+      {
+        XDG_CONFIG_HOME = "$HOME/.config";
+        XDG_DATA_HOME = "$HOME/.local/share";
+        XDG_STATE_HOME = "$HOME/.local/state";
+        XDG_CACHE_HOME = "$HOME/.cache";
+      }
+      (lib.mkIf (osConfig.mySystem.desktop != "plasma") {
+        SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
+      })
+    ];
 
     xdg.userDirs = {
       enable = true;
