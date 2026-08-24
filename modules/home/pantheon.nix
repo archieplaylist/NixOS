@@ -30,7 +30,7 @@
             picture-uri-dark = "file://${./assets/wallpaper.png}";
           };
           "org/pantheon/desktop/gala/appearance" = {
-            button-layout = "close:maximize";
+            button-layout = "close:minimize,maximize";
           };
           "net/launchpad/plank/docks/dock1" = {
             # ponytail: small dock — 32px, add when bigger needed
