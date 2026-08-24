@@ -1,14 +1,29 @@
 # Pantheon via dconf — wingpanel/gala/plank, only when desktop == pantheon
 { ... }: {
-  config.home.modules.mario = { lib, osConfig, ... }:
+  config.home.modules.mario = { lib, pkgs, osConfig, ... }:
     lib.mkIf (osConfig.mySystem.desktop == "pantheon") {
-      # ponytail: dconf minimal, plank enabled — gala/wingpanel defaults dari NixOS cukup
+      # ponytail: tema default dark pantheon (io.elementary.stylesheet.blueberry + elementary icons), override Nordic dari themes.nix
+      gtk.theme = {
+        name = lib.mkForce "io.elementary.stylesheet.blueberry";
+        package = lib.mkForce pkgs.pantheon.elementary-gtk-theme;
+      };
+      gtk.iconTheme = {
+        name = lib.mkForce "elementary";
+        package = lib.mkForce pkgs.pantheon.elementary-icon-theme;
+      };
+      gtk.cursorTheme = {
+        name = lib.mkForce "elementary";
+        package = lib.mkForce pkgs.pantheon.elementary-icon-theme;
+      };
+
       dconf = {
         enable = true;
         settings = {
           "org/gnome/desktop/interface" = {
             color-scheme = "prefer-dark";
-            gtk-theme = "Nordic-darker";
+            gtk-theme = "io.elementary.stylesheet.blueberry";
+            icon-theme = "elementary";
+            cursor-theme = "elementary";
           };
           "org/gnome/desktop/background" = {
             picture-uri = "file://${./assets/wallpaper.png}";
