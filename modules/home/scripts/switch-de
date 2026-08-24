@@ -70,16 +70,32 @@ archive_de() {
   mkdir -p "$dest"
   for pat in "$@"; do
     for p in "$HOME"/$pat; do
-      [ -e "$p" ] || continue
-      [ -L "$p" ] && continue # HM-managed symlink: skip
+      [ -e "$p" ] || [ -L "$p" ] || continue
       case "$p" in
         */.cache/* | */kwalletd*) continue ;;
       esac
-      mv -f "$p" "$dest/" 2>/dev/null || true
+      # preserve relative path to avoid basename collision (.config/xfce4 vs .local/share/xfce4)
+      rel="${p#$HOME/}"
+      dest_path="$dest/$rel"
+      mkdir -p "$(dirname "$dest_path")"
+      if ! mv -f "$p" "$dest_path" 2>/dev/null; then
+        cp -a "$p" "$dest_path" 2>/dev/null || true
+        rm -rf "$p" 2>/dev/null || true
+      fi
       moved=$((moved + 1))
     done
   done
   echo "archived $moved leftover item(s) for $de -> $dest"
+}
+
+restore_de() {
+  local de="$1"
+  local src="$ARCHIVE_DIR/$de"
+  [ -d "$src" ] || return 0
+  # ponytail: one cp restores runtime tweaks, declarative Nix already recreates declared XMLs/dconf
+  echo "restoring $de config from $src"
+  cp -a "$src/." "$HOME/" 2>/dev/null || true
+  rm -rf "$src" 2>/dev/null || true
 }
 
 usage() {
@@ -129,6 +145,13 @@ case "$CURRENT" in
   xfce) archive_de xfce "${xfce_paths[@]}" ;;
   pantheon) archive_de pantheon "${pantheon_paths[@]}" ;;
 esac
+# ponytail: auto-restore target DE if it was archived before — one cp, no extra DB
+restore_de "$TARGET"
+
+# clean up old DE config after switch and backup — remove empty dirs left behind
+# ponytail: one find, no extra backup (archive already is the backup)
+find "$HOME/.config" "$HOME/.local/share" -type d -empty -delete 2>/dev/null || true
+rm -f "$HOST_FILE.bak"
 
 echo
 echo "built the $TARGET boot entry. Reboot to start the new display manager"
