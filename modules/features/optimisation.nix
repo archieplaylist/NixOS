@@ -1,6 +1,6 @@
 # Store/disk maintenance: GC, TRIM, zram, journald, tmpfiles (base slot)
 { ... }: {
-  config.nixos.modules.base = { ... }: {
+  config.nixos.modules.base = { pkgs, ... }: {
     config = {
       nix.settings = {
         experimental-features = [ "nix-command" "flakes" ];
@@ -31,12 +31,21 @@
         memoryPercent = 100;
       };
 
-      # zram-only swap tuning
+      # zram-only swap tuning + keep dentry cache for thunar responsiveness
       boot.kernel.sysctl = {
         "vm.page-cluster" = 0;
         "vm.swappiness" = 180;
         "vm.watermark_boost_factor" = 0;
         "vm.watermark_scale_factor" = 125;
+        "vm.vfs_cache_pressure" = 50; # ponytail: 50 keeps inode cache, faster 2nd open
+      };
+
+      services.earlyoom.enable = true; # ponytail: kill hungriest process before full freeze
+
+      services.ananicy = {
+        enable = true;
+        package = pkgs.ananicy-cpp;
+        rulesProvider = pkgs.ananicy-rules-cachyos; # ponytail: cachyos rules = best perf without custom tuning
       };
 
       services.journald.extraConfig = ''
