@@ -40,12 +40,16 @@
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "plasma") {
         services.displayManager.sddm.enable = true;
         services.desktopManager.plasma6.enable = true;
+
+        services.gnome.gnome-keyring.enable = true; # ponytail: reuse Login keyring from xfce/gnome, no relogin
+        security.pam.services.sddm.enableGnomeKeyring = true;
         security.pam.services.sddm.kwallet.enable = true;
 
         environment.systemPackages = with pkgs; [
           kdePackages.dolphin
           kdePackages.konsole
           kdePackages.gwenview
+          seahorse
         ];
       })
     ];

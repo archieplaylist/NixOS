@@ -12,7 +12,7 @@
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     mySystem.hostname = "nixlappys";
-    mySystem.desktop = "xfce";
+    mySystem.desktop = "plasma";
     mySystem.enableDesktop = true;
     mySystem.enableLaptop = true;
     mySystem.enableSSH = false;
