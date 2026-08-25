@@ -41,6 +41,12 @@
         services.displayManager.sddm.enable = true;
         services.desktopManager.plasma6.enable = true;
 
+        xdg.portal = {
+          enable = true;
+          extraPortals = [ pkgs.kdePackages.xdg-desktop-portal-kde pkgs.xdg-desktop-portal-gtk ];
+          config.common.default = "kde"; # ponytail: was missing → kde fallback to gtk caused 3-5s register wait
+        };
+
         services.gnome.gnome-keyring.enable = true; # ponytail: reuse Login keyring from xfce/gnome, no relogin
         security.pam.services.sddm.enableGnomeKeyring = true;
         security.pam.services.sddm.kwallet.enable = true;

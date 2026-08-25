@@ -6,9 +6,18 @@
       pkgs.nordic
     ];
 
+    # ponytail: force baloo off regardless of overrideConfig (plasma-manager won't overwrite with false)
+    xdg.configFile."baloofilerc" = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
+      force = true;
+      text = ''
+        [Basic Settings]
+        Indexing-Enabled=false
+      '';
+    };
+
     programs.plasma = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
       enable = true;
-      overrideConfig = true;
+      overrideConfig = false; # ponytail: true rewrites kwinrc/plasmarc every login → 3-5s plasmashell restart
 
       session = {
         sessionRestore = {
@@ -63,7 +72,7 @@
       panels = [
         {
           location = "bottom";
-          height = 40;
+          height = 36;
           widgets = [
             "org.kde.plasma.kickoff"
             {
@@ -71,7 +80,7 @@
                 launchers = [
                   "applications:org.kde.dolphin.desktop"
                   "applications:org.kde.konsole.desktop"
-                  "applications:firefox.desktop"
+                  "applications:vivaldi-stable.desktop"
                 ];
               };
             }
