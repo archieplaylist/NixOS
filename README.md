@@ -561,6 +561,31 @@ sudo nixos-rebuild list-generations   # see system generations + how old
   `mySystem.sshAuthorizedKeys` — put your real public keys there or SSH will
   accept no one (a build-time warning reminds you of this).
 
+### SSH setup
+
+`work` ships with `enableSSH = false` until you add a key — flip it on in one edit:
+
+1. **Generate a key on the client** (not the NixOS host):
+   ```bash
+   ssh-keygen -t ed25519 -C "mario@client"
+   cat ~/.ssh/id_ed25519.pub  # copy the single line
+   ```
+2. **Paste the pubkey into the host file** `modules/hosts/work.nix`:
+   ```nix
+   mySystem.enableSSH = true;
+   mySystem.sshAuthorizedKeys = [
+     "ssh-ed25519 AAAAC3... mario@client"
+   ];
+   ```
+3. **Rebuild and test:**
+   ```bash
+   make check                    # catches empty-key warning
+   nh os switch -H work          # or: make switch HOST=work
+   systemctl status sshd         # should be active
+   ssh mario@central8            # from client, no password prompt
+   ```
+   Troubleshooting: `journalctl -u sshd -b`, `ss -tlnp | grep :22`, and ensure `~/.ssh` perms are `700`/`600` on client. `PasswordAuthentication` is forced `false` in `modules/features/services.nix`, so a key is the only way in.
+
 ## Roadmap
 
 - [x] sops-nix real secrets (opt-in via `mySystem.enableSops`)
