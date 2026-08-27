@@ -28,5 +28,12 @@
       "rest.insomnia.Insomnia"
       "com.mattjakeman.ExtensionManager"
     ];
+
+    # ponytail: declarative mount beats raw /etc/fstab — systemd generates mount unit, no extra file
+    fileSystems."/mnt/datafile" = {
+      device = "/dev/disk/by-uuid/869a1e56-4705-4b2b-a840-2e769b39f962";
+      fsType = "ext4";
+      options = [ "defaults" ];
+    };
   };
 }
