@@ -33,7 +33,7 @@
     fileSystems."/mnt/datafile" = {
       device = "/dev/disk/by-uuid/869a1e56-4705-4b2b-a840-2e769b39f962";
       fsType = "ext4";
-      options = [ "defaults" ];
+      options = [ "defaults" "nofail" "x-systemd.device-timeout=5s" ];
     };
   };
 }
