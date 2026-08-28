@@ -12,8 +12,8 @@
         xfce4-appfinder
         mousepad
         seahorse
-        qogir-theme
-        qogir-icon-theme
+        orchis-theme
+        tela-circle-icon-theme
       ];
 
       # rebuild while logged in: xfconfd caches in RAM, so kill it and reload panel after new XMLs

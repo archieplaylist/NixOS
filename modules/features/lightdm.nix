@@ -8,12 +8,12 @@
       services.xserver.displayManager.lightdm.greeters.gtk = {
         enable = true;
         theme = {
-          package = pkgs.qogir-theme;
-          name = "Qogir-Dark";
+          package = pkgs.orchis-theme;
+          name = "Orchis-Dark";
         };
         iconTheme = {
-          package = pkgs.qogir-icon-theme;
-          name = "Qogir-Dark";
+          package = pkgs.tela-circle-icon-theme;
+          name = "Tela-circle-dark";
         };
         cursorTheme = {
           package = pkgs.bibata-cursors;

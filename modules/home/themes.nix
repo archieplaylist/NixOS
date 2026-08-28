@@ -1,4 +1,4 @@
-# GTK/icon/cursor/font theming — Qogir-Dark / Qogir-Dark / Bibata (Qogir https://www.gnome-look.org/p/1230631)
+# GTK/icon/cursor/font theming — Orchis-Dark / Tela-circle-dark / Bibata (Orchis https://github.com/vinceliuice/Orchis-theme)
 { ... }: {
   config.home.modules.mario = { pkgs, ... }: {
     gtk = {
@@ -11,12 +11,12 @@
         size = 10;
       };
       theme = {
-        name = "Qogir-Dark";
-        package = pkgs.qogir-theme;
+        name = "Orchis-Dark";
+        package = pkgs.orchis-theme;
       };
       iconTheme = {
-        name = "Qogir-Dark";
-        package = pkgs.qogir-icon-theme;
+        name = "Tela-circle-dark";
+        package = pkgs.tela-circle-icon-theme;
       };
       cursorTheme = {
         name = "Bibata-Modern-Classic";
@@ -28,8 +28,8 @@
 
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
-    home.file.".themes/Qogir-Dark" = {
-      source = "${pkgs.qogir-theme}/share/themes/Qogir-Dark";
+    home.file.".themes/Orchis-Dark" = {
+      source = "${pkgs.orchis-theme}/share/themes/Orchis-Dark";
     };
   };
 }
