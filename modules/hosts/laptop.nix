@@ -12,7 +12,7 @@
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     mySystem.hostname = "nixlappys";
-    mySystem.desktop = "plasma";
+    mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
     mySystem.enableLaptop = true;
     mySystem.enableSSH = false;
