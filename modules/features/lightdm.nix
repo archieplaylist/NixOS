@@ -9,11 +9,11 @@
         enable = true;
         theme = {
           package = pkgs.qogir-theme;
-          name = "Qogir-dark";
+          name = "Qogir-Dark";
         };
         iconTheme = {
           package = pkgs.qogir-icon-theme;
-          name = "Qogir-dark";
+          name = "Qogir-Dark";
         };
         cursorTheme = {
           package = pkgs.bibata-cursors;

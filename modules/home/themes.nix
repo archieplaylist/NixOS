@@ -1,4 +1,4 @@
-# GTK/icon/cursor/font theming — Qogir-dark / Qogir-dark / Bibata (Qogir https://www.gnome-look.org/p/1230631)
+# GTK/icon/cursor/font theming — Qogir-Dark / Qogir-Dark / Bibata (Qogir https://www.gnome-look.org/p/1230631)
 { ... }: {
   config.home.modules.mario = { pkgs, ... }: {
     gtk = {
@@ -11,11 +11,11 @@
         size = 10;
       };
       theme = {
-        name = "Qogir-dark";
+        name = "Qogir-Dark";
         package = pkgs.qogir-theme;
       };
       iconTheme = {
-        name = "Qogir-dark";
+        name = "Qogir-Dark";
         package = pkgs.qogir-icon-theme;
       };
       cursorTheme = {
@@ -28,8 +28,8 @@
 
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
-    home.file.".themes/Qogir-dark" = {
-      source = "${pkgs.qogir-theme}/share/themes/Qogir-dark";
+    home.file.".themes/Qogir-Dark" = {
+      source = "${pkgs.qogir-theme}/share/themes/Qogir-Dark";
     };
   };
 }
