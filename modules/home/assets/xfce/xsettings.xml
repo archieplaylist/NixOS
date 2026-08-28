@@ -2,8 +2,8 @@
 
 <channel name="xsettings" version="1.0">
   <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="Nordic-darker"/>
-    <property name="IconThemeName" type="string" value="Papirus-Dark"/>
+    <property name="ThemeName" type="string" value="Qogir-dark"/>
+    <property name="IconThemeName" type="string" value="Qogir-dark"/>
   </property>
   <property name="Gtk" type="empty">
     <property name="CursorThemeName" type="string" value="Bibata-Modern-Classic"/>

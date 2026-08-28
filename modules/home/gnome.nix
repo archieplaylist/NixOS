@@ -8,7 +8,7 @@
           enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
         };
         "org/gnome/shell/extensions/user-theme" = {
-          name = "Nordic";
+          name = "Qogir-dark";
         };
         "org/gnome/desktop/wm/preferences" = {
           button-layout = "appmenu:minimize,maximize,close";

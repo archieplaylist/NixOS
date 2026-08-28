@@ -8,12 +8,12 @@
       services.xserver.displayManager.lightdm.greeters.gtk = {
         enable = true;
         theme = {
-          package = pkgs.nordic;
-          name = "Nordic-darker";
+          package = pkgs.qogir-theme;
+          name = "Qogir-dark";
         };
         iconTheme = {
-          package = pkgs.papirus-icon-theme;
-          name = "Papirus-Dark";
+          package = pkgs.qogir-icon-theme;
+          name = "Qogir-dark";
         };
         cursorTheme = {
           package = pkgs.bibata-cursors;

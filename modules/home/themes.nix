@@ -1,4 +1,4 @@
-# GTK/icon/cursor/font theming — Nordic-darker / Papirus-Dark / Bibata
+# GTK/icon/cursor/font theming — Qogir-dark / Qogir-dark / Bibata (Qogir https://www.gnome-look.org/p/1230631)
 { ... }: {
   config.home.modules.mario = { pkgs, ... }: {
     gtk = {
@@ -11,12 +11,12 @@
         size = 10;
       };
       theme = {
-        name = "Nordic-darker";
-        package = pkgs.nordic;
+        name = "Qogir-dark";
+        package = pkgs.qogir-theme;
       };
       iconTheme = {
-        name = "Papirus-Dark";
-        package = pkgs.papirus-icon-theme;
+        name = "Qogir-dark";
+        package = pkgs.qogir-icon-theme;
       };
       cursorTheme = {
         name = "Bibata-Modern-Classic";
@@ -28,8 +28,8 @@
 
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
-    home.file.".themes/Nordic" = {
-      source = "${pkgs.nordic}/share/themes/Nordic";
+    home.file.".themes/Qogir-dark" = {
+      source = "${pkgs.qogir-theme}/share/themes/Qogir-dark";
     };
   };
 }
