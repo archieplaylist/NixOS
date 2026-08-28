@@ -12,6 +12,6 @@
       ++ lib.optional config.mySystem.appGroups.gaming.enable intel-compute-runtime;
     };
 
-    boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "nvme" "usb_storage" "sd_mod" ];
+    boot.initrd.availableKernelModules = [ "vmd" "ahci" "xhci_pci" "nvme" "usb_storage" "sd_mod" "usbhid" ];
   };
 }
