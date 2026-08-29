@@ -17,6 +17,7 @@
         ntfs3g
         zip
         unrar
+        file-roller
       ])
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
         git
