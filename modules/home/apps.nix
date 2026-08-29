@@ -44,6 +44,7 @@
         heroic
         mangohud # ponytail: keep mangohud, drop goverlay/vkbasalt/vulkan-tools/cartridges
         protonup-qt
+        (pkgs.unstable.bottles.override { removeWarningPopup = true; }) # ponytail: bottles follows the discord pattern — single unstable package keeps every host fresh; .override is correct because `with pkgs;` shadows `bottles` with the stable fixed-point function — fully-qualifying with `pkgs.unstable.bottles` is required
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
         dbeaver-bin
