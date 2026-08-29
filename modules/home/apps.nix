@@ -19,6 +19,7 @@
         gparted
         zip
         unrar
+        make
       ])
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
         git
