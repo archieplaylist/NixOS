@@ -38,10 +38,7 @@
       environment.systemPackages = with pkgs; [
         curl
         wget
-        git
-        htop
         ripgrep
-        tree
         unzip
       ];
     };

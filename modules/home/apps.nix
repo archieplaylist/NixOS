@@ -13,20 +13,18 @@
         eza
         fastfetch
         btop
-        python3
         exfatprogs
         ntfs3g
-        gparted
         zip
         unrar
-        make
       ])
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
         git
         lazygit
         nodejs
         gh
-        docker-compose
+        python3 # ponytail: moved from general — only dev needs it
+        gnumake # ponytail: moved from general
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.general.enable (with pkgs; [
         firefox
@@ -43,17 +41,14 @@
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
         heroic
-        cartridges
-        vulkan-tools
-        mangohud
-        goverlay
+        mangohud # ponytail: keep mangohud, drop goverlay/vkbasalt/vulkan-tools/cartridges
         protonup-qt
-        vkbasalt
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
         dbeaver-bin
         remmina
         filezilla
+        gnumake # ponytail: work needs make even without dev group
       ]))
     ];
   };
