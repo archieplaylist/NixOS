@@ -2,16 +2,21 @@
 # setup.sh — bootstrap a new machine from this flake-based NixOS config.
 #
 # Usage:
-#   sudo ./setup.sh            interactive setup
-#   sudo ./setup.sh --yes      noninteractive (answers yes to all prompts except
-#                              destructive disk wipe — disk path + WIPE still required)
-#   sudo ./setup.sh --help     show usage
+#   sudo ./setup.sh                  interactive setup
+#   sudo ./setup.sh --yes            noninteractive (answers yes to all prompts except
+#                                    destructive disk wipe — disk path + WIPE still required)
+#   sudo ./setup.sh --luks           also LUKS2-encrypt the root partition (prompts for passphrase;
+#                                    use --yes + LUKS_PASSPHRASE env for noninteractive)
+#   sudo ./setup.sh --luks --tpm2    enroll TPM2 auto-unlock after luksFormat (needs TPM2 hardware)
+#   sudo ./setup.sh --secure-boot    hints Secure Boot (lanzaboote) setup — keys still enrolled manually
+#   sudo ./setup.sh --help           show usage
 #
 # Steps (each is idempotent and non-destructive — skips when already done):
 #   1.  preflight: repo layout + required tools
 #   2.  OPTIONAL destructive: guided partitioning + formatting of a disk
 #       (only offered on the installer ISO; refuses mounted disks; requires
-#       typing the disk path and the word WIPE to confirm)
+#       typing the disk path and the word WIPE to confirm). Pass --luks to
+#       wrap the root partition in LUKS2 (label nixos-root-luks → mapper cryptroot).
 #   3.  user password: SHA-512 hash via openssl, written to
 #       /etc/hashed-password on the target during the deploy step (read at
 #       activation via `users.users.mario.hashedPasswordFile`); the hash is
@@ -47,6 +52,11 @@ SOPS_YAML="$REPO_ROOT/secrets/.sops.yaml"
 SECRETS_FILE="$REPO_ROOT/secrets/secrets.yaml"
 
 AN_YES_SET=0
+# LUKS flags: --luks / --tpm2 / --secure-boot; LUKS_PASSPHRASE env for --yes noninteractive.
+ENABLE_LUKS=0
+ENABLE_TPM2=0
+ENABLE_SECURE_BOOT=0
+LUKS_PASSPHRASE=""
 # Password hash captured in step_password; written to /etc/hashed-password
 # on the target by step_deploy (hosts/users.nix reads it via hashedPasswordFile).
 PASSWORD_HASH=""
@@ -68,6 +78,8 @@ ensure_tools() {
         age|age-keygen) pkgs+=(nixpkgs#age) ;;
         sops)           pkgs+=(nixpkgs#sops) ;;
         openssl)        pkgs+=(nixpkgs#openssl) ;;
+        cryptsetup)     pkgs+=(nixpkgs#cryptsetup) ;;
+        systemd-cryptenroll) pkgs+=(nixpkgs#systemd) ;;
         *)              warn "don't know how to install '$tool' via nix"; continue ;;
       esac
     fi
@@ -197,7 +209,11 @@ step_partition() {
   echo
   warn "ABOUT TO ERASE ALL DATA ON: $disk"
   echo "  partition 1: ESP   1 GiB  vfat label 'nixos-boot'"
-  echo "  partition 2: root  rest  xfs  label 'nixos-root'"
+  if [[ $ENABLE_LUKS -eq 1 ]]; then
+    echo "  partition 2: root  rest  LUKS2 label 'nixos-root-luks' -> XFS inside (label 'nixos-root')"
+  else
+    echo "  partition 2: root  rest  xfs  label 'nixos-root'"
+  fi
   if ! read -r -p "  type WIPE (exactly) to continue: " ans; then
     echo "no input — aborting partition step"
     return 0
@@ -219,9 +235,63 @@ step_partition() {
 
   mkfs.vfat -F 32 -n nixos-boot "$p1"
 
-  # XFS layout: one filesystem for / (label nixos-root). The nix store and
-  # all system/user state live on it directly — no subvolumes, no /persist.
-  mkfs.xfs -f -L nixos-root "$p2"
+  local luks_pw=""
+  if [[ $ENABLE_LUKS -eq 1 ]]; then
+    ensure_tools cryptsetup
+    have cryptsetup || die "cryptsetup not found — install it or run from the installer ISO (nix shell nixpkgs#cryptsetup)"
+
+    if [[ -n "${LUKS_PASSPHRASE:-}" ]]; then
+      luks_pw="$LUKS_PASSPHRASE"
+    elif [[ $AN_YES_SET -eq 1 ]]; then
+      die "--yes mode requires LUKS_PASSPHRASE env for --luks"
+    else
+      while :; do
+        local pw1 pw2
+        if ! read -r -s -p "  LUKS passphrase: " pw1; then echo; info "aborted"; return 0; fi
+        echo
+        read -r -s -p "  repeat LUKS passphrase: " pw2 || true
+        echo
+        [[ -n "$pw1" ]] || { warn "empty passphrase not allowed — try again"; continue; }
+        [[ "$pw1" == "$pw2" ]] || { warn "passphrases do not match — try again"; continue; }
+        luks_pw="$pw1"
+        unset pw1 pw2
+        break
+      done
+    fi
+
+    info "luksFormat $p2 (argon2id)"
+    printf '%s' "$luks_pw" | cryptsetup luksFormat --key-file=- --type luks2 --pbkdf argon2id --label nixos-root-luks "$p2"
+    printf '%s' "$luks_pw" | cryptsetup open --key-file=- --type luks "$p2" cryptroot
+
+    # XFS layout inside LUKS: / (label nixos-root). The nix store and all
+    # system/user state live on it directly — no subvolumes, no /persist.
+    mkfs.xfs -f -L nixos-root /dev/mapper/cryptroot
+
+    # TPM2 auto-unlock (optional): enroll only if a TPM2 device is present.
+    if [[ $ENABLE_TPM2 -eq 1 ]]; then
+      ensure_tools systemd-cryptenroll
+      if have systemd-cryptenroll && [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null)" ]]; then
+        info "enrolling TPM2 auto-unlock (PCR 7+8)"
+        local keyfile
+        keyfile="$(mktemp)"
+        chmod 600 "$keyfile"
+        printf '%s' "$luks_pw" > "$keyfile"
+        if systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+8 --unlock-key-file="$keyfile" "$p2"; then
+          info "TPM2 enrolled — boot will auto-unlock when PCR 7+8 match (passphrase remains as fallback)"
+        else
+          warn "TPM2 enrollment failed — passphrase-only for now"
+        fi
+        rm -f "$keyfile"
+      else
+        warn "no TPM2 device found (systemd-cryptenroll --tpm2-device=list empty) — skipping enrollment"
+      fi
+    fi
+    unset luks_pw
+  else
+    # XFS layout: one filesystem for / (label nixos-root). The nix store and
+    # all system/user state live on it directly — no subvolumes, no /persist.
+    mkfs.xfs -f -L nixos-root "$p2"
+  fi
 
   # Make udev create /dev/disk/by-label symlinks for the fresh filesystems.
   # udev can lag behind right after mkfs; without this the by-label mounts
@@ -230,7 +300,12 @@ step_partition() {
   udevadm trigger --subsystem-match=block || true
   udevadm settle || true
 
-  info "done: $p1 (ESP, label nixos-boot) + $p2 (xfs, label nixos-root)"
+  if [[ $ENABLE_LUKS -eq 1 ]]; then
+    info "done: $p1 (ESP, label nixos-boot) + $p2 (LUKS2 -> cryptroot, label nixos-root)"
+    info "remember: the selected host must set mySystem.enableLuks = true to match"
+  else
+    info "done: $p1 (ESP, label nixos-boot) + $p2 (xfs, label nixos-root)"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -396,12 +471,31 @@ step_deploy() {
       # Ensure /mnt is cleaned up on failure (secondary to findmnt guards below).
       trap 'umount -l /mnt/boot 2>/dev/null || true; umount -l /mnt 2>/dev/null || true' ERR
       # Installer ISO: install to the target disk (not the running tmpfs).
-      # Mount by filesystem label (created by step_partition); the target
-      # isn't mounted yet, so by-label (not by-uuid) is used. XFS target:
-      # plain mount of the root partition at /mnt.
+      # Mount the root device at /mnt; when --luks was used the root lives
+      # behind the cryptroot mapper (already opened in step_partition).
       local rootdev="/dev/disk/by-label/nixos-root"
-      [[ -e "$rootdev" ]] || rootdev="$(blkid -L nixos-root 2>/dev/null || true)"
-      [[ -n "$rootdev" && -e "$rootdev" ]] || { warn "no device with label 'nixos-root' found — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
+      if [[ $ENABLE_LUKS -eq 1 ]]; then
+        rootdev="/dev/mapper/cryptroot"
+        if [[ ! -b "$rootdev" ]]; then
+          local luks_dev="/dev/disk/by-label/nixos-root-luks"
+          [[ -e "$luks_dev" ]] || luks_dev="$(blkid -L nixos-root-luks 2>/dev/null || true)"
+          if [[ -n "$luks_dev" && -e "$luks_dev" ]]; then
+            ensure_tools cryptsetup
+            info "opening $luks_dev as cryptroot"
+            if [[ -n "${LUKS_PASSPHRASE:-}" ]]; then
+              printf '%s' "$LUKS_PASSPHRASE" | cryptsetup open --key-file=- --type luks "$luks_dev" cryptroot \
+                || die "failed to open LUKS volume"
+            else
+              cryptsetup open --type luks "$luks_dev" cryptroot || die "failed to open LUKS volume"
+            fi
+          else
+            die "no LUKS device with label 'nixos-root-luks' found"
+          fi
+        fi
+      else
+        [[ -e "$rootdev" ]] || rootdev="$(blkid -L nixos-root 2>/dev/null || true)"
+        [[ -n "$rootdev" && -e "$rootdev" ]] || { warn "no device with label 'nixos-root' found — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
+      fi
 
       if findmnt -n /mnt >/dev/null 2>&1; then
         info "/mnt already mounted — skipping root mount"
@@ -486,6 +580,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -y|--yes) AN_YES_SET=1 ;;
+    --luks) ENABLE_LUKS=1 ;;
+    --tpm2) ENABLE_LUKS=1; ENABLE_TPM2=1 ;;
+    --secure-boot) ENABLE_LUKS=1; ENABLE_SECURE_BOOT=1 ;;
     *) die "unknown option: $1" ;;
   esac
   shift
@@ -502,3 +599,12 @@ step_deploy
 
 log "All done."
 warn "Password hash lives in /etc/hashed-password on the system (never in the repo)."
+if [[ $ENABLE_LUKS -eq 1 ]]; then
+  warn "Root is LUKS2-encrypted — the host must set mySystem.enableLuks = true to match."
+fi
+if [[ $ENABLE_TPM2 -eq 1 ]]; then
+  warn "TPM2 enrolled only if a TPM2 device was present; set mySystem.enableTpm2 = true on the host."
+fi
+if [[ $ENABLE_SECURE_BOOT -eq 1 ]]; then
+  warn "Secure Boot needs manual key enrollment after first boot: sbctl create-keys && sbctl enroll-keys --microsoft, and mySystem.enableSecureBoot = true (uses lanzaboote)."
+fi

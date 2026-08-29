@@ -1,6 +1,6 @@
 # Per-host flags + GNOME extensions source of truth (base slot)
 { ... }: {
-  config.nixos.modules.base = { lib, ... }: {
+  config.nixos.modules.base = { config, lib, ... }: {
     options.mySystem = {
       hostname = lib.mkOption {
         type = lib.types.str;
@@ -98,6 +98,21 @@
         default = false;
         description = "Enable the smartd disk health monitoring service.";
       };
+      enableLuks = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable LUKS2 encryption for the root partition (fresh install only; requires repartition).";
+      };
+      enableTpm2 = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable TPM2 auto-unlock for LUKS (requires enableLuks and TPM2 hardware; passphrase remains as fallback).";
+      };
+      enableSecureBoot = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable Secure Boot via lanzaboote (requires enableLuks, implies TPM2 PCR 7 protection).";
+      };
       gnomeExtensions = lib.mkOption {
         type = lib.types.listOf (lib.types.submodule {
           options = {
@@ -116,24 +131,40 @@
       };
     };
 
-    config.mySystem.flatpakApps = [
-      "org.localsend.localsend_app"
-      "it.mijorus.gearlever"
-      "com.github.tchx84.Flatseal"
-    ];
+    config = {
+      mySystem.flatpakApps = [
+        "org.localsend.localsend_app"
+        "it.mijorus.gearlever"
+        "com.github.tchx84.Flatseal"
+      ];
 
-    config.mySystem.gnomeExtensions = [
-      { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
-      { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
-      { uuid = "caffeine@patapon.info"; package = "caffeine"; }
-      { uuid = "clipboard-indicator@tudmotu.com"; package = "clipboard-indicator"; }
-      { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
-      { uuid = "dash-to-dock@micxgx.gmail.com"; package = "dash-to-dock"; }
-      { uuid = "drive-menu@gnome-shell-extensions.gcampax.github.com"; package = "removable-drive-menu"; }
-      { uuid = "impatience@gfxmonk.net"; package = "impatience"; }
-      { uuid = "just-perfection-desktop@just-perfection"; package = "just-perfection"; }
-      { uuid = "tailscale-gnome-qs@tailscale-qs.github.io"; package = "tailscale-qs"; }
-      { uuid = "user-theme@gnome-shell-extensions.gcampax.github.com"; package = "user-themes"; }
-    ];
+      mySystem.gnomeExtensions = [
+        { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
+        { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
+        { uuid = "caffeine@patapon.info"; package = "caffeine"; }
+        { uuid = "clipboard-indicator@tudmotu.com"; package = "clipboard-indicator"; }
+        { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
+        { uuid = "dash-to-dock@micxgx.gmail.com"; package = "dash-to-dock"; }
+        { uuid = "drive-menu@gnome-shell-extensions.gcampax.github.com"; package = "removable-drive-menu"; }
+        { uuid = "impatience@gfxmonk.net"; package = "impatience"; }
+        { uuid = "just-perfection-desktop@just-perfection"; package = "just-perfection"; }
+        { uuid = "tailscale-gnome-qs@tailscale-qs.github.io"; package = "tailscale-qs"; }
+        { uuid = "user-theme@gnome-shell-extensions.gcampax.github.com"; package = "user-themes"; }
+      ];
+
+      assertions = [
+        {
+          assertion = !config.mySystem.enableTpm2 || config.mySystem.enableLuks;
+          message = "mySystem.enableTpm2 requires mySystem.enableLuks = true";
+        }
+        {
+          assertion = !config.mySystem.enableSecureBoot || config.mySystem.enableLuks;
+          message = "mySystem.enableSecureBoot requires mySystem.enableLuks = true";
+        }
+      ];
+
+      warnings = lib.optional (config.mySystem.enableTpm2 && !config.mySystem.enableSecureBoot)
+        "TPM2 auto-unlock without Secure Boot is vulnerable to Evil Maid — consider enabling mySystem.enableSecureBoot";
+    };
   };
 }

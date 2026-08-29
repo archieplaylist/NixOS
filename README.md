@@ -73,6 +73,9 @@ Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`
   scripts") or by editing the host file and rebuilding.
 - `mySystem.enableLaptop` — power-profiles-daemon + lid handling.
 - `mySystem.enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSops`.
+- `mySystem.enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install-only full-disk encryption
+  (see [Full-disk encryption](#full-disk-encryption-luks--tpm2--secure-boot)). Defaults off; flipping
+  on an already-installed machine breaks boot until you repartition.
 - `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
 - `mySystem.gnomeExtensions` — single source of truth for GNOME extensions.
 - `mySystem.appGroups.{general,gaming,dev,work}.enable` — application group
@@ -204,18 +207,27 @@ The quickest way is the setup script:
 ```bash
 ./setup.sh          # interactive
 ./setup.sh --yes    # answer yes to everything
+./setup.sh --luks --tpm2   # interactive, LUKS2 root + TPM2 auto-unlock
 ```
 
 It will:
 1. check the repo layout and required tools,
 2. **optionally partition + format a disk** (only offered on the NixOS
-   installer ISO; destructive — requires typing the device path and `WIPE`),
+   installer ISO; destructive — requires typing the device path and `WIPE`).
+   Pass `--luks` to wrap the root partition in LUKS2 (interactive passphrase
+   prompt, or `LUKS_PASSPHRASE` env with `--yes`); `--tpm2` additionally
+   enrolls TPM2 auto-unlock when a TPM2 device is present; `--secure-boot`
+   prints the manual `sbctl` enrollment steps after install,
 3. **set the user password**: hashed (SHA-512); the hash is written to
    `/etc/hashed-password` on the target system during the deploy step (never
    stored in the repo),
 4. create a sops age key and `secrets/.sops.yaml` from the example,
 5. create an encrypted (empty) `secrets/secrets.yaml`, and
 6. let you pick a host and run `nixos-rebuild switch`.
+
+The chosen host must set the matching `mySystem.enableLuks`/`enableTpm2`/
+`enableSecureBoot` flags — `setup.sh` only prints a reminder, it cannot edit
+the host module for you.
 
 Filesystems are referenced by **label** (`/dev/disk/by-label/nixos-root` for
 `/`, `/dev/disk/by-label/nixos-boot` for `/boot`), which the partition step
@@ -237,6 +249,9 @@ Partitioning creates this layout on the selected disk (GPT, XFS):
 ├── 1: ESP  1 GiB  vfat (label nixos-boot)
 └── 2: root  rest  xfs  (label nixos-root)
 ```
+
+With `--luks`, partition 2 is LUKS2 (label `nixos-root-luks`) with XFS inside
+(mapper `cryptroot`, label `nixos-root`).
 
 The nix store and all system/user state live on the root filesystem — no
 subvolumes, no `/persist`. Swap is handled with zram (`zramSwap.enable`), so
@@ -329,6 +344,59 @@ nixos-generate-config --root /mnt
 # copy the flake into /mnt/etc/nixos, then:
 nixos-install --flake /mnt/etc/nixos#desktop
 ```
+
+## Full-disk encryption (LUKS + TPM2 + Secure Boot)
+
+Fresh-install only. Existing machines (desktop, work, vm) are untouched and
+stay unencrypted until you repartition them — there is no in-place migration.
+
+**How it maps:**
+
+- `mySystem.enableLuks` — root partition becomes LUKS2 (`nixos-root-luks` →
+  mapper `cryptroot` → XFS). Declared via `disko.devices` in
+  `modules/features/filesystems.nix` (non-LUKS hosts keep the plain
+  `fileSystems`). `setup.sh --luks` does the actual `cryptsetup luksFormat`
+  + `open` + `mkfs.xfs` at install time.
+- `mySystem.enableTpm2` — auto-unlock via `systemd-cryptenroll` (PCR 7+8) when
+  a TPM2 device is present; the passphrase stays as fallback. Requires
+  `enableLuks`. `boot.initrd.systemd` is enabled for LUKS hosts (needed for
+  TPM2 unlock).
+- `mySystem.enableSecureBoot` — replaces systemd-boot with lanzaboote (signed
+  UKIs) and locks the TPM2 auto-unlock to PCR 7. Requires `enableLuks`.
+  `vm` never uses any of this (no TPM, disposable).
+
+**Install:**
+
+```bash
+sudo ./setup.sh --luks --tpm2        # or add --secure-boot
+```
+
+then set the flags in the host module:
+
+```nix
+mySystem.enableLuks = true;
+mySystem.enableTpm2 = true;
+mySystem.enableSecureBoot = true;    # only if you enrolled keys
+```
+
+**Secure Boot key enrollment (one-time, after first boot):**
+
+```bash
+sudo sbctl create-keys
+sudo sbctl enroll-keys --microsoft   # keeps Microsoft keys for dual-boot
+```
+
+with `mySystem.enableSecureBoot = true` set in the host file.
+
+**Rotation / recovery:**
+
+- Add a recovery slot: `sudo cryptsetup luksAddKey /dev/disk/by-label/nixos-root-luks`.
+- Wipe a TPM2 slot: `sudo systemd-cryptenroll --wipe-slot=tpm2 /dev/disk/by-label/nixos-root-luks`.
+- Losing the passphrase loses the data — keep a recovery key file elsewhere.
+
+> Note: TPM2 auto-unlock without Secure Boot (PCR 7 not bound) is vulnerable
+> to an Evil Maid attack — a build-time warning reminds you. Keep `enableTpm2`
+> and `enableSecureBoot` together for real protection.
 
 ## Day-to-day maintenance
 

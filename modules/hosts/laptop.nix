@@ -15,6 +15,9 @@
     mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
     mySystem.enableLaptop = true;
+    mySystem.enableLuks = true; # fresh install only — requires repartition with setup.sh --luks --tpm2
+    mySystem.enableTpm2 = true; # TPM2 auto-unlock, passphrase fallback
+    mySystem.enableSecureBoot = false; # flip to true after `sbctl create-keys && sbctl enroll-keys --microsoft` on first boot
     mySystem.enableSSH = false;
     mySystem.enableDocker = false;
     mySystem.enableTailscale = true;

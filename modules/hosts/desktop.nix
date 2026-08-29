@@ -16,6 +16,10 @@
     mySystem.enableTailscale = true;
     mySystem.enableSops = true;
     mySystem.enableSmartd = true;
+    # ponytail: LUKS is fresh-install only — flip true when reinstalling this host (setup.sh --luks --tpm2)
+    mySystem.enableLuks = false;
+    mySystem.enableTpm2 = false;
+    mySystem.enableSecureBoot = false;
 
     powerManagement.cpuFreqGovernor = "performance";
 

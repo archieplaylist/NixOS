@@ -24,6 +24,8 @@ let
       inputs.home-manager.nixosModules.home-manager
       inputs.sops-nix.nixosModules.sops
       inputs.nix-flatpak.nixosModules.nix-flatpak
+      inputs.disko.nixosModules.disko
+      inputs.lanzaboote.nixosModules.lanzaboote
       {
         nixpkgs.overlays = [
           (_final: _prev: {

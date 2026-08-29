@@ -17,6 +17,10 @@
     mySystem.enableSops = true;
     mySystem.enableVirtualBox = true;
     mySystem.enableSmartd = true;
+    # ponytail: existing install — LUKS requires repartition, keep false until reinstalling
+    mySystem.enableLuks = false;
+    mySystem.enableTpm2 = false;
+    mySystem.enableSecureBoot = false;
 
     mySystem.sshAuthorizedKeys = [
       # "ssh-ed25519 AAAAC3... mario@client" # ponytail: add client pubkey here, then set enableSSH=true
