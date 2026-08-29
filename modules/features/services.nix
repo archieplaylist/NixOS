@@ -8,7 +8,7 @@
         ]
       );
 
-      services.openssh = lib.mkIf config.mySystem.enableSSH {
+      services.openssh = lib.mkIf (config.mySystem.enableSSH && config.mySystem.sshAuthorizedKeys != [ ]) {
         enable = true;
         settings = {
           PasswordAuthentication = false;
@@ -20,6 +20,10 @@
       virtualisation.docker = lib.mkIf config.mySystem.enableDocker {
         enable = true;
         enableOnBoot = true;
+        rootless = {
+          enable = true;
+          setSocketVariable = true;
+        };
       };
 
       services.tailscale = lib.mkIf config.mySystem.enableTailscale {

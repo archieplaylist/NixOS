@@ -32,10 +32,10 @@
       };
 
       services.printing = {
-        enable = true;
+        enable = lib.mkDefault true;
         drivers = [ pkgs.gutenprint ];
       };
-      services.system-config-printer.enable = true;
+      services.system-config-printer.enable = lib.mkDefault true;
 
       # nix-ld for VS Code extensions / dynamically-linked binaries
       programs.nix-ld = {

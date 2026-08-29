@@ -20,6 +20,10 @@
     mySystem.appGroups.gaming.enable = false;
     mySystem.appGroups.dev.enable = false;
 
+    # ponytail: vm never prints — save CUPS + Avahi broadcast
+    services.printing.enable = false;
+    services.system-config-printer.enable = false;
+
     virtualisation.vmVariant = {
       virtualisation = {
         memorySize = 4096;
