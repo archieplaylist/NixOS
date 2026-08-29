@@ -3,7 +3,7 @@
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.general.enable {
       enable = true;
-      package = pkgs.vscode;
+      package = pkgs.unstable.vscode; # ponytail: stable 1.119 lags unstable 1.133 — same overlay as discord
     };
 
     home.packages = lib.mkMerge [
@@ -34,7 +34,7 @@
         mpv
         yt-dlp
         ffmpeg
-        discord
+        pkgs.unstable.discord # ponytail: stable lags — single unstable package keeps every host fresh
         joplin-desktop
         onlyoffice-desktopeditors
         libreoffice-fresh

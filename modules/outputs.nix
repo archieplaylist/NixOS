@@ -26,6 +26,12 @@ let
       inputs.nix-flatpak.nixosModules.nix-flatpak
       {
         nixpkgs.overlays = [
+          (_final: _prev: {
+            unstable = import inputs.nixpkgs-unstable {
+              localSystem = { inherit system; };
+              config.allowUnfree = true;
+            };
+          })
           (final: prev: {
             linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
             linuxPackages_6_12 = patchVboxGuestAdditions (prev.linuxPackages_6_12 or prev.linuxPackages);
