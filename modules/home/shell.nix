@@ -30,5 +30,9 @@
       source = ./scripts/switch-de;
       executable = true;
     };
+    home.file.".local/bin/gnome-backup" = {
+      source = ./scripts/gnome-backup;
+      executable = true;
+    };
   };
 }
