@@ -27,9 +27,27 @@
 set -euo pipefail
 
 # ── config ───────────────────────────────────────────────────────────────
-: "${BACKUP_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/gnome-backups}"
-# fallback for discoverability: also check ~/gnome-backups if XDG dir empty on list
+# Repo-aware backup dir: default to <repo>/backups/gnome for portability,
+# fallback to XDG_DATA_HOME when repo not found (e.g. standalone install).
+detect_repo_root() {
+  if [[ -n "${REPO:-}" && -d "$REPO" ]]; then echo "$REPO"; return; fi
+  if [[ -n "${NIXOS_REPO:-}" && -d "$NIXOS_REPO" ]]; then echo "$NIXOS_REPO"; return; fi
+  if [[ -d "$HOME/NixOS" ]]; then echo "$HOME/NixOS"; return; fi
+  if [[ -d "$HOME/nixos" ]]; then echo "$HOME/nixos"; return; fi
+  local gr; gr=$(git rev-parse --show-toplevel 2>/dev/null || true)
+  if [[ -n "$gr" && -d "$gr" ]]; then echo "$gr"; return; fi
+  echo ""
+}
+REPO_ROOT="$(detect_repo_root)"
+if [[ -n "$REPO_ROOT" && -d "$REPO_ROOT" ]]; then
+  DEFAULT_BACKUP_DIR="$REPO_ROOT/backups/gnome"
+else
+  DEFAULT_BACKUP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gnome-backups"
+fi
+: "${BACKUP_DIR:=$DEFAULT_BACKUP_DIR}"
+# fallbacks for list discovery (repo + XDG + legacy)
 FALLBACK_DIR="$HOME/gnome-backups"
+XDG_BACKUP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gnome-backups"
 USER_EXT_DIR="$HOME/.local/share/gnome-shell/extensions"
 DCONF_USER_DB="$HOME/.config/dconf/user"
 
@@ -57,16 +75,16 @@ USAGE
   gnome-backup help
 
 COMMANDS
-  backup              Create a timestamped backup bundle (default: $BACKUP_DIR)
+  backup              Create a timestamped backup bundle (default: <repo>/backups/gnome)
   restore <file>      Restore from bundle (.tar.gz) or raw dump (.dconf/.ini)
-  list                List backups in $BACKUP_DIR (and ~/gnome-backups)
+  list                List backups in <repo>/backups/gnome, XDG and ~/gnome-backups
   show <file>         Show backup contents / manifest / dconf preview
   diff <file>         Diff backup vs current dconf (unified diff)
   to-nix <file>       Convert dump to Nix home-manager dconf.settings snippet
   help                Show this help
 
 BACKUP OPTIONS
-  --dir DIR           Backup directory (default: $XDG_DATA_HOME/gnome-backups)
+  --dir DIR           Backup directory (default: <repo>/backups/gnome or $XDG_DATA_HOME/gnome-backups)
   --gnome-only        Only dump /org/gnome/ instead of full db (smaller)
   --raw FILE          Also write single raw file (dconf dump / > FILE)
   --no-extensions     Skip bundling ~/.local/share/gnome-shell/extensions
@@ -90,23 +108,25 @@ ENV
   BACKUP_DIR          Override backup directory (env var)
 
 EXAMPLES
-  # backup everything (recommended)
+  # backup everything (recommended) — stored in <repo>/backups/gnome/
   gnome-backup backup
-  BACKUP_DIR=./backups gnome-backup backup
+  gnome-backup backup --dir ./backups/gnome   # explicit repo dir
   gnome-backup backup --gnome-only --no-extensions
+  BACKUP_DIR=~/.local/share/gnome-backups gnome-backup backup  # override to XDG
 
-  # list / inspect
+  # list / inspect (checks repo + XDG)
   gnome-backup list
-  gnome-backup show ~/.local/share/gnome-backups/gnome-backup-20250829-023000.tar.gz
-  gnome-backup diff ~/.local/share/gnome-backups/gnome-backup-20250829-023000.tar.gz
+  gnome-backup show ./backups/gnome/gnome-backup-*.tar.gz
+  gnome-backup show ~/.local/share/gnome-backups/gnome-backup-*.tar.gz
+  gnome-backup diff ./backups/gnome/gnome-backup-*.tar.gz
 
   # restore (creates pre-restore backup automatically)
-  gnome-backup restore ~/.local/share/gnome-backups/gnome-backup-20250829-023000.tar.gz
+  gnome-backup restore ./backups/gnome/gnome-backup-*.tar.gz
   gnome-backup restore ./my-gnome.dconf --dry-run
   gnome-backup restore ./bundle.tar.gz --gnome-only --force
 
   # convert to Nix for home-manager (modules/home/gnome.nix)
-  gnome-backup to-nix ~/.local/share/gnome-backups/gnome-backup-*.tar.gz --out /tmp/gnome-dconf.nix
+  gnome-backup to-nix ./backups/gnome/gnome-backup-*.tar.gz --out /tmp/gnome-dconf.nix
 
 NOTES
   • Uses: dconf dump /  and  dconf load / < file   (same format as `gsettings`)
@@ -472,7 +492,14 @@ do_restore() {
 
 # ── list / show / diff ─────────────────────────────────────────────────
 do_list() {
-  local dirs=("$BACKUP_DIR" "$FALLBACK_DIR")
+  # build unique list: BACKUP_DIR + repo + XDG + legacy
+  local dirs=()
+  local seen=""
+  add_dir() { [[ " $seen " == *" $1 "* ]] || { dirs+=("$1"); seen+=" $1 "; }; }
+  add_dir "$BACKUP_DIR"
+  if [[ -n "$REPO_ROOT" && -d "$REPO_ROOT" ]]; then add_dir "$REPO_ROOT/backups/gnome"; fi
+  add_dir "$XDG_BACKUP_DIR"
+  add_dir "$FALLBACK_DIR"
   local found=0
   for d in "${dirs[@]}"; do
     if [[ -d "$d" ]]; then
@@ -485,7 +512,7 @@ do_list() {
   done
   if [[ $found -eq 0 ]]; then
     info "no backup dir yet — run: $0 backup"
-    info "would create: $BACKUP_DIR"
+    info "would create: $BACKUP_DIR (repo: $REPO_ROOT/backups/gnome if repo exists)"
   fi
   # also show current dconf size
   if command -v dconf >/dev/null 2>&1; then
