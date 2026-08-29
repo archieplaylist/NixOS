@@ -1,0 +1,194 @@
+[Console]
+last-window-maximised=false
+last-window-size=(1681, 528)
+
+[TextEditor]
+restore-session=false
+
+[baobab/ui]
+active-chart='treemap'
+is-maximized=false
+window-size=(960, 600)
+
+[control-center]
+last-panel='bluetooth'
+window-state=(980, 640, true)
+
+[desktop/app-folders]
+folder-children=['System', 'Utilities', 'YaST', 'Pardus', 'a9cf2e61-e2c5-426f-ace5-ff07bceb6aef', '77024304-917e-4dc4-a948-6d347c276838']
+
+[desktop/app-folders/folders/77024304-917e-4dc4-a948-6d347c276838]
+apps=['startcenter.desktop', 'base.desktop', 'calc.desktop', 'draw.desktop', 'impress.desktop', 'math.desktop', 'writer.desktop']
+name='Office'
+
+[desktop/app-folders/folders/Pardus]
+categories=['X-Pardus-Apps']
+name='X-Pardus-Apps.directory'
+translate=true
+
+[desktop/app-folders/folders/System]
+apps=['org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.gnome.SystemMonitor.desktop']
+name='X-GNOME-Shell-System.directory'
+translate=true
+
+[desktop/app-folders/folders/Utilities]
+apps=['org.gnome.Decibels.desktop', 'org.gnome.Connections.desktop', 'org.gnome.Papers.desktop', 'org.gnome.font-viewer.desktop', 'org.gnome.Loupe.desktop', 'org.gnome.seahorse.Application.desktop', 'org.gnome.SimpleScan.desktop', 'org.gnome.Showtime.desktop', 'org.gnome.Snapshot.desktop']
+name='X-GNOME-Shell-Utilities.directory'
+translate=true
+
+[desktop/app-folders/folders/YaST]
+categories=['X-SuSE-YaST']
+name='suse-yast.directory'
+translate=true
+
+[desktop/app-folders/folders/a9cf2e61-e2c5-426f-ace5-ff07bceb6aef]
+apps=['org.gnome.Contacts.desktop', 'org.gnome.Weather.desktop', 'org.gnome.clocks.desktop', 'org.gnome.Maps.desktop', 'org.gnome.Characters.desktop', 'org.gnome.Tour.desktop', 'org.gnome.Yelp.desktop']
+name='Unnamed Folder'
+
+[desktop/background]
+picture-options='zoom'
+picture-uri='file:///nix/store/rlld3kg5q1mvf02gss7vw4xgv268nyfy-wallpaper.png'
+picture-uri-dark='file:///nix/store/rlld3kg5q1mvf02gss7vw4xgv268nyfy-wallpaper.png'
+
+[desktop/break-reminders/eyesight]
+play-sound=true
+
+[desktop/break-reminders/movement]
+duration-seconds=uint32 300
+interval-seconds=uint32 1800
+play-sound=true
+
+[desktop/input-sources]
+sources=[('xkb', 'us')]
+xkb-options=@as []
+
+[desktop/interface]
+color-scheme='prefer-dark'
+cursor-size=20
+cursor-theme='Bibata-Modern-Classic'
+document-font-name='Noto Sans 11'
+enable-animations=true
+font-name='Noto Sans 10'
+gtk-enable-primary-paste=true
+gtk-theme='Orchis-Dark'
+icon-theme='Tela-circle-dark'
+monospace-font-name='JetBrainsMono Nerd Font 11'
+
+[desktop/notifications]
+application-children=['gnome-about-panel', 'org-gnome-software', 'org-gnome-baobab', 'vivaldi-stable']
+show-in-lock-screen=false
+
+[desktop/notifications/application/gnome-about-panel]
+application-id='gnome-about-panel.desktop'
+
+[desktop/notifications/application/org-gnome-baobab]
+application-id='org.gnome.baobab.desktop'
+
+[desktop/notifications/application/org-gnome-software]
+application-id='org.gnome.Software.desktop'
+
+[desktop/notifications/application/vivaldi-stable]
+application-id='vivaldi-stable.desktop'
+
+[desktop/peripherals/keyboard]
+numlock-state=true
+
+[desktop/screensaver]
+lock-enabled=false
+
+[desktop/session]
+idle-delay=uint32 0
+
+[desktop/sound]
+allow-volume-above-100-percent=true
+
+[desktop/wm/preferences]
+button-layout='appmenu:minimize,maximize,close'
+
+[nautilus/preferences]
+migrated-gtk-settings=true
+
+[nautilus/window-state]
+initial-size=(890, 550)
+maximized=true
+
+[nm-applet/eap/e6ef40e2-803d-3daf-a1e2-f42b4882c554]
+ignore-ca-cert=false
+ignore-phase2-ca-cert=false
+
+[settings-daemon/plugins/color]
+night-light-schedule-automatic=false
+
+[settings-daemon/plugins/housekeeping]
+donation-reminder-last-shown=int64 1787887984709001
+
+[settings-daemon/plugins/power]
+sleep-inactive-ac-type='nothing'
+
+[shell]
+app-picker-layout=[{'a9cf2e61-e2c5-426f-ace5-ff07bceb6aef': <{'position': <0>}>, 'Utilities': <{'position': <1>}>, 'org.gnome.Settings.desktop': <{'position': <2>}>, 'blueman-manager.desktop': <{'position': <3>}>, 'btop.desktop': <{'position': <4>}>, 'System': <{'position': <5>}>, 'org.gnome.Calculator.desktop': <{'position': <6>}>, 'chromium-browser.desktop': <{'position': <7>}>, 'dbeaver.desktop': <{'position': <8>}>, 'discord.desktop': <{'position': <9>}>, 'com.github.wwmm.easyeffects.desktop': <{'position': <10>}>, 'com.mattjakeman.ExtensionManager.desktop': <{'position': <11>}>, 'org.gnome.Extensions.desktop': <{'position': <12>}>, 'filezilla.desktop': <{'position': <13>}>}, {'com.github.tchx84.Flatseal.desktop': <{'position': <0>}>, 'it.mijorus.gearlever.desktop': <{'position': <1>}>, '77024304-917e-4dc4-a948-6d347c276838': <{'position': <2>}>, 'org.localsend.localsend_app.desktop': <{'position': <3>}>, 'cups.desktop': <{'position': <4>}>, 'mpv.desktop': <{'position': <5>}>, 'nixos-manual.desktop': <{'position': <6>}>, 'joplin.appimage_3_6_14.desktop': <{'position': <7>}>, 'onlyoffice-desktopeditors.desktop': <{'position': <8>}>, 'org.gnome.Software.desktop': <{'position': <9>}>, 'raspberry_pi_imager.desktop': <{'position': <10>}>, 'org.gnome.tweaks.desktop': <{'position': <11>}>, 'code.desktop': <{'position': <12>}>}, {'vlc.desktop': <{'position': <0>}>, 'xterm.desktop': <{'position': <1>}>, 'org.gnome.Epiphany.desktop': <{'position': <2>}>, 'org.gnome.Calendar.desktop': <{'position': <3>}>, 'org.gnome.Music.desktop': <{'position': <4>}>}]
+enabled-extensions=['appindicatorsupport@rgcjonas.gmail.com', 'blur-my-shell@aunetx', 'caffeine@patapon.info', 'clipboard-indicator@tudmotu.com', 'CoverflowAltTab@palatis.blogspot.com', 'dash-to-dock@micxgx.gmail.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'just-perfection-desktop@just-perfection', 'tailscale-gnome-qs@tailscale-qs.github.io', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Nautilus.desktop', 'virtualbox.desktop', 'org.remmina.Remmina.desktop', 'vivaldi-stable.desktop', 'firefox.desktop', 'rest.insomnia.Insomnia.desktop', 'joplin.desktop', 'org.gnome.Console.desktop']
+welcome-dialog-last-shown-version='50.2'
+
+[shell/extensions/blur-my-shell]
+rounded-blur-found=false
+settings-version=2
+
+[shell/extensions/blur-my-shell/appfolder]
+brightness=0.59999999999999998
+sigma=30
+
+[shell/extensions/blur-my-shell/dash-to-dock]
+blur=true
+brightness=0.59999999999999998
+sigma=30
+static-blur=true
+style-dash-to-dock=0
+
+[shell/extensions/blur-my-shell/panel]
+brightness=0.59999999999999998
+corner-radius=0
+sigma=30
+
+[shell/extensions/blur-my-shell/window-list]
+brightness=0.59999999999999998
+sigma=30
+
+[shell/extensions/caffeine]
+cli-toggle=true
+indicator-position-max=2
+restore-state=true
+user-enabled=true
+
+[shell/extensions/coverflowalttab]
+switcher-background-color=(0.19607843137254902, 0.50588235294117645, 0.91764705882352937)
+
+[shell/extensions/dash-to-dock]
+apply-custom-theme=true
+background-opacity=0.81000000000000005
+custom-theme-shrink=true
+dash-max-icon-size=39
+disable-overview-on-startup=false
+dock-position='BOTTOM'
+height-fraction=0.90000000000000002
+preferred-monitor=-2
+preferred-monitor-by-connector='HDMI-3'
+transparency-mode='FIXED'
+
+[shell/extensions/just-perfection]
+support-notifier-showed-version=36
+
+[shell/extensions/user-theme]
+name='Orchis-Dark'
+
+[shell/world-clocks]
+locations=@av []
+
+[software]
+check-timestamp=int64 1787966111
+first-run=false
+flatpak-purge-timestamp=int64 1787969651
+
+[tweaks]
+show-extensions-notice=false
