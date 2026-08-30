@@ -16,6 +16,7 @@
     mySystem.enableDocker = false;
     mySystem.enableTailscale = false;
     mySystem.enableSops = false;
+    
     mySystem.enableLuks = false; # vm never encrypted — no TPM, disposable
     mySystem.enableTpm2 = false;
     mySystem.enableSecureBoot = false;
