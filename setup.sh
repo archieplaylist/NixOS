@@ -578,6 +578,48 @@ step_secrets() {
 # ---------------------------------------------------------------------------
 # Step 5 — deploy
 # ---------------------------------------------------------------------------
+# Patch the selected host's modules/hosts/<name>.nix to flip
+# mySystem.enable{Luks,Tpm2,SecureBoot} from false to true when the
+# matching --luks / --tpm2 / --secure-boot flag is set. Idempotent:
+# already-true lines are left alone, and we only flip the specific
+# flag(s) the user requested (never all three at once).
+#
+# Always operates on the source tree. In installer mode the source is
+# copied to /mnt/etc/nixos afterward, so the installed system sees
+# the new values. In non-installer mode we still patch in place — the
+# user is running on a host they control and asked for the rebuild.
+patch_host_flags() {
+  local name="$1" host_file="$HOSTS_DIR/$name.nix" key
+  [[ -f "$host_file" ]] || { warn "host file $host_file not found — cannot patch flags"; return 0; }
+
+  local -a flips=()
+  [[ $ENABLE_LUKS -eq 1 ]]        && flips+=(enableLuks)
+  [[ $ENABLE_TPM2 -eq 1 ]]        && flips+=(enableTpm2)
+  [[ $ENABLE_SECURE_BOOT -eq 1 ]] && flips+=(enableSecureBoot)
+  [[ ${#flips[@]} -eq 0 ]] && return 0
+
+  for key in "${flips[@]}"; do
+    # Match "mySystem.<key> = false;" with optional trailing whitespace;
+    # leave a `= true;` line alone so re-runs are no-ops.
+    if grep -Eq "^[[:space:]]*mySystem\\.$key[[:space:]]*=[[:space:]]*false[[:space:]]*;" "$host_file"; then
+      sed -i -E "s|^([[:space:]]*mySystem\\.$key[[:space:]]*=[[:space:]]*)false([[:space:]]*;)|\\1true\\2|" "$host_file"
+      info "patched $host_file: mySystem.$key = true"
+    elif grep -Eq "^[[:space:]]*mySystem\\.$key[[:space:]]*=[[:space:]]*true[[:space:]]*;" "$host_file"; then
+      info "$host_file: mySystem.$key already true — no change"
+    else
+      # No assignment for this flag in the host file — append a fresh
+      # one so the user doesn't have to. Append after the last
+      # mySystem.* line if any, else at the end of the config block.
+      if grep -q "^[[:space:]]*mySystem\\." "$host_file"; then
+        sed -i "/^[[:space:]]*mySystem\\./a\\    mySystem.$key = true;" "$host_file"
+        info "appended to $host_file: mySystem.$key = true"
+      else
+        warn "no mySystem.* assignment found in $host_file — set mySystem.$key = true manually"
+      fi
+    fi
+  done
+}
+
 step_deploy() {
   log "Deploy"
 
@@ -596,6 +638,11 @@ step_deploy() {
   [[ "$choice" =~ ^[0-9]+$ ]] && ((choice >= 1 && choice <= ${#HOSTS[@]})) \
     || die "invalid host number: $choice"
   local name="${HOSTS[$((choice-1))]%.nix}"
+
+  # Sync the selected host's mySystem.enable* flags with the CLI flags
+  # BEFORE copying the source or running nixos-rebuild. Both branches
+  # below consume the (now-patched) flake.
+  patch_host_flags "$name"
 
   if is_installer_env; then
     # libgit2 refuses repos not owned by the current user (root on installer).
@@ -673,11 +720,16 @@ step_deploy
 log "All done."
 warn "Password hash lives in /etc/hashed-password on the system (never in the repo)."
 if [[ $ENABLE_LUKS -eq 1 ]]; then
-  warn "Root is LUKS2-encrypted — the host must set mySystem.enableLuks = true to match."
+  info "mySystem.enableLuks = true was patched into the selected host file."
 fi
 if [[ $ENABLE_TPM2 -eq 1 ]]; then
-  warn "TPM2 enrolled only if a TPM2 device was present; set mySystem.enableTpm2 = true on the host."
+  if [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)" ]]; then
+    info "mySystem.enableTpm2 = true was patched into the selected host file."
+  else
+    warn "TPM2 was requested but no TPM2 device was present at install time — passphrase-only for now."
+  fi
 fi
 if [[ $ENABLE_SECURE_BOOT -eq 1 ]]; then
-  warn "Secure Boot needs manual key enrollment after first boot: sbctl create-keys && sbctl enroll-keys --microsoft, and mySystem.enableSecureBoot = true (uses lanzaboote)."
+  info "mySystem.enableSecureBoot = true was patched into the selected host file."
+  warn "Secure Boot still needs manual key enrollment after first boot: sbctl create-keys && sbctl enroll-keys --microsoft"
 fi
