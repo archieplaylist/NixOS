@@ -537,9 +537,14 @@ step_deploy() {
     # libgit2 refuses repos not owned by the current user (root on installer).
     git config --global --add safe.directory "$REPO_ROOT"
 
-    local rootdev="/dev/disk/by-label/nixos-root"
-    [[ $ENABLE_LUKS -eq 1 ]] && rootdev="/dev/mapper/cryptroot"
-    [[ -e "$rootdev" ]] || die "no device with label '$([[ $ENABLE_LUKS -eq 1 ]] && echo nixos-root-luks || echo nixos-root)' — run the partition step first"
+    local rootdev label
+    if [[ $ENABLE_LUKS -eq 1 ]]; then
+      rootdev="/dev/mapper/cryptroot"; label="nixos-root-luks"
+    else
+      rootdev="/dev/disk/by-label/nixos-root"; label="nixos-root"
+    fi
+    [[ -e "$rootdev" ]] \
+      || die "no device at $rootdev (label '$label') — run the partition step first, e.g.:  sudo ./setup.sh --luks"
 
     findmnt -n /mnt        >/dev/null 2>&1 || mount "$rootdev" /mnt        || die "mount $rootdev at /mnt failed"
     mkdir -p /mnt/boot
