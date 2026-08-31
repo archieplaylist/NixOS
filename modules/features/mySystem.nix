@@ -138,7 +138,7 @@
         "com.github.tchx84.Flatseal"
       ];
 
-      mySystem.gnomeExtensions = [
+      mySystem.gnomeExtensions = lib.mkIf (config.mySystem.desktop == "gnome") [
         { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
         { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
         { uuid = "caffeine@patapon.info"; package = "caffeine"; }
