@@ -212,6 +212,69 @@ preflight() {
 }
 
 # ---------------------------------------------------------------------------
+# Step 1.5 — temporary zram swap on the installer ISO
+# ---------------------------------------------------------------------------
+# nixos-install + the initial flake evaluation can spike past 4 GiB RSS,
+# OOM-killing the shell mid-build. zram is already in the ISO kernel,
+# no extra package needed. Activates only inside the installer env so it
+# never touches an already-installed system.
+step_zram() {
+  if ! is_installer_env; then
+    return 0
+  fi
+
+  if ! modprobe zram 2>/dev/null; then
+    warn "zram module unavailable — skipping (OOM risk on low-RAM installs)"
+    return 0
+  fi
+
+  local mem_kb total_kb
+  mem_kb="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)"
+  total_kb="$mem_kb"
+  if (( total_kb > 8 * 1024 * 1024 )); then
+    total_kb=$((8 * 1024 * 1024))
+  fi
+
+  if have zramctl; then
+    if ! zramctl --find --size "${total_kb}K" --algorithm zstd >/dev/null; then
+      warn "zramctl failed to allocate zram device"
+      return 0
+    fi
+    local dev
+    dev="$(zramctl --noheadings --output NAME --raw | tail -1)"
+    [[ -b "$dev" ]] || { warn "zram device not found after zramctl"; return 0; }
+    mkswap "$dev" >/dev/null
+    swapon -p 100 "$dev"
+  else
+    local i dev=""
+    for i in 0 1 2 3; do
+      if [[ -b "/dev/zram$i" ]]; then
+        dev="/dev/zram$i"; break
+      fi
+    done
+    if [[ -z "$dev" ]]; then
+      echo 1 > /sys/class/zram-control/hot_add 2>/dev/null || true
+      for i in 0 1 2 3; do
+        if [[ -b "/dev/zram$i" ]]; then
+          dev="/dev/zram$i"; break
+        fi
+      done
+    fi
+    [[ -n "$dev" ]] || { warn "no /dev/zram<N> available"; return 0; }
+    local zname="${dev##*/}"
+    if ! echo "${total_kb}K" > "/sys/class/block/$zname/disksize"; then
+      warn "could not set zram disksize"
+      return 0
+    fi
+    mkswap "$dev" >/dev/null
+    swapon "$dev"
+  fi
+
+  swapon --show
+  info "zram swap ready — protects against OOM during nixos-install"
+}
+
+# ---------------------------------------------------------------------------
 # Step 2 — OPTIONAL: guided partitioning (destructive!)
 # ---------------------------------------------------------------------------
 # Allow multi-letter sd/vd/hd devices (sdaa+ on large arrays / virtual disks beyond sdz);
@@ -599,6 +662,7 @@ if [[ $ENABLE_TPM2 -eq 1 ]] && [[ $ENABLE_LUKS -eq 0 ]]; then
 fi
 
 preflight
+step_zram
 step_partition
 step_password
 ensure_tools age age-keygen sops
