@@ -73,26 +73,64 @@ warn() { printf '\033[1;33m[!] %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m[error] %s\033[0m\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# ponytail: tools are expected on PATH (installer ISO or `nix shell ... -c bash ./setup.sh`).
-# Missing tools should fail loudly with a clear message, not be silently fetched and grafted.
+# Ensure tools are on PATH — on NixOS systems, install via nix if missing.
+# Maps tool names to their nixpkgs attribute for auto-install.
+ensure_tools() {
+  local missing=() pkgs=()
+  for tool in "$@"; do
+    if ! have "$tool"; then
+      missing+=("$tool")
+      case "$tool" in
+        age|age-keygen) pkgs+=(nixpkgs#age) ;;
+        sops)           pkgs+=(nixpkgs#sops) ;;
+        openssl)        pkgs+=(nixpkgs#openssl) ;;
+        cryptsetup)     pkgs+=(nixpkgs#cryptsetup) ;;
+        systemd-cryptenroll) pkgs+=(nixpkgs#systemd) ;;
+        whiptail|newt)  pkgs+=(nixpkgs#newt) ;;
+        sgdisk|gdisk)   pkgs+=(nixpkgs#gptfdisk) ;;
+        mkfs.vfat|dosfslabel) pkgs+=(nixpkgs#dosfstools) ;;
+        mkfs.xfs|xfs_db) pkgs+=(nixpkgs#xfsprogs) ;;
+        *)              warn "don't know how to install '$tool' via nix"; continue ;;
+      esac
+    fi
+  done
+  [[ ${#missing[@]} -eq 0 ]] && return 0
+
+  have nix || { warn "nix not in PATH — install ${missing[*]} manually"; return 0; }
+
+  # Deduplicate package list.
+  local -a unique_pkgs
+  mapfile -t unique_pkgs < <(printf '%s\n' "${pkgs[@]}" | sort -u)
+
+  info "Installing ${missing[*]} via nix..."
+  local out
+  out="$(nix --extra-experimental-features "nix-command flakes" build --no-link --print-out-paths "${unique_pkgs[@]}" 2>/dev/null)" || true
+  if [[ -n "$out" ]]; then
+    local bins
+    bins="$(echo "$out" | while IFS= read -r p; do [[ -d "$p/bin" ]] && echo "$p/bin" || true; done | tr '\n' ':')"
+    export PATH="${bins}${PATH}"
+    info "tools available"
+  else
+    warn "nix build failed — install ${missing[*]} manually"
+  fi
+}
 
 usage() {
   sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
-# ponytail: one prompt helper. With whiptail flags -> dialog; otherwise plain read.
-# ask <whiptail-flags...> <prompt>       -> input (echoed)
-# ask -s <prompt>                        -> silent input (password)
-# ask -m <prompt> a b c [default]        -> numbered menu, echoes selection
-USE_TUI=0
-[[ -t 1 && -z "${NONINTERACTIVE:-}" && $AN_YES_SET -eq 0 ]] \
-  && command -v whiptail >/dev/null 2>&1 && USE_TUI=1
+# ponytail: TUI flag is computed lazily (after ensure_tools may have
+# installed whiptail). --yes / NONINTERACTIVE / no-tty -> plain read.
+USE_TUI() {
+  [[ -t 1 && -z "${NONINTERACTIVE:-}" && $AN_YES_SET -eq 0 ]] \
+    && command -v whiptail >/dev/null 2>&1
+}
 ask() {
   # Menu form: -m <prompt> <items...> <default>
   if [[ $1 == "-m" ]]; then
     local prompt="$2"; shift 2
     local default="${@: -1}"; set -- "${@:1:$#-1}"
-    if [[ $USE_TUI -eq 1 ]]; then
+    if USE_TUI; then
       whiptail --title "Pick" --menu "$prompt" 20 70 "$(( $# / 2 ))" \
         --default-item "$default" "$@" 3>&1 1>&2 2>&3
     else
@@ -106,7 +144,7 @@ ask() {
   fi
   # Password form: -s <prompt>
   if [[ $1 == "-s" ]]; then
-    if [[ $USE_TUI -eq 1 ]]; then
+    if USE_TUI; then
       whiptail --title "Password" --passwordbox "$2" 10 70 3>&1 1>&2 2>&3
     else
       local ans; read -r -s -p "$2: " ans || return 1; echo >&2
@@ -115,7 +153,7 @@ ask() {
     return $?
   fi
   # Plain input form: passthrough to whiptail if TUI, else read.
-  if [[ $USE_TUI -eq 1 ]]; then
+  if USE_TUI; then
     whiptail "$@" 3>&1 1>&2 2>&3
   else
     local ans
@@ -127,7 +165,7 @@ ask() {
 confirm() {
   # confirm "prompt" -> 0 on yes, 1 on no. --yes always returns 0.
   [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
-  if [[ $USE_TUI -eq 1 ]]; then
+  if USE_TUI; then
     whiptail --title "Confirm" --yesno "$1" 10 70 3>&1 1>&2 2>&3
   else
     local answer
@@ -158,6 +196,9 @@ preflight() {
 
   info "repo: $REPO_ROOT"
   info "hosts: ${HOSTS[*]}"
+
+  # Install whiptail up-front so USE_TUI() can detect it before the first prompt.
+  ensure_tools whiptail
 
   have nixos-rebuild || warn "'nixos-rebuild' is not in PATH (available after nixos-install)"
 }
@@ -199,11 +240,7 @@ step_partition() {
     return 0
   fi
 
-  local missing=()
-  for t in sgdisk mkfs.vfat mkfs.xfs; do
-    have "$t" || missing+=("$t")
-  done
-  [[ ${#missing[@]} -eq 0 ]] || die "missing partition tools: ${missing[*]} — run setup.sh from the NixOS installer ISO (nix shell nixpkgs#gptfdisk nixpkgs#dosfstools nixpkgs#xfsprogs)"
+  ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
 
   echo
   echo "Available disks:"
@@ -255,8 +292,6 @@ step_partition() {
 
   local luks_pw=""
   if [[ $ENABLE_LUKS -eq 1 ]]; then
-    have cryptsetup || die "cryptsetup not found — run setup.sh from the installer ISO (nix shell nixpkgs#cryptsetup -c bash ./setup.sh ...)"
-
     if [[ -n "${LUKS_PASSPHRASE:-}" ]]; then
       luks_pw="$LUKS_PASSPHRASE"
     elif [[ $AN_YES_SET -eq 1 ]]; then
@@ -355,7 +390,7 @@ step_password() {
     return 0
   fi
 
-  have openssl || { warn "openssl not found — cannot hash a password"; return 1; }
+  ensure_tools openssl
 
   local p1 p2 hash
   while :; do
@@ -546,6 +581,7 @@ done
 preflight
 step_partition
 step_password
+ensure_tools age age-keygen sops
 step_age
 step_secrets
 step_deploy
