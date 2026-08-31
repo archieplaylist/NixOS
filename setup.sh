@@ -127,6 +127,9 @@ USE_TUI() {
 }
 ask() {
   # Menu form: -m <prompt> <items...> <default>
+  # Items are alternating tag/item pairs (whiptail convention). The fallback
+  # branch iterates *only the items* (every other arg) — see bugfix note in
+  # step_deploy: a plain `for tag; do` over the full list printed both halves.
   if [[ $1 == "-m" ]]; then
     local prompt="$2"; shift 2
     local default="${@: -1}"; set -- "${@:1:$#-1}"
@@ -135,8 +138,12 @@ ask() {
         --default-item "$default" "$@" 3>&1 1>&2 2>&3
     else
       echo "$prompt" >&2
-      local i=1 tag
-      for tag; do printf '  %d) %s\n' "$((i+=1))" "$tag" >&2; done
+      local i=0
+      # step by 2 over the pair list, print only the item half.
+      while [[ $# -gt 0 ]]; do
+        local tag="$1" item="$2"; shift 2
+        printf '  %s) %s\n' "$tag" "$item" >&2
+      done
       local ans; read -r -p "pick [$default]: " ans || return 1
       printf '%s' "${ans:-$default}"
     fi
