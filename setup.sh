@@ -3,10 +3,11 @@
 #
 # Usage:
 #   sudo ./setup.sh                  interactive setup
-#   sudo ./setup.sh --yes            noninteractive (answers yes to all prompts except
-#                                    destructive disk wipe — disk path + WIPE still required)
+#   sudo ./setup.sh --yes            noninteractive (answers yes to all confirm prompts;
+#                                    LUKS passphrase is still prompted interactively,
+#                                    or pass LUKS_PASSPHRASE env to skip)
 #   sudo ./setup.sh --luks           also LUKS2-encrypt the root partition (prompts for passphrase;
-#                                    use --yes + LUKS_PASSPHRASE env for noninteractive)
+#                                    pass LUKS_PASSPHRASE env to skip the prompt)
 #   sudo ./setup.sh --luks --tpm2    enroll TPM2 auto-unlock after luksFormat (requires --luks + TPM2 hw)
 #   sudo ./setup.sh --secure-boot    hint that Secure Boot (lanzaboote) still needs manual
 #                                    `sbctl` enrollment after first boot (works with or without --luks)
@@ -58,7 +59,7 @@ SOPS_YAML="$REPO_ROOT/secrets/.sops.yaml"
 SECRETS_FILE="$REPO_ROOT/secrets/secrets.yaml"
 
 AN_YES_SET=0
-# LUKS flags: --luks / --tpm2 / --secure-boot; LUKS_PASSPHRASE env for --yes noninteractive.
+# LUKS flags: --luks / --tpm2 / --secure-boot; LUKS_PASSPHRASE env to skip passphrase prompt.
 ENABLE_LUKS=0
 ENABLE_TPM2=0
 ENABLE_SECURE_BOOT=0
