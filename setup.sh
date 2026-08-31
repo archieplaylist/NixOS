@@ -23,7 +23,8 @@
 #   2.  OPTIONAL destructive: guided partitioning + formatting of a disk
 #       (only offered on the installer ISO; refuses mounted disks; requires
 #       typing the disk path and the word WIPE to confirm). Pass --luks to
-#       wrap the root partition in LUKS2 (label nixos-root-luks → mapper cryptroot).
+#       wrap the root partition in LUKS2 (partition label nixos-root, LUKS container
+#       label nixos-root-luks → mapper cryptroot).
 #   3.  user password: SHA-512 hash via openssl, written to
 #       /etc/hashed-password on the target during the deploy step (read at
 #       activation via `users.users.mario.hashedPasswordFile`); the hash is
@@ -67,6 +68,10 @@ LUKS_PASSPHRASE=""
 # Password hash captured in step_password; written to /etc/hashed-password
 # on the target by step_deploy (hosts/users.nix reads it via hashedPasswordFile).
 PASSWORD_HASH=""
+# Disk path captured in step_partition (only set when partitioning actually
+# happens — empty on --yes re-runs against an already-formatted disk, in which
+# case patch_host_flags leaves the disko device override alone).
+INSTALL_DISK=""
 
 log()  { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
 info() { printf '    %s\n' "$*"; }
@@ -337,7 +342,7 @@ step_partition() {
   warn "ABOUT TO ERASE ALL DATA ON: $disk"
   echo "  partition 1: ESP   1 GiB  vfat label 'nixos-boot'"
   if [[ $ENABLE_LUKS -eq 1 ]]; then
-    echo "  partition 2: root  rest  LUKS2 label 'nixos-root-luks' -> XFS inside (label 'nixos-root')"
+    echo "  partition 2: root  rest  LUKS2 label 'nixos-root' (LUKS container label 'nixos-root-luks') -> XFS inside (label 'nixos-root')"
   else
     echo "  partition 2: root  rest  xfs  label 'nixos-root'"
   fi
@@ -346,6 +351,9 @@ step_partition() {
     return 0
   }
   [[ "$ans" == "WIPE" ]] || { info "aborted — nothing was changed"; return 0; }
+
+  # Remember the disk for patch_host_flags (write disko.devices.disk.nixos.device).
+  INSTALL_DISK="$disk"
 
   # Partition device naming: nvme/mmcblk get a trailing "p".
   local p1 p2 pfx=""
@@ -589,7 +597,9 @@ step_secrets() {
 # the new values. In non-installer mode we still patch in place — the
 # user is running on a host they control and asked for the rebuild.
 patch_host_flags() {
-  local name="$1" host_file="$HOSTS_DIR/$name.nix" key
+  local name="$1"
+  local host_file="$HOSTS_DIR/$name.nix"
+  local key
   [[ -f "$host_file" ]] || { warn "host file $host_file not found — cannot patch flags"; return 0; }
 
   local -a flips=()
@@ -618,6 +628,27 @@ patch_host_flags() {
       fi
     fi
   done
+
+  # When LUKS partitioning just happened on a non-/dev/sda disk, override
+  # the disko device path in the host file so the initrd can find the
+  # LUKS partition at boot. filesystems.nix declares it as
+  # `lib.mkDefault "/dev/sda"`, so any per-host assignment wins without
+  # a force-override. Skip when the disk is /dev/sda (the default already
+  # matches) or when no partitioning happened (INSTALL_DISK empty).
+  if [[ $ENABLE_LUKS -eq 1 && -n "$INSTALL_DISK" && "$INSTALL_DISK" != "/dev/sda" ]]; then
+    if grep -Eq "^[[:space:]]*disko\\.devices\\.disk\\.nixos\\.device[[:space:]]*=" "$host_file"; then
+      sed -i -E "s|^([[:space:]]*disko\\.devices\\.disk\\.nixos\\.device[[:space:]]*=[[:space:]]*)\"[^\"]*\"|\\1\"$INSTALL_DISK\"|" "$host_file"
+      info "patched $host_file: disko.devices.disk.nixos.device = \"$INSTALL_DISK\""
+    else
+      # Append after the last mySystem.* line so the config stays grouped.
+      if grep -q "^[[:space:]]*mySystem\\." "$host_file"; then
+        sed -i "/^[[:space:]]*mySystem\\./a\\    disko.devices.disk.nixos.device = \"$INSTALL_DISK\";" "$host_file"
+        info "appended to $host_file: disko.devices.disk.nixos.device = \"$INSTALL_DISK\""
+      else
+        warn "no mySystem.* assignment in $host_file — set disko.devices.disk.nixos.device = \"$INSTALL_DISK\" manually"
+      fi
+    fi
+  fi
 }
 
 step_deploy() {
@@ -650,7 +681,7 @@ step_deploy() {
 
     local rootdev label
     if [[ $ENABLE_LUKS -eq 1 ]]; then
-      rootdev="/dev/mapper/cryptroot"; label="nixos-root-luks"
+      rootdev="/dev/mapper/cryptroot"; label="nixos-root"
     else
       rootdev="/dev/disk/by-label/nixos-root"; label="nixos-root"
     fi
@@ -721,6 +752,9 @@ log "All done."
 warn "Password hash lives in /etc/hashed-password on the system (never in the repo)."
 if [[ $ENABLE_LUKS -eq 1 ]]; then
   info "mySystem.enableLuks = true was patched into the selected host file."
+  if [[ -n "$INSTALL_DISK" && "$INSTALL_DISK" != "/dev/sda" ]]; then
+    info "disko.devices.disk.nixos.device = \"$INSTALL_DISK\" was patched into the selected host file."
+  fi
 fi
 if [[ $ENABLE_TPM2 -eq 1 ]]; then
   if [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)" ]]; then

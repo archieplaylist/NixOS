@@ -23,7 +23,8 @@
         };
       })
 
-      # LUKS2 layout: LUKS partition (label nixos-root-luks) → mapper cryptroot → XFS (label nixos-root)
+      # LUKS2 layout: LUKS partition (GPT label nixos-root; LUKS container label nixos-root-luks,
+      # set by setup.sh cryptsetup --label, is informational only) → mapper cryptroot → XFS (label nixos-root)
       (lib.mkIf config.mySystem.enableLuks {
         # systemd initrd required for TPM2 auto-unlock (systemd-cryptenroll); harmless for passphrase-only
         boot.initrd.systemd.enable = true;
@@ -54,6 +55,11 @@
                   settings = {
                     allowDiscards = true;
                     bypassWorkqueues = true;
+                    # ponytail: always ask the TPM even if no TPM key is enrolled
+                    # (systemd-cryptsetup silently falls back to passphrase; setting
+                    # this only when enableTpm2 would require threading the option
+                    # through disko.settings, which can't see mySystem.* cleanly).
+                    crypttabExtraOpts = [ "tpm2-device=auto" ];
                   };
                   content = {
                     type = "filesystem";

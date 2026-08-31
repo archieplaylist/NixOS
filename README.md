@@ -252,8 +252,8 @@ Partitioning creates this layout on the selected disk (GPT, XFS):
 └── 2: root  rest  xfs  (label nixos-root)
 ```
 
-With `--luks`, partition 2 is LUKS2 (label `nixos-root-luks`) with XFS inside
-(mapper `cryptroot`, label `nixos-root`).
+With `--luks`, partition 2 is LUKS2 (partition label `nixos-root`, LUKS container
+label `nixos-root-luks`) with XFS inside (mapper `cryptroot`, label `nixos-root`).
 
 The nix store and all system/user state live on the root filesystem — no
 subvolumes, no `/persist`. Swap is handled with zram (`zramSwap.enable`), so
@@ -354,8 +354,9 @@ stay unencrypted until you repartition them — there is no in-place migration.
 
 **How it maps:**
 
-- `mySystem.enableLuks` — root partition becomes LUKS2 (`nixos-root-luks` →
-  mapper `cryptroot` → XFS). Declared via `disko.devices` in
+- `mySystem.enableLuks` — root partition becomes LUKS2 (partition label
+  `nixos-root`, LUKS container label `nixos-root-luks` → mapper `cryptroot` →
+  XFS). Declared via `disko.devices` in
   `modules/features/filesystems.nix` (non-LUKS hosts keep the plain
   `fileSystems`). `setup.sh --luks` does the actual `cryptsetup luksFormat`
   + `open` + `mkfs.xfs` at install time.
@@ -373,13 +374,10 @@ stay unencrypted until you repartition them — there is no in-place migration.
 sudo ./setup.sh --luks --tpm2        # or add --secure-boot
 ```
 
-then set the flags in the host module:
-
-```nix
-mySystem.enableLuks = true;
-mySystem.enableTpm2 = true;
-mySystem.enableSecureBoot = true;    # only if you enrolled keys
-```
+`setup.sh` automatically patches the matching `mySystem.enable*` flags and
+(when LUKS is enabled on a non-`/dev/sda` disk) the
+`disko.devices.disk.nixos.device` path into the selected host file under
+`modules/hosts/`, so no manual edits are needed afterward.
 
 **Secure Boot key enrollment (one-time, after first boot):**
 
