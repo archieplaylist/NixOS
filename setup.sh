@@ -7,9 +7,15 @@
 #                                    destructive disk wipe — disk path + WIPE still required)
 #   sudo ./setup.sh --luks           also LUKS2-encrypt the root partition (prompts for passphrase;
 #                                    use --yes + LUKS_PASSPHRASE env for noninteractive)
-#   sudo ./setup.sh --luks --tpm2    enroll TPM2 auto-unlock after luksFormat (needs TPM2 hardware)
-#   sudo ./setup.sh --secure-boot    hints Secure Boot (lanzaboote) setup — keys still enrolled manually
+#   sudo ./setup.sh --luks --tpm2    enroll TPM2 auto-unlock after luksFormat (requires TPM2 device)
+#   sudo ./setup.sh --luks --secure-boot  hint that Secure Boot (lanzaboote) still needs manual
+#                                    `sbctl` enrollment after first boot
 #   sudo ./setup.sh --help           show usage
+#
+# Required tools are assumed present (run from the NixOS installer ISO, or under
+# `nix shell nixpkgs#age nixpkgs#sops nixpkgs#openssl nixpkgs#cryptsetup
+# nixpkgs#systemd nixpkgs#newt nixpkgs#gptfdisk nixpkgs#dosfstools
+# nixpkgs#xfsprogs` on any other NixOS).
 #
 # Steps (each is idempotent and non-destructive — skips when already done):
 #   1.  preflight: repo layout + required tools
@@ -67,110 +73,53 @@ warn() { printf '\033[1;33m[!] %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m[error] %s\033[0m\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# Ensure tools are on PATH — on NixOS systems, install via nix if missing.
-# Maps tool names to their nixpkgs attribute for auto-install.
-ensure_tools() {
-  local missing=() pkgs=()
-  for tool in "$@"; do
-    if ! have "$tool"; then
-      missing+=("$tool")
-      case "$tool" in
-        age|age-keygen) pkgs+=(nixpkgs#age) ;;
-        sops)           pkgs+=(nixpkgs#sops) ;;
-        openssl)        pkgs+=(nixpkgs#openssl) ;;
-        cryptsetup)     pkgs+=(nixpkgs#cryptsetup) ;;
-        systemd-cryptenroll) pkgs+=(nixpkgs#systemd) ;;
-        whiptail|newt)  pkgs+=(nixpkgs#newt) ;;
-        *)              warn "don't know how to install '$tool' via nix"; continue ;;
-      esac
-    fi
-  done
-  [[ ${#missing[@]} -eq 0 ]] && return 0
-
-  have nix || { warn "nix not in PATH — install ${missing[*]} manually"; return 0; }
-
-  # Deduplicate package list.
-  local -a unique_pkgs
-  mapfile -t unique_pkgs < <(printf '%s\n' "${pkgs[@]}" | sort -u)
-
-  info "Installing ${missing[*]} via nix..."
-  local out
-  out="$(nix --extra-experimental-features "nix-command flakes" build --no-link --print-out-paths "${unique_pkgs[@]}" 2>/dev/null)" || true
-  if [[ -n "$out" ]]; then
-    local bins
-    bins="$(echo "$out" | while IFS= read -r p; do [[ -d "$p/bin" ]] && echo "$p/bin" || true; done | tr '\n' ':')"
-    export PATH="${bins}${PATH}"
-    info "tools available"
-  else
-    warn "nix build failed — install ${missing[*]} manually"
-  fi
-}
+# ponytail: tools are expected on PATH (installer ISO or `nix shell ... -c bash ./setup.sh`).
+# Missing tools should fail loudly with a clear message, not be silently fetched and grafted.
 
 usage() {
   sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
-# Ponytail: TUI mode is auto-on when stderr is a TTY and whiptail is available.
-# --yes / NONINTERACTIVE / no-tty / no-whiptail -> fall back to plain read.
+# ponytail: one prompt helper. With whiptail flags -> dialog; otherwise plain read.
+# ask <whiptail-flags...> <prompt>       -> input (echoed)
+# ask -s <prompt>                        -> silent input (password)
+# ask -m <prompt> a b c [default]        -> numbered menu, echoes selection
 USE_TUI=0
 [[ -t 1 && -z "${NONINTERACTIVE:-}" && $AN_YES_SET -eq 0 ]] \
   && command -v whiptail >/dev/null 2>&1 && USE_TUI=1
-
-# whiptail draws dialogs to stderr and writes user input to stdout, but our
-# callers capture output via $(...). The textbook FD dance (3>&1 1>&2 2>&3)
-# breaks under command substitution, so we route through a tempfile instead.
-_tui_run() {
-  local out
-  out="$(mktemp)"
-  # shellcheck disable=SC2064
-  trap "rm -f '$out'" RETURN
-  whiptail "$@" 2>/dev/null > "$out"
-  local rc=$?
-  cat "$out"
-  return $rc
-}
-
-# ask_input <title> <prompt> [default] -> echoes value; empty -> caller retries.
-ask_input() {
-  if [[ $USE_TUI -eq 1 ]]; then
-    _tui_run --title "$1" --inputbox "$2" 10 70 "${3-}" || return 1
-  else
-    local ans
-    read -r -p "$2: " ans || return 1
-    printf '%s' "$ans"
+ask() {
+  # Menu form: -m <prompt> <items...> <default>
+  if [[ $1 == "-m" ]]; then
+    local prompt="$2"; shift 2
+    local default="${@: -1}"; set -- "${@:1:$#-1}"
+    if [[ $USE_TUI -eq 1 ]]; then
+      whiptail --title "Pick" --menu "$prompt" 20 70 "$(( $# / 2 ))" \
+        --default-item "$default" "$@" 3>&1 1>&2 2>&3
+    else
+      echo "$prompt" >&2
+      local i=1 tag
+      for tag; do printf '  %d) %s\n' "$((i+=1))" "$tag" >&2; done
+      local ans; read -r -p "pick [$default]: " ans || return 1
+      printf '%s' "${ans:-$default}"
+    fi
+    return $?
   fi
-}
-
-# ask_password <title> <prompt> -> echoes password (no newline).
-ask_password() {
-  if [[ $USE_TUI -eq 1 ]]; then
-    _tui_run --title "$1" --passwordbox "$2" 10 70 || return 1
-  else
-    local ans
-    read -r -s -p "$2: " ans || return 1
-    echo >&2
-    printf '%s' "$ans"
+  # Password form: -s <prompt>
+  if [[ $1 == "-s" ]]; then
+    if [[ $USE_TUI -eq 1 ]]; then
+      whiptail --title "Password" --passwordbox "$2" 10 70 3>&1 1>&2 2>&3
+    else
+      local ans; read -r -s -p "$2: " ans || return 1; echo >&2
+      printf '%s' "$ans"
+    fi
+    return $?
   fi
-}
-
-# ask_menu <title> <prompt> <default-tag> <tag1> <item1> <tag2> <item2> ...
-# -> echoes chosen tag (or default-tag if user pressed Enter).
-ask_menu() {
-  local title="$1" prompt="$2" default="$3"; shift 3
+  # Plain input form: passthrough to whiptail if TUI, else read.
   if [[ $USE_TUI -eq 1 ]]; then
-    _tui_run --title "$title" --menu "$prompt" 20 70 "$(( $# / 2 ))" \
-      --default-item "$default" "$@" || return 1
+    whiptail "$@" 3>&1 1>&2 2>&3
   else
-    echo "$prompt" >&2
-    local i=1 tag item
-    while [[ $# -gt 0 ]]; do
-      tag="$1"; item="$2"; shift 2
-      printf '  %d) %s  %s\n' "$i" "$tag" "$item" >&2
-      ((i++))
-    done
     local ans
-    read -r -p "pick [1]: " ans || return 1
-    [[ -z "$ans" ]] && ans="$default"
+    read -r -p "${@: -1}: " ans || return 1
     printf '%s' "$ans"
   fi
 }
@@ -179,7 +128,7 @@ confirm() {
   # confirm "prompt" -> 0 on yes, 1 on no. --yes always returns 0.
   [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
   if [[ $USE_TUI -eq 1 ]]; then
-    _tui_run --title "Confirm" --yesno "$1" 10 70
+    whiptail --title "Confirm" --yesno "$1" 10 70 3>&1 1>&2 2>&3
   else
     local answer
     while :; do
@@ -262,7 +211,7 @@ step_partition() {
 
   local disk
   while :; do
-    disk="$(ask_input "Disk selection" "Type the full device path to wipe (e.g. /dev/sda)" "")" || {
+    disk="$(ask --title "Disk selection" --inputbox "Type the full device path to wipe (e.g. /dev/sda)" 10 70 "")" || {
       info "no input — aborting partition step"
       return 0
     }
@@ -284,7 +233,7 @@ step_partition() {
   else
     echo "  partition 2: root  rest  xfs  label 'nixos-root'"
   fi
-  ans="$(ask_input "Confirm destructive wipe" "Type WIPE (exactly) to continue erasing $disk" "")" || {
+  ans="$(ask --title "Confirm destructive wipe" --inputbox "Type WIPE (exactly) to continue erasing $disk" 10 70 "")" || {
     info "no input — aborting partition step"
     return 0
   }
@@ -299,16 +248,14 @@ step_partition() {
   sgdisk --zap-all "$disk"
   sgdisk -n 1:0:+1G -t 1:ef00 -c 1:nixos-boot "$disk"
   sgdisk -n 2:0:0  -t 2:8300 -c 2:nixos-root "$disk"
-  udevadm settle || true
   partprobe "$disk" || true
-  sleep 1
+  udevadm settle --timeout=10
 
   mkfs.vfat -F 32 -n nixos-boot "$p1"
 
   local luks_pw=""
   if [[ $ENABLE_LUKS -eq 1 ]]; then
-    ensure_tools cryptsetup
-    have cryptsetup || die "cryptsetup not found — install it or run from the installer ISO (nix shell nixpkgs#cryptsetup)"
+    have cryptsetup || die "cryptsetup not found — run setup.sh from the installer ISO (nix shell nixpkgs#cryptsetup -c bash ./setup.sh ...)"
 
     if [[ -n "${LUKS_PASSPHRASE:-}" ]]; then
       luks_pw="$LUKS_PASSPHRASE"
@@ -317,11 +264,11 @@ step_partition() {
     else
       while :; do
         local pw1 pw2
-        pw1="$(ask_password "LUKS passphrase" "LUKS passphrase for $p2")" || {
+        pw1="$(ask -s "LUKS passphrase for $p2")" || {
           info "aborted"
           return 0
         }
-        pw2="$(ask_password "LUKS passphrase (repeat)" "Repeat LUKS passphrase")" || {
+        pw2="$(ask -s "Repeat LUKS passphrase")" || {
           info "aborted"
           return 0
         }
@@ -341,24 +288,37 @@ step_partition() {
     # system/user state live on it directly — no subvolumes, no /persist.
     mkfs.xfs -f -L nixos-root /dev/mapper/cryptroot
 
-    # TPM2 auto-unlock (optional): enroll only if a TPM2 device is present.
-    if [[ $ENABLE_TPM2 -eq 1 ]]; then
-      ensure_tools systemd-cryptenroll
-      if have systemd-cryptenroll && [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null)" ]]; then
-        info "enrolling TPM2 auto-unlock (PCR 7+8)"
-        local keyfile
-        keyfile="$(mktemp)"
-        chmod 600 "$keyfile"
-        printf '%s' "$luks_pw" > "$keyfile"
-        if systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+8 --unlock-key-file="$keyfile" "$p2"; then
-          info "TPM2 enrolled — boot will auto-unlock when PCR 7+8 match (passphrase remains as fallback)"
-        else
-          warn "TPM2 enrollment failed — passphrase-only for now"
+    # TPM2 auto-unlock (optional): flag + device presence + confirm.
+    # - --tpm2 set: must have a TPM2 device; fail loudly under --yes so it
+    #   doesn't silently no-op.
+    # - flag unset: prompt only if a TPM2 device is present (so non-TPM2
+    #   boxes never see the question).
+    if have systemd-cryptenroll; then
+      local tpm2_devs
+      tpm2_devs="$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)"
+      if [[ -n "$tpm2_devs" ]]; then
+        local do_tpm2=0
+        if [[ $ENABLE_TPM2 -eq 1 ]]; then
+          do_tpm2=1
+        elif [[ $AN_YES_SET -eq 0 ]] && confirm "Also enroll TPM2 auto-unlock (PCR 7+8)?"; then
+          do_tpm2=1
         fi
-        rm -f "$keyfile"
-      else
-        warn "no TPM2 device found (systemd-cryptenroll --tpm2-device=list empty) — skipping enrollment"
+        if [[ $do_tpm2 -eq 1 ]]; then
+          local keyfile
+          keyfile="$(mktemp)"; chmod 600 "$keyfile"
+          printf '%s' "$luks_pw" > "$keyfile"
+          if systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+8 --unlock-key-file="$keyfile" "$p2"; then
+            info "TPM2 enrolled — auto-unlock on PCR 7+8 match (passphrase remains as fallback)"
+          else
+            warn "TPM2 enrollment failed — passphrase-only for now"
+          fi
+          rm -f "$keyfile"
+        fi
+      elif [[ $ENABLE_TPM2 -eq 1 ]]; then
+        die "--tpm2 was requested but no TPM2 device found (systemd-cryptenroll --tpm2-device=list empty)"
       fi
+    elif [[ $ENABLE_TPM2 -eq 1 ]]; then
+      die "--tpm2 requires systemd-cryptenroll (nix shell nixpkgs#systemd -c bash ./setup.sh ...)"
     fi
     unset luks_pw
   else
@@ -399,11 +359,11 @@ step_password() {
 
   local p1 p2 hash
   while :; do
-    p1="$(ask_password "User password (mario)" "New password for user 'mario'")" || {
+    p1="$(ask -s "New password for user 'mario'")" || {
       info "no input — aborting password step"
       return 0
     }
-    p2="$(ask_password "User password (repeat)" "Repeat password for 'mario'")" || {
+    p2="$(ask -s "Repeat password for 'mario'")" || {
       info "no input — aborting password step"
       return 0
     }
@@ -515,133 +475,56 @@ step_secrets() {
 step_deploy() {
   log "Deploy"
 
-  echo "Available hosts:"
-  local i
-  for i in "${!HOSTS[@]}"; do
-    printf '  %d) %s\n' "$((i + 1))" "${HOSTS[$i]%.nix}"
-  done
+  confirm "Rebuild the system now?" || {
+    info "skipped — run later with: sudo nixos-rebuild switch --flake .#<host>"
+    info "             or:           sudo nixos-install --flake .#<host>  (installer ISO)"
+    return 0
+  }
 
-  if confirm "Rebuild the system now?"; then
-    local choice name
-    # Build tag/item pairs: tag = 1-based index, item = "hostname (filename)".
-    local -a menu_args
-    local i
-    for i in "${!HOSTS[@]}"; do
-      menu_args+=("$((i + 1))" "${HOSTS[$i]%.nix}")
-    done
-    choice="$(ask_menu "Host selection" "Pick a host to rebuild:" "1" "${menu_args[@]}")" \
-      || die "host selection aborted"
-    if [[ ! "$choice" =~ ^[0-9]+$ ]] || ((choice < 1 || choice > ${#HOSTS[@]})); then
-      die "invalid host number: $choice"
-    fi
-    name="${HOSTS[$((choice - 1))]%.nix}"
+  # Build tag/item pairs for the menu.
+  local -a menu_args
+  local i h
+  for i in "${!HOSTS[@]}"; do menu_args+=("$((i+1))" "${HOSTS[$i]%.nix}"); done
+  local choice
+  choice="$(ask -m "Pick a host to rebuild:" "${menu_args[@]}" "1")" || die "host selection aborted"
+  [[ "$choice" =~ ^[0-9]+$ ]] && ((choice >= 1 && choice <= ${#HOSTS[@]})) \
+    || die "invalid host number: $choice"
+  local name="${HOSTS[$((choice-1))]%.nix}"
 
-    if is_installer_env; then
-      # libgit2 refuses repos not owned by the current user (root on installer).
-      # Only on installer ISO (ephemeral tmpfs) to avoid polluting /root/.gitconfig.
-      git config --global --add safe.directory "$REPO_ROOT"
-      # Ensure /mnt is cleaned up on failure (secondary to findmnt guards below).
-      trap 'umount -l /mnt/boot 2>/dev/null || true; umount -l /mnt 2>/dev/null || true' ERR
-      # Installer ISO: install to the target disk (not the running tmpfs).
-      # Mount the root device at /mnt; when --luks was used the root lives
-      # behind the cryptroot mapper (already opened in step_partition).
-      local rootdev="/dev/disk/by-label/nixos-root"
-      if [[ $ENABLE_LUKS -eq 1 ]]; then
-        rootdev="/dev/mapper/cryptroot"
-        if [[ ! -b "$rootdev" ]]; then
-          local luks_dev="/dev/disk/by-label/nixos-root-luks"
-          [[ -e "$luks_dev" ]] || luks_dev="$(blkid -L nixos-root-luks 2>/dev/null || true)"
-          if [[ -n "$luks_dev" && -e "$luks_dev" ]]; then
-            ensure_tools cryptsetup
-            info "opening $luks_dev as cryptroot"
-            if [[ -n "${LUKS_PASSPHRASE:-}" ]]; then
-              printf '%s' "$LUKS_PASSPHRASE" | cryptsetup open --key-file=- --type luks "$luks_dev" cryptroot \
-                || die "failed to open LUKS volume"
-            else
-              cryptsetup open --type luks "$luks_dev" cryptroot || die "failed to open LUKS volume"
-            fi
-          else
-            die "no LUKS device with label 'nixos-root-luks' found"
-          fi
-        fi
-      else
-        [[ -e "$rootdev" ]] || rootdev="$(blkid -L nixos-root 2>/dev/null || true)"
-        [[ -n "$rootdev" && -e "$rootdev" ]] || { warn "no device with label 'nixos-root' found — run the partition step or create the labels manually, then run: nixos-install --flake .#$name"; return 1; }
-      fi
+  if is_installer_env; then
+    # libgit2 refuses repos not owned by the current user (root on installer).
+    git config --global --add safe.directory "$REPO_ROOT"
 
-      if findmnt -n /mnt >/dev/null 2>&1; then
-        info "/mnt already mounted — skipping root mount"
-      else
-        info "mounting $rootdev at /mnt (XFS layout)"
-        mount "$rootdev" /mnt || die "failed to mount $rootdev at /mnt"
-      fi
-      mkdir -p /mnt/boot
-      local bootdev="/dev/disk/by-label/nixos-boot"
-      [[ -e "$bootdev" ]] || bootdev="$(blkid -L nixos-boot 2>/dev/null || true)"
-      if [[ -n "$bootdev" && -e "$bootdev" ]]; then
-        if findmnt -n /mnt/boot >/dev/null 2>&1; then
-          info "/mnt/boot already mounted — skipping"
-        else
-          info "mounting $bootdev at /mnt/boot"
-          # Mask so /boot (vfat) is root-only; avoids the systemd-boot
-          # "world accessible ... security hole" warning during install.
-          mount -o fmask=0077,dmask=0077 "$bootdev" /mnt/boot || die "failed to mount $bootdev at /mnt/boot"
-        fi
-      fi
+    local rootdev="/dev/disk/by-label/nixos-root"
+    [[ $ENABLE_LUKS -eq 1 ]] && rootdev="/dev/mapper/cryptroot"
+    [[ -e "$rootdev" ]] || die "no device with label '$([[ $ENABLE_LUKS -eq 1 ]] && echo nixos-root-luks || echo nixos-root)' — run the partition step first"
 
-      # Copy the flake into the target — including dotfiles (.git, .gitignore,
-      # secrets/.sops.yaml*). Copying without .git makes the target a plain path
-      # flake whose NAR hash changes whenever the lock file is updated, which
-      # breaks nixos-install with "NAR hash mismatch in input path:...".
-      mkdir -p /mnt/etc/nixos
-      cp -r "$REPO_ROOT"/. /mnt/etc/nixos/
+    findmnt -n /mnt        >/dev/null 2>&1 || mount "$rootdev" /mnt        || die "mount $rootdev at /mnt failed"
+    mkdir -p /mnt/boot
+    findmnt -n /mnt/boot  >/dev/null 2>&1 \
+      || mount -o fmask=0077,dmask=0077 /dev/disk/by-label/nixos-boot /mnt/boot \
+      || die "mount boot failed"
 
-      # Provision the user's hashed password into the target. users.nix
-      # reads it at activation via `hashedPasswordFile`, so the hash must
-      # live on the installed filesystem, not in the flake.
-      if [[ -n "$PASSWORD_HASH" ]]; then
-        install -d /mnt/etc
-        printf '%s\n' "$PASSWORD_HASH" > /mnt/etc/hashed-password
-        chmod 600 /mnt/etc/hashed-password
-        info "wrote /mnt/etc/hashed-password"
-      else
-        info "no password hash captured — set one later with \`sudo passwd mario\`"
-      fi
+    # Copy the flake including dotfiles (.git, .gitignore, secrets/.sops.yaml*).
+    # Without .git the target is a plain path flake whose NAR hash changes
+    # whenever the lock file updates, breaking nixos-install with "NAR hash
+    # mismatch in input path:...".
+    mkdir -p /mnt/etc/nixos
+    cp -r "$REPO_ROOT"/. /mnt/etc/nixos/
 
-      # Provision the sops age key into the target. modules/features/secrets.nix
-      # expects it at /root/.config/sops/age on the installed system. Without
-      # this the first boot would generate a fresh key that doesn't match
-      # secrets/.sops.yaml and sops activation would fail.
-      if [[ -f "$AGE_KEY_PATH" ]]; then
-        install -d -m 700 /mnt/root/.config/sops/age
-        install -m 600 "$AGE_KEY_PATH" /mnt/root/.config/sops/age/keys.txt
-        info "copied age key to /mnt/root/.config/sops/age/keys.txt"
-      else
-        warn "no age key found — first boot will fail / skip sops decryption"
-      fi
+    # Provision the password hash and age key on the target.
+    [[ -n "$PASSWORD_HASH" ]] && printf '%s\n' "$PASSWORD_HASH" > /mnt/etc/hashed-password \
+      && chmod 600 /mnt/etc/hashed-password
+    [[ -f "$AGE_KEY_PATH" ]] && install -d -m 700 /mnt/root/.config/sops/age \
+      && install -m 600 "$AGE_KEY_PATH" /mnt/root/.config/sops/age/keys.txt
 
-      info "-> nixos-install for '$name'"
-      nixos-install --flake "/mnt/etc/nixos#$name" --no-root-passwd
-      info "install done — reboot into '$name' (mario's password was set during setup)"
-    else
-      # Already on the installed system.
-      if [[ -n "$PASSWORD_HASH" ]]; then
-        install -d /etc
-        printf '%s\n' "$PASSWORD_HASH" > /etc/hashed-password
-        chmod 600 /etc/hashed-password
-        info "wrote /etc/hashed-password"
-      fi
-      info "-> nixos-rebuild for '$name'"
-      nixos-rebuild switch --flake ".#$name"
-    fi
+    info "-> nixos-install for '$name'"
+    nixos-install --flake "/mnt/etc/nixos#$name" --no-root-passwd
   else
-    if is_installer_env; then
-      info "deploy skipped — to install later, run:"
-      info "  sudo nixos-install --flake .#<host>"
-    else
-      info "deploy skipped — rebuild later with:"
-      info "  sudo nixos-rebuild switch --flake .#<host>"
-    fi
+    [[ -n "$PASSWORD_HASH" ]] && printf '%s\n' "$PASSWORD_HASH" > /etc/hashed-password \
+      && chmod 600 /etc/hashed-password
+    info "-> nixos-rebuild for '$name'"
+    nixos-rebuild switch --flake ".#$name"
   fi
 }
 
@@ -662,9 +545,7 @@ done
 
 preflight
 step_partition
-ensure_tools openssl
 step_password
-ensure_tools age age-keygen sops
 step_age
 step_secrets
 step_deploy
