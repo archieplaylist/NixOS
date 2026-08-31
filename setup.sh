@@ -299,10 +299,10 @@ step_partition() {
 
   local luks_pw=""
   if [[ $ENABLE_LUKS -eq 1 ]]; then
+    # --yes suppresses yes/no confirms; passwords are always interactive
+    # (or read from LUKS_PASSPHRASE env) because they can't be defaulted.
     if [[ -n "${LUKS_PASSPHRASE:-}" ]]; then
       luks_pw="$LUKS_PASSPHRASE"
-    elif [[ $AN_YES_SET -eq 1 ]]; then
-      die "--yes mode requires LUKS_PASSPHRASE env for --luks"
     else
       while :; do
         local pw1 pw2
