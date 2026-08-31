@@ -45,11 +45,39 @@
       appGroups = lib.mkOption {
         type = lib.types.submodule {
           options = {
-            general = {
+            browsers = {
               enable = lib.mkOption {
                 type = lib.types.bool;
                 default = true;
-                description = "General-purpose applications (browsers, media, editors).";
+                description = "Web browsers (firefox, chromium, vivaldi).";
+              };
+            };
+            media = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Media players and tooling (vlc, mpv, yt-dlp, ffmpeg).";
+              };
+            };
+            office = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Office and productivity (joplin, onlyoffice, libreoffice).";
+              };
+            };
+            comms = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Communication apps (discord).";
+              };
+            };
+            editor = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Code editors (vscode).";
               };
             };
             gaming = {

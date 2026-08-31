@@ -17,12 +17,15 @@
     mySystem.enableTailscale = false;
     mySystem.enableSops = false;
     
-    mySystem.enableLuks = false; # vm never encrypted — no TPM, disposable
+    mySystem.enableLuks = false;
     mySystem.enableTpm2 = false;
     mySystem.enableSecureBoot = false;
 
     mySystem.appGroups.gaming.enable = false;
     mySystem.appGroups.dev.enable = false;
+    mySystem.appGroups.work.enable = false;
+    mySystem.appGroups.comms.enable = false;
+    mySystem.appGroups.office.enable = false;
 
     # ponytail: vm never prints — save CUPS + Avahi broadcast
     services.printing.enable = false;

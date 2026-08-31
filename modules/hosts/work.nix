@@ -11,13 +11,13 @@
     mySystem.hostname = "central8";
     mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
-    mySystem.enableSSH = false; # ponytail: no authorizedKeys yet — set true + add key after `ssh-keygen -t ed25519` on client
+    mySystem.enableSSH = false;
     mySystem.enableDocker = true;
     mySystem.enableTailscale = false;
     mySystem.enableSops = true;
     mySystem.enableVirtualBox = true;
     mySystem.enableSmartd = true;
-    # ponytail: existing install — LUKS requires repartition, keep false until reinstalling
+    
     mySystem.enableLuks = false;
     mySystem.enableTpm2 = false;
     mySystem.enableSecureBoot = false;
@@ -27,6 +27,7 @@
     ];
     mySystem.appGroups.work.enable = true;
     mySystem.appGroups.gaming.enable = false;
+    mySystem.appGroups.comms.enable = false;
 
     mySystem.flatpakApps = lib.mkAfter [
       "rest.insomnia.Insomnia"

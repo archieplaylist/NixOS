@@ -78,7 +78,7 @@ Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`
   on an already-installed machine breaks boot until you repartition.
 - `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
 - `mySystem.gnomeExtensions` — single source of truth for GNOME extensions.
-- `mySystem.appGroups.{general,gaming,dev,work}.enable` — application group
+- `mySystem.appGroups.{browsers,media,office,comms,editor,gaming,dev,work}.enable` — application group
   toggles used by **both** the system side (`desktop.nix`, `audio.nix`,
   `gaming.nix`) and the user side
   (`modules/home/apps.nix` via `osConfig`). This is the per-host switch for the
@@ -116,9 +116,11 @@ Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`
 User packages live in `modules/home/apps.nix`, each group gated behind its
 `mySystem.appGroups.<group>.enable` flag:
 
-- **general** (default on): Firefox, Chromium, Vivaldi, VLC, mpv, yt-dlp,
-  ffmpeg, Discord (from nixpkgs-unstable), Joplin, OnlyOffice, LibreOffice,
-  VS Code.
+- **browsers** (default on): Firefox, Chromium, Vivaldi.
+- **media** (default on): VLC, mpv, yt-dlp, ffmpeg.
+- **office** (default on): Joplin, OnlyOffice, LibreOffice.
+- **comms** (default on): Discord (from nixpkgs-unstable).
+- **editor** (default on): VS Code (from nixpkgs-unstable).
 - **dev** (default on): Node.js, GitHub CLI, docker-compose, jq, yq.
 - **gaming** (default on): Heroic, MangoHud, Cartridges, goverlay, OpenMW,
   Daggerfall Unity, SuperTuxKart, vulkan-tools, protonup-qt, vkbasalt (user
