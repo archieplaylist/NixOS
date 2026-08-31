@@ -80,6 +80,7 @@ ensure_tools() {
         openssl)        pkgs+=(nixpkgs#openssl) ;;
         cryptsetup)     pkgs+=(nixpkgs#cryptsetup) ;;
         systemd-cryptenroll) pkgs+=(nixpkgs#systemd) ;;
+        whiptail|newt)  pkgs+=(nixpkgs#newt) ;;
         *)              warn "don't know how to install '$tool' via nix"; continue ;;
       esac
     fi
@@ -109,18 +110,87 @@ usage() {
   sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
+# Ponytail: TUI mode is auto-on when stderr is a TTY and whiptail is available.
+# --yes / NONINTERACTIVE / no-tty / no-whiptail -> fall back to plain read.
+USE_TUI=0
+[[ -t 1 && -z "${NONINTERACTIVE:-}" && $AN_YES_SET -eq 0 ]] \
+  && command -v whiptail >/dev/null 2>&1 && USE_TUI=1
+
+# whiptail draws dialogs to stderr and writes user input to stdout, but our
+# callers capture output via $(...). The textbook FD dance (3>&1 1>&2 2>&3)
+# breaks under command substitution, so we route through a tempfile instead.
+_tui_run() {
+  local out
+  out="$(mktemp)"
+  # shellcheck disable=SC2064
+  trap "rm -f '$out'" RETURN
+  whiptail "$@" 2>/dev/null > "$out"
+  local rc=$?
+  cat "$out"
+  return $rc
+}
+
+# ask_input <title> <prompt> [default] -> echoes value; empty -> caller retries.
+ask_input() {
+  if [[ $USE_TUI -eq 1 ]]; then
+    _tui_run --title "$1" --inputbox "$2" 10 70 "${3-}" || return 1
+  else
+    local ans
+    read -r -p "$2: " ans || return 1
+    printf '%s' "$ans"
+  fi
+}
+
+# ask_password <title> <prompt> -> echoes password (no newline).
+ask_password() {
+  if [[ $USE_TUI -eq 1 ]]; then
+    _tui_run --title "$1" --passwordbox "$2" 10 70 || return 1
+  else
+    local ans
+    read -r -s -p "$2: " ans || return 1
+    echo >&2
+    printf '%s' "$ans"
+  fi
+}
+
+# ask_menu <title> <prompt> <default-tag> <tag1> <item1> <tag2> <item2> ...
+# -> echoes chosen tag (or default-tag if user pressed Enter).
+ask_menu() {
+  local title="$1" prompt="$2" default="$3"; shift 3
+  if [[ $USE_TUI -eq 1 ]]; then
+    _tui_run --title "$title" --menu "$prompt" 20 70 "$(( $# / 2 ))" \
+      --default-item "$default" "$@" || return 1
+  else
+    echo "$prompt" >&2
+    local i=1 tag item
+    while [[ $# -gt 0 ]]; do
+      tag="$1"; item="$2"; shift 2
+      printf '  %d) %s  %s\n' "$i" "$tag" "$item" >&2
+      ((i++))
+    done
+    local ans
+    read -r -p "pick [1]: " ans || return 1
+    [[ -z "$ans" ]] && ans="$default"
+    printf '%s' "$ans"
+  fi
+}
+
 confirm() {
   # confirm "prompt" -> 0 on yes, 1 on no. --yes always returns 0.
-  [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1"; return 0; }
-  local answer
-  while :; do
-    read -r -p "$1 [y/N] " answer
-    case "$answer" in
-      y|Y|yes|YES) return 0 ;;
-      n|N|no|NO|"") return 1 ;;
-      *) echo "please answer yes or no" ;;
-    esac
-  done
+  [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
+  if [[ $USE_TUI -eq 1 ]]; then
+    _tui_run --title "Confirm" --yesno "$1" 10 70
+  else
+    local answer
+    while :; do
+      read -r -p "$1 [y/N] " answer
+      case "$answer" in
+        y|Y|yes|YES) return 0 ;;
+        n|N|no|NO|"") return 1 ;;
+        *) echo "please answer yes or no" ;;
+      esac
+    done
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -192,10 +262,10 @@ step_partition() {
 
   local disk
   while :; do
-    if ! read -r -p "  type the full device path to wipe (e.g. /dev/sda): " disk; then
+    disk="$(ask_input "Disk selection" "Type the full device path to wipe (e.g. /dev/sda)" "")" || {
       info "no input — aborting partition step"
       return 0
-    fi
+    }
     [[ -n "$disk" ]] || continue
     [[ "$disk" =~ $DISK_PATTERN ]] || { warn "invalid device path: $disk"; continue; }
     [[ -b "$disk" ]] || { warn "not a block device: $disk"; continue; }
@@ -214,10 +284,10 @@ step_partition() {
   else
     echo "  partition 2: root  rest  xfs  label 'nixos-root'"
   fi
-  if ! read -r -p "  type WIPE (exactly) to continue: " ans; then
-    echo "no input — aborting partition step"
+  ans="$(ask_input "Confirm destructive wipe" "Type WIPE (exactly) to continue erasing $disk" "")" || {
+    info "no input — aborting partition step"
     return 0
-  fi
+  }
   [[ "$ans" == "WIPE" ]] || { info "aborted — nothing was changed"; return 0; }
 
   # Partition device naming: nvme/mmcblk get a trailing "p".
@@ -247,10 +317,14 @@ step_partition() {
     else
       while :; do
         local pw1 pw2
-        if ! read -r -s -p "  LUKS passphrase: " pw1; then echo; info "aborted"; return 0; fi
-        echo
-        read -r -s -p "  repeat LUKS passphrase: " pw2 || true
-        echo
+        pw1="$(ask_password "LUKS passphrase" "LUKS passphrase for $p2")" || {
+          info "aborted"
+          return 0
+        }
+        pw2="$(ask_password "LUKS passphrase (repeat)" "Repeat LUKS passphrase")" || {
+          info "aborted"
+          return 0
+        }
         [[ -n "$pw1" ]] || { warn "empty passphrase not allowed — try again"; continue; }
         [[ "$pw1" == "$pw2" ]] || { warn "passphrases do not match — try again"; continue; }
         luks_pw="$pw1"
@@ -325,18 +399,14 @@ step_password() {
 
   local p1 p2 hash
   while :; do
-    if ! read -r -s -p "  new password for mario: " p1; then
-      echo
+    p1="$(ask_password "User password (mario)" "New password for user 'mario'")" || {
       info "no input — aborting password step"
       return 0
-    fi
-    echo
-    if ! read -r -s -p "  repeat password:        " p2; then
-      echo
+    }
+    p2="$(ask_password "User password (repeat)" "Repeat password for 'mario'")" || {
       info "no input — aborting password step"
       return 0
-    fi
-    echo
+    }
     [[ -n "$p1" ]] || { warn "empty password not allowed — try again"; continue; }
     [[ "$p1" == "$p2" ]] || { warn "passwords do not match — try again"; continue; }
     break
@@ -453,12 +523,14 @@ step_deploy() {
 
   if confirm "Rebuild the system now?"; then
     local choice name
-    if [[ $AN_YES_SET -eq 1 ]]; then
-      choice=1
-    else
-      read -r -p "  pick a host [1]: " choice
-    fi
-    [[ -z "$choice" ]] && choice=1
+    # Build tag/item pairs: tag = 1-based index, item = "hostname (filename)".
+    local -a menu_args
+    local i
+    for i in "${!HOSTS[@]}"; do
+      menu_args+=("$((i + 1))" "${HOSTS[$i]%.nix}")
+    done
+    choice="$(ask_menu "Host selection" "Pick a host to rebuild:" "1" "${menu_args[@]}")" \
+      || die "host selection aborted"
     if [[ ! "$choice" =~ ^[0-9]+$ ]] || ((choice < 1 || choice > ${#HOSTS[@]})); then
       die "invalid host number: $choice"
     fi
