@@ -7,9 +7,9 @@
 #                                    destructive disk wipe — disk path + WIPE still required)
 #   sudo ./setup.sh --luks           also LUKS2-encrypt the root partition (prompts for passphrase;
 #                                    use --yes + LUKS_PASSPHRASE env for noninteractive)
-#   sudo ./setup.sh --luks --tpm2    enroll TPM2 auto-unlock after luksFormat (requires TPM2 device)
-#   sudo ./setup.sh --luks --secure-boot  hint that Secure Boot (lanzaboote) still needs manual
-#                                    `sbctl` enrollment after first boot
+#   sudo ./setup.sh --luks --tpm2    enroll TPM2 auto-unlock after luksFormat (requires --luks + TPM2 hw)
+#   sudo ./setup.sh --secure-boot    hint that Secure Boot (lanzaboote) still needs manual
+#                                    `sbctl` enrollment after first boot (works with or without --luks)
 #   sudo ./setup.sh --help           show usage
 #
 # Required tools are assumed present (run from the NixOS installer ISO, or under
@@ -583,12 +583,19 @@ while [[ $# -gt 0 ]]; do
     -h|--help) usage; exit 0 ;;
     -y|--yes) AN_YES_SET=1 ;;
     --luks) ENABLE_LUKS=1 ;;
-    --tpm2) ENABLE_LUKS=1; ENABLE_TPM2=1 ;;
-    --secure-boot) ENABLE_LUKS=1; ENABLE_SECURE_BOOT=1 ;;
+    --tpm2) ENABLE_TPM2=1 ;;
+    --secure-boot) ENABLE_SECURE_BOOT=1 ;;
     *) die "unknown option: $1" ;;
   esac
   shift
 done
+
+# --tpm2 enrolls a TPM2 key against the LUKS volume, so it requires --luks.
+# --secure-boot only emits a post-install hint (lanzaboote works fine on plain
+# unencrypted roots too), so it stands alone.
+if [[ $ENABLE_TPM2 -eq 1 ]] && [[ $ENABLE_LUKS -eq 0 ]]; then
+  die "--tpm2 requires --luks (e.g.: sudo ./setup.sh --luks --tpm2)"
+fi
 
 preflight
 step_partition
