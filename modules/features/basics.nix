@@ -37,21 +37,6 @@
       };
       services.system-config-printer.enable = lib.mkDefault true;
 
-      # nix-ld for VS Code extensions / dynamically-linked binaries
-      programs.nix-ld = {
-        enable = true;
-        libraries = with pkgs; [
-          gcc-unwrapped.lib
-          glib
-          libsecret
-          icu
-          krb5
-          libnotify
-          nspr
-          nss
-        ];
-      };
-
       boot.binfmt.registrations.appimage = {
         wrapInterpreterInShell = false;
         interpreter = "${pkgs.appimage-run}";
