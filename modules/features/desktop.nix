@@ -34,6 +34,7 @@
 
         environment.systemPackages = with pkgs; [
           gnome-tweaks
+          dconf-editor
         ] ++ (map (e: pkgs.gnomeExtensions.${e.package}) config.mySystem.gnomeExtensions);
       })
 
