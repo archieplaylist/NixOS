@@ -36,6 +36,23 @@
           gnome-tweaks
           dconf-editor
         ] ++ (map (e: pkgs.gnomeExtensions.${e.package}) config.mySystem.gnomeExtensions);
+
+        environment.gnome.excludePackages = with pkgs; [
+          gnome-software
+          epiphany
+          gnome-maps
+          gnome-weather
+          gnome-contacts
+          # GNOME Games
+          swell-foop
+          tali
+          five-or-more
+          four-in-a-row
+          lightsoff
+          gnome-chess
+          gnome-sudoku
+          gnome-mines
+        ];
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "plasma") {
