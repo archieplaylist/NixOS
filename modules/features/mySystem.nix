@@ -1,5 +1,5 @@
 # Per-host flags + GNOME extensions source of truth (base slot)
-{ ... }: {
+_: {
   config.nixos.modules.base = { config, lib, ... }: {
     options.mySystem = {
       hostname = lib.mkOption {

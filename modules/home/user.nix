@@ -1,5 +1,5 @@
 # mario home — identity + XDG/session (other modules merge into same slot)
-{ ... }: {
+_: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     home = {
       username = "mario";

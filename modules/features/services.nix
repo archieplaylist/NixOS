@@ -1,5 +1,5 @@
 # SSH/Docker/Tailscale/VirtualBox + base CLI tools (base slot)
-{ ... }: {
+_: {
   config.nixos.modules.base = { config, lib, pkgs, ... }: {
     config = {
       warnings = lib.mkIf config.mySystem.enableSSH (

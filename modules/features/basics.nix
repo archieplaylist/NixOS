@@ -1,5 +1,5 @@
 # Fundamentals for every host: locale, kernel, nix-ld, printing, fonts, etc.
-{ ... }: {
+_: {
   config.nixos.modules.base = { config, lib, pkgs, ... }: {
     config = {
       networking.hostName = config.mySystem.hostname;

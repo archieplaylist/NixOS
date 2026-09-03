@@ -1,5 +1,5 @@
 # Plasma via plasma-manager — Nordic dark, only when desktop == plasma
-{ ... }: {
+_: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     home.packages = lib.mkIf (osConfig.mySystem.desktop == "plasma") [
       pkgs.kitty

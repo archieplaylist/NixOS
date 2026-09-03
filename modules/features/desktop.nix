@@ -1,5 +1,5 @@
 # Desktop slot: GNOME/GDM, Plasma/SDDM, plus shared X/Bluetooth/NetworkManager/Flatpak
-{ ... }: {
+_: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
       (lib.mkIf config.mySystem.enableDesktop {

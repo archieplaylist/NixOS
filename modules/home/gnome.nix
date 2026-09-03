@@ -1,5 +1,5 @@
 # GNOME dconf — extension list from mySystem.gnomeExtensions, only on gnome hosts
-{ ... }: {
+_: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     dconf = {
       enable = true;

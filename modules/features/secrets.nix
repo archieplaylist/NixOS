@@ -1,5 +1,5 @@
 # sops-nix — gated on enableSops + file exists so fresh clone still passes `nix flake check`
-{ ... }: {
+_: {
   config.nixos.modules.base = { config, lib, ... }: {
     config = lib.mkIf (config.mySystem.enableSops && builtins.pathExists ../../secrets/secrets.yaml) {
       sops = {

@@ -1,5 +1,5 @@
 # UEFI boot — systemd-boot (default) or lanzaboote (Secure Boot, 1s timeout, 10 generations)
-{ ... }: {
+_: {
   config.nixos.modules.uefi = { config, lib, ... }: {
     boot.loader.efi.canTouchEfiVariables = true;
     boot.loader.efi.efiSysMountPoint = "/boot";

@@ -1,5 +1,5 @@
 # EasyEffects presets — vendored from JackHack96/EasyEffects-Presets
-{ ... }: {
+_: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     xdg.configFile = lib.mkIf osConfig.mySystem.enableDesktop {
       "easyeffects/output".source = ./assets/easyeffects/output;

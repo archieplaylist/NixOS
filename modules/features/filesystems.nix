@@ -2,7 +2,7 @@
 # Ponytail: non-LUKS hosts keep the stable manual fileSystems; LUKS hosts are fully disko-declared
 # (disko generates boot.initrd.luks + fileSystems from disko.devices). setup.sh still does the
 # actual sgdisk/cryptsetup so no hard-coded /dev/sdX device is needed in the config.
-{ ... }: {
+_: {
   config.nixos.modules.base = { config, lib, ... }: {
     config = lib.mkMerge [
       # Plain layout: / (nixos-root) + /boot (nixos-boot, vfat)

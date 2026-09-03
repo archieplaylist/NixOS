@@ -56,7 +56,7 @@ host_module() {
   case "$(hostname)" in
     nixdesks) echo "desktop" ;;
     nixlappys) echo "laptop" ;;
-    nixworks) echo "work" ;;
+    central8|nixworks) echo "work" ;;
     nixvms) echo "vm" ;;
     *) echo "error: no host module known for hostname '$(hostname)'" >&2
        echo "add it to host_module() in $HOME/.local/bin/switch-de" >&2
@@ -78,7 +78,7 @@ archive_de() {
         */.cache/* | *keyrings* | *kwalletd* | *kwalletrc* | *gnome-keyring* | *kwallet*) continue ;;
       esac
       # preserve relative path to avoid basename collision (.config/xfce4 vs .local/share/xfce4)
-      rel="${p#$HOME/}"
+      rel="${p#"$HOME"/}"
       dest_path="$dest/$rel"
       mkdir -p "$(dirname "$dest_path")"
       if ! mv -f "$p" "$dest_path" 2>/dev/null; then

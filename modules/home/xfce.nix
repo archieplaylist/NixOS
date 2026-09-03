@@ -1,16 +1,6 @@
 # XFCE via home-manager — xfconf XMLs, only when desktop == xfce
-{ ... }: {
-  config.home.modules.mario = { config, lib, pkgs, osConfig, ... }: let
-    orchis-latest = pkgs.orchis-theme.overrideAttrs (old: {
-      version = "2026-07-07";
-      src = pkgs.fetchFromGitHub {
-        owner = "vinceliuice";
-        repo = "Orchis-theme";
-        rev = "2026-07-07";
-        hash = "sha256-oX6+tPe0nGsl+OzFZCpbKvE00Z/xvP+NoHY7QZ9YAo0=";
-      };
-    });
-  in
+_: {
+  config.home.modules.mario = { lib, pkgs, osConfig, ... }:
     lib.mkIf (osConfig.mySystem.desktop == "xfce") {
       home.packages = with pkgs; [
         kitty
@@ -23,7 +13,8 @@
         mousepad
         seahorse
         tela-circle-icon-theme
-      ] ++ [ orchis-latest ];
+        orchis-theme
+      ];
 
       # rebuild while logged in: xfconfd caches in RAM, so kill it and reload panel after new XMLs
       home.activation.resetXfconfd = lib.hm.dag.entryAfter [ "linkGeneration" ] ''

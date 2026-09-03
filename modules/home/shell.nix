@@ -1,5 +1,5 @@
 # Bash + direnv + ~/.local/bin scripts (yt, tomp3, switch-de)
-{ ... }: {
+_: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     programs.bash = {
       enable = true;

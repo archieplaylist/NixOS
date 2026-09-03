@@ -138,7 +138,7 @@ ask() {
   # step_deploy: a plain `for tag; do` over the full list printed both halves.
   if [[ $1 == "-m" ]]; then
     local prompt="$2"; shift 2
-    local default="${@: -1}"; set -- "${@:1:$#-1}"
+    local default="${!#}"; set -- "${@:1:$#-1}"
     if USE_TUI; then
       whiptail --title "Pick" --menu "$prompt" 20 70 "$(( $# / 2 ))" \
         --default-item "$default" "$@" 3>&1 1>&2 2>&3
@@ -170,7 +170,8 @@ ask() {
     whiptail "$@" 3>&1 1>&2 2>&3
   else
     local ans
-    read -r -p "${@: -1}: " ans || return 1
+    local prompt="${!#}"
+    read -r -p "$prompt: " ans || return 1
     printf '%s' "$ans"
   fi
 }
@@ -611,10 +612,10 @@ patch_host_flags() {
   for key in "${flips[@]}"; do
     # Match "mySystem.<key> = false;" with optional trailing whitespace;
     # leave a `= true;` line alone so re-runs are no-ops.
-    if grep -Eq "^[[:space:]]*mySystem\\.$key[[:space:]]*=[[:space:]]*false[[:space:]]*;" "$host_file"; then
-      sed -i -E "s|^([[:space:]]*mySystem\\.$key[[:space:]]*=[[:space:]]*)false([[:space:]]*;)|\\1true\\2|" "$host_file"
+    if grep -Eq "^[[:space:]]*mySystem\\.${key}[[:space:]]*=[[:space:]]*false[[:space:]]*;" "$host_file"; then
+      sed -i -E "s|^([[:space:]]*mySystem\\.${key}[[:space:]]*=[[:space:]]*)false([[:space:]]*;)|\\1true\\2|" "$host_file"
       info "patched $host_file: mySystem.$key = true"
-    elif grep -Eq "^[[:space:]]*mySystem\\.$key[[:space:]]*=[[:space:]]*true[[:space:]]*;" "$host_file"; then
+    elif grep -Eq "^[[:space:]]*mySystem\\.${key}[[:space:]]*=[[:space:]]*true[[:space:]]*;" "$host_file"; then
       info "$host_file: mySystem.$key already true — no change"
     else
       # No assignment for this flag in the host file — append a fresh
@@ -662,12 +663,13 @@ step_deploy() {
 
   # Build tag/item pairs for the menu.
   local -a menu_args
-  local i h
+  local i
   for i in "${!HOSTS[@]}"; do menu_args+=("$((i+1))" "${HOSTS[$i]%.nix}"); done
   local choice
   choice="$(ask -m "Pick a host to rebuild:" "${menu_args[@]}" "1")" || die "host selection aborted"
-  [[ "$choice" =~ ^[0-9]+$ ]] && ((choice >= 1 && choice <= ${#HOSTS[@]})) \
-    || die "invalid host number: $choice"
+  if ! [[ "$choice" =~ ^[0-9]+$ ]] || ! ((choice >= 1 && choice <= ${#HOSTS[@]})); then
+    die "invalid host number: $choice"
+  fi
   local name="${HOSTS[$((choice-1))]%.nix}"
 
   # Sync the selected host's mySystem.enable* flags with the CLI flags

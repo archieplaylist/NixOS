@@ -1,16 +1,6 @@
 # LightDM + XFCE system side (desktop slot, xfce only)
-{ ... }: {
-  config.nixos.modules.desktop = { config, lib, pkgs, ... }: let
-    orchis-latest = pkgs.orchis-theme.overrideAttrs (old: {
-      version = "2026-07-07";
-      src = pkgs.fetchFromGitHub {
-        owner = "vinceliuice";
-        repo = "Orchis-theme";
-        rev = "2026-07-07";
-        hash = "sha256-oX6+tPe0nGsl+OzFZCpbKvE00Z/xvP+NoHY7QZ9YAo0=";
-      };
-    });
-  in {
+_: {
+  config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {
       services.xserver.displayManager.lightdm.enable = true;
 
@@ -18,7 +8,7 @@
       services.xserver.displayManager.lightdm.greeters.gtk = {
         enable = true;
         theme = {
-          package = orchis-latest;
+          package = pkgs.orchis-theme;
           name = "Orchis-Dark";
         };
         iconTheme = {

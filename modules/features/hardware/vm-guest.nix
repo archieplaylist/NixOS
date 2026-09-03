@@ -1,5 +1,5 @@
 # VM guest: virtio + qemu-agent + spice + vbox guest
-{ ... }: {
+_: {
   config.nixos.modules.vm-guest = {
     boot.initrd.availableKernelModules = [
       "ahci"

@@ -1,5 +1,5 @@
 # User packages — gated on mySystem.appGroups.*
-{ ... }: {
+_: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
       enable = true;

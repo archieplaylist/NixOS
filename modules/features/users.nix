@@ -1,5 +1,5 @@
 # User mario — hash from /etc/hashed-password (written by setup.sh, not stored in flake)
-{ ... }: {
+_: {
   config.nixos.modules.base = { config, lib, ... }: {
     config.users.users.mario = {
       isNormalUser = true;

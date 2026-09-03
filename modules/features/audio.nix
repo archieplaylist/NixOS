@@ -1,5 +1,5 @@
 # PipeWire + RTKit + low-latency gaming audio (desktop slot)
-{ ... }: {
+_: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkIf config.mySystem.enableDesktop {
       environment.systemPackages = [ pkgs.easyeffects ];

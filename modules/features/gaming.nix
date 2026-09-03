@@ -1,5 +1,5 @@
 # Gaming: GameMode, Steam, gamescope, controllers (desktop slot, gaming group)
-{ ... }: {
+_: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkIf (config.mySystem.enableDesktop && config.mySystem.appGroups.gaming.enable) {
       programs.gamemode = {
@@ -39,7 +39,7 @@
       programs.gamescope = {
         enable = true;
         capSysNice = true;
-        args = [ "-f" "--rt" "--adaptive-sync" "--backend sdl" "-e" "--mangoapp" ];
+        args = [ "-f" "--rt" "--adaptive-sync" "--backend" "sdl" "-e" "--mangoapp" ];
       };
       mySystem.gnomeExtensions = lib.mkAfter [
         { uuid = "gamemode@charlieq0137gmail.com"; package = "gamemode-shell-extension"; }

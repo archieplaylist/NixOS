@@ -1,5 +1,5 @@
 # Git config + global excludes (applies via $XDG_CONFIG_HOME/git/ignore)
-{ ... }: {
+_: {
   config.home.modules.mario = {
     programs.git = {
       enable = true;

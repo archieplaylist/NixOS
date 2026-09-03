@@ -4,8 +4,8 @@
 # To temporarily disable: unset NIX_LD
 # To find a missing library: nix run github:nix-community/nix-index-database -- lib/<name>.so
 # Reference: https://wiki.nixos.org/wiki/Nix-ld
-{ ... }: {
-  config.nixos.modules.base = { config, lib, pkgs, ... }: {
+_: {
+  config.nixos.modules.base = { pkgs, ... }: {
     config = {
       programs.nix-ld = {
         enable = true;

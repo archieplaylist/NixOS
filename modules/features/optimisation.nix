@@ -1,5 +1,5 @@
 # Store/disk maintenance: GC, TRIM, zram, journald, tmpfiles (base slot)
-{ ... }: {
+_: {
   config.nixos.modules.base = { pkgs, ... }: {
     config = {
       nix.settings = {

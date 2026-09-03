@@ -1,5 +1,5 @@
 # Intel CPU + GPU (VA-API) + initrd modules
-{ ... }: {
+_: {
   config.nixos.modules.intel = { config, lib, pkgs, ... }: {
     hardware.cpu.intel.updateMicrocode = true;
 

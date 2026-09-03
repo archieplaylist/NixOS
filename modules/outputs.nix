@@ -34,7 +34,10 @@ let
               config.allowUnfree = true;
             };
           })
-          (final: prev: {
+          (_final: prev: {
+            orchis-theme = prev.unstable.orchis-theme;
+          })
+          (_final: prev: {
             linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
             linuxPackages_6_12 = patchVboxGuestAdditions (prev.linuxPackages_6_12 or prev.linuxPackages);
             linuxPackages_latest = patchVboxGuestAdditions prev.linuxPackages_latest;

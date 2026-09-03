@@ -1,4 +1,4 @@
-# laptop — xfce + power-management, no dev packages
+# laptop — gnome + power-management, no dev packages
 { config, ... }: {
   config.nixos.hosts.laptop = { pkgs, ... }: {
     imports = [
