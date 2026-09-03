@@ -7,6 +7,9 @@
     };
 
     home.packages = lib.mkMerge [
+      (lib.mkIf osConfig.mySystem.appGroups.editor.enable [
+        pkgs.unstable.antigravity-ide
+      ])
       (with pkgs; [
         fzf
         bat
