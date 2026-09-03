@@ -3,7 +3,7 @@
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
       enable = true;
-      package = pkgs.unstable.vscode; # ponytail: stable 1.119 lags unstable 1.133 — same overlay as discord
+      package = pkgs.unstable.vscode;
     };
 
     home.packages = lib.mkMerge [
