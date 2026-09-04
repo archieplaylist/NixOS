@@ -51,7 +51,7 @@ _: {
       (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
         heroic
         mangohud
-        protonup-qt
+        pkgs.unstable.protonplus
         (pkgs.unstable.bottles.override { removeWarningPopup = true; })
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
