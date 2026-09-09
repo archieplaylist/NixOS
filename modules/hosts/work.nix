@@ -29,6 +29,9 @@
     mySystem.appGroups.gaming.enable = false;
     mySystem.appGroups.comms.enable = false;
 
+    # ponytail: base firewall already denies incoming; just punch HTTP
+    networking.firewall.allowedTCPPorts = [ 80 ];
+
     mySystem.flatpakApps = lib.mkAfter [
       "rest.insomnia.Insomnia"
       "com.mattjakeman.ExtensionManager"
