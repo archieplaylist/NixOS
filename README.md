@@ -48,7 +48,7 @@ No wiring in `flake.nix`.
 
 ## Application groups (`modules/home/apps.nix`)
 
-- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode + antigravity-ide (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
+- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
 - System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo), `audio.nix` (low-latency PipeWire when gaming on).
 
 ## Scripts (`~/.local/bin`)
@@ -91,7 +91,7 @@ nh os switch -H <host>  # now (also updates home-manager)
 nh clean all            # GC (weekly timer does this automatically)
 ```
 
-`nix flake update` refreshes all inputs (`nixpkgs-unstable` provides `pkgs.unstable` for discord/vscode/antigravity/pi). `nix develop` gives nixpkgs-fmt + deadnix + statix. Pre-push hook runs `fmt-check` + `check` (install with `make hooks`).
+`nix flake update` refreshes all inputs (`nixpkgs-unstable` provides `pkgs.unstable` for discord/vscode/pi). `nix develop` gives nixpkgs-fmt + deadnix + statix. Pre-push hook runs `fmt-check` + `check` (install with `make hooks`).
 
 ## Notes
 
