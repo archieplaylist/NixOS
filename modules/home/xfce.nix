@@ -16,21 +16,6 @@ _: {
         orchis-theme
       ];
 
-      # rebuild while logged in: xfconfd caches in RAM, so kill it and reload panel after new XMLs
-      home.activation.resetXfconfd = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-        xfce_pid=$(${pkgs.procps}/bin/pgrep -u $USER -x xfce4-session || true)
-        if [ -n "$xfce_pid" ]; then
-          ${pkgs.procps}/bin/pkill -9 -x -u $USER xfconfd || true
-          session_env=$(tr '\0' '\n' < "/proc/$xfce_pid/environ" || true)
-          display=$(printf '%s\n' "$session_env" | ${pkgs.gnugrep}/bin/grep '^DISPLAY=' | ${pkgs.coreutils}/bin/cut -d= -f2- || true)
-          dbus_addr=$(printf '%s\n' "$session_env" | ${pkgs.gnugrep}/bin/grep '^DBUS_SESSION_BUS_ADDRESS=' | ${pkgs.coreutils}/bin/cut -d= -f2- || true)
-          if [ -n "$display" ] && [ -n "$dbus_addr" ]; then
-            env DISPLAY="$display" DBUS_SESSION_BUS_ADDRESS="$dbus_addr" \
-              ${pkgs.xfce4-panel}/bin/xfce4-panel -r || true
-          fi
-        fi
-      '';
-
       xdg.configFile = {
         "kitty/kitty.conf" = {
           source = ./assets/kitty/kitty.conf;

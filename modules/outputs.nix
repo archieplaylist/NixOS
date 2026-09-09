@@ -22,7 +22,6 @@ let
     modules = [
       config.nixos.hosts.${name}
       inputs.home-manager.nixosModules.home-manager
-      inputs.sops-nix.nixosModules.sops
       inputs.nix-flatpak.nixosModules.nix-flatpak
       inputs.disko.nixosModules.disko
       inputs.lanzaboote.nixosModules.lanzaboote
@@ -34,9 +33,8 @@ let
               config.allowUnfree = true;
             };
           })
-          (_final: prev: {
-            orchis-theme = prev.unstable.orchis-theme;
-          })
+          # ponytail: VirtualBox GuestAdditions fix for kernel 6.12+ (drm_fb_helper_alloc_info removed)
+          # Re-check on VirtualBox >7.2.16 / kernel >6.18 — delete when vm/work build without it.
           (_final: prev: {
             linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
             linuxPackages_6_12 = patchVboxGuestAdditions (prev.linuxPackages_6_12 or prev.linuxPackages);

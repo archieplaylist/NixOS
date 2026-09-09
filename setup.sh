@@ -14,8 +14,8 @@
 #   sudo ./setup.sh --help           show usage
 #
 # Required tools are assumed present (run from the NixOS installer ISO, or under
-# `nix shell nixpkgs#age nixpkgs#sops nixpkgs#openssl nixpkgs#cryptsetup
-# nixpkgs#systemd nixpkgs#newt nixpkgs#gptfdisk nixpkgs#dosfstools
+# `nix shell nixpkgs#openssl nixpkgs#cryptsetup
+# nixpkgs#systemd nixpkgs#gptfdisk nixpkgs#dosfstools
 # nixpkgs#xfsprogs` on any other NixOS).
 #
 # Steps (each is idempotent and non-destructive — skips when already done):
@@ -29,14 +29,12 @@
 #       /etc/hashed-password on the target during the deploy step (read at
 #       activation via `users.users.mario.hashedPasswordFile`); the hash is
 #       never stored in the repo
-#   4.  age key + secrets/.sops.yaml (from the .example template)
-#   5.  empty encrypted secrets/secrets.yaml
-#   6.  select host and rebuild via nixos-rebuild
+#   4.  select host and rebuild via nixos-rebuild
 #
 # See README.md for details.
 set -euo pipefail
 
-# Require root — partitioning, nixos-rebuild, and age key creation all need it.
+# Require root — partitioning, nixos-rebuild all need it.
 if [[ $EUID -ne 0 ]]; then
   echo "[error] setup.sh must be run as root (try: sudo ./setup.sh)" >&2
   exit 1
@@ -44,20 +42,6 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOSTS_DIR="$REPO_ROOT/modules/hosts"
-# Age key location: honour SOPS_AGE_DIR if set, otherwise use /root's home
-# when running as root (sudo) so it matches modules/features/secrets.nix
-# keyFile = "/root/.config/sops/age/keys.txt" regardless of $HOME preservation.
-if [[ -n "${SOPS_AGE_DIR:-}" ]]; then
-  AGE_DIR="$SOPS_AGE_DIR"
-elif [[ $EUID -eq 0 ]]; then
-  AGE_DIR="/root/.config/sops/age"
-else
-  AGE_DIR="$HOME/.config/sops/age"
-fi
-AGE_KEY_PATH="$AGE_DIR/keys.txt"
-SOPS_YAML_EXAMPLE="$REPO_ROOT/secrets/.sops.yaml.example"
-SOPS_YAML="$REPO_ROOT/secrets/.sops.yaml"
-SECRETS_FILE="$REPO_ROOT/secrets/secrets.yaml"
 
 AN_YES_SET=0
 # LUKS flags: --luks / --tpm2 / --secure-boot; LUKS_PASSPHRASE env to skip passphrase prompt.
@@ -87,12 +71,9 @@ ensure_tools() {
     if ! have "$tool"; then
       missing+=("$tool")
       case "$tool" in
-        age|age-keygen) pkgs+=(nixpkgs#age) ;;
-        sops)           pkgs+=(nixpkgs#sops) ;;
         openssl)        pkgs+=(nixpkgs#openssl) ;;
         cryptsetup)     pkgs+=(nixpkgs#cryptsetup) ;;
         systemd-cryptenroll) pkgs+=(nixpkgs#systemd) ;;
-        whiptail|newt)  pkgs+=(nixpkgs#newt) ;;
         sgdisk|gdisk)   pkgs+=(nixpkgs#gptfdisk) ;;
         mkfs.vfat|dosfslabel) pkgs+=(nixpkgs#dosfstools) ;;
         mkfs.xfs|xfs_db) pkgs+=(nixpkgs#xfsprogs) ;;
@@ -126,72 +107,46 @@ usage() {
 }
 
 # ponytail: TUI flag is computed lazily (after ensure_tools may have
-# installed whiptail). --yes / NONINTERACTIVE / no-tty -> plain read.
-USE_TUI() {
-  [[ -t 1 && -z "${NONINTERACTIVE:-}" && $AN_YES_SET -eq 0 ]] \
-    && command -v whiptail >/dev/null 2>&1
-}
+# ponytail: plain read prompts only — no whiptail TUI. --yes answers yes.
 ask() {
-  # Menu form: -m <prompt> <items...> <default>
-  # Items are alternating tag/item pairs (whiptail convention). The fallback
-  # branch iterates *only the items* (every other arg) — see bugfix note in
-  # step_deploy: a plain `for tag; do` over the full list printed both halves.
+  # Menu form: -m <prompt> <tag> <item> ... <default>
   if [[ $1 == "-m" ]]; then
     local prompt="$2"; shift 2
     local default="${!#}"; set -- "${@:1:$#-1}"
-    if USE_TUI; then
-      whiptail --title "Pick" --menu "$prompt" 20 70 "$(( $# / 2 ))" \
-        --default-item "$default" "$@" 3>&1 1>&2 2>&3
-    else
-      echo "$prompt" >&2
-      local i=0
-      # step by 2 over the pair list, print only the item half.
-      while [[ $# -gt 0 ]]; do
-        local tag="$1" item="$2"; shift 2
-        printf '  %s) %s\n' "$tag" "$item" >&2
-      done
-      local ans; read -r -p "pick [$default]: " ans || return 1
-      printf '%s' "${ans:-$default}"
-    fi
+    echo "$prompt" >&2
+    while [[ $# -gt 0 ]]; do
+      local tag="$1" item="$2"; shift 2
+      printf '  %s) %s\n' "$tag" "$item" >&2
+    done
+    local ans; read -r -p "pick [$default]: " ans || return 1
+    printf '%s' "${ans:-$default}"
     return $?
   fi
   # Password form: -s <prompt>
   if [[ $1 == "-s" ]]; then
-    if USE_TUI; then
-      whiptail --title "Password" --passwordbox "$2" 10 70 3>&1 1>&2 2>&3
-    else
-      local ans; read -r -s -p "$2: " ans || return 1; echo >&2
-      printf '%s' "$ans"
-    fi
+    local ans; read -r -s -p "$2: " ans || return 1; echo >&2
+    printf '%s' "$ans"
     return $?
   fi
-  # Plain input form: passthrough to whiptail if TUI, else read.
-  if USE_TUI; then
-    whiptail "$@" 3>&1 1>&2 2>&3
-  else
-    local ans
-    local prompt="${!#}"
-    read -r -p "$prompt: " ans || return 1
-    printf '%s' "$ans"
-  fi
+  # Plain input: ask <prompt>
+  local ans
+  local prompt="${!#}"
+  read -r -p "$prompt: " ans || return 1
+  printf '%s' "$ans"
 }
 
 confirm() {
   # confirm "prompt" -> 0 on yes, 1 on no. --yes always returns 0.
   [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
-  if USE_TUI; then
-    whiptail --title "Confirm" --yesno "$1" 10 70 3>&1 1>&2 2>&3
-  else
-    local answer
-    while :; do
-      read -r -p "$1 [y/N] " answer
-      case "$answer" in
-        y|Y|yes|YES) return 0 ;;
-        n|N|no|NO|"") return 1 ;;
-        *) echo "please answer yes or no" ;;
-      esac
-    done
-  fi
+  local answer
+  while :; do
+    read -r -p "$1 [y/N] " answer
+    case "$answer" in
+      y|Y|yes|YES) return 0 ;;
+      n|N|no|NO|"") return 1 ;;
+      *) echo "please answer yes or no" ;;
+    esac
+  done
 }
 
 # ---------------------------------------------------------------------------
@@ -210,9 +165,6 @@ preflight() {
 
   info "repo: $REPO_ROOT"
   info "hosts: ${HOSTS[*]}"
-
-  # Install whiptail up-front so USE_TUI() can detect it before the first prompt.
-  ensure_tools whiptail
 
   have nixos-rebuild || warn "'nixos-rebuild' is not in PATH (available after nixos-install)"
 }
@@ -325,7 +277,7 @@ step_partition() {
 
   local disk
   while :; do
-    disk="$(ask --title "Disk selection" --inputbox "Type the full device path to wipe (e.g. /dev/sda)" 10 70 "")" || {
+    disk="$(ask "Type the full device path to wipe (e.g. /dev/sda)")" || {
       info "no input — aborting partition step"
       return 0
     }
@@ -347,7 +299,7 @@ step_partition() {
   else
     echo "  partition 2: root  rest  xfs  label 'nixos-root'"
   fi
-  ans="$(ask --title "Confirm destructive wipe" --inputbox "Type WIPE (exactly) to continue erasing $disk" 10 70 "")" || {
+  ans="$(ask "Type WIPE (exactly) to continue erasing $disk")" || {
     info "no input — aborting partition step"
     return 0
   }
@@ -507,85 +459,7 @@ step_password() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 4 — age key + sops.yaml
-# ---------------------------------------------------------------------------
-step_age() {
-  log "Age key & sops"
-
-  if [[ ! -f "$AGE_KEY_PATH" ]]; then
-    if confirm "Generate a new age key at $AGE_KEY_PATH?"; then
-      mkdir -p "$(dirname "$AGE_KEY_PATH")"
-      age-keygen -o "$AGE_KEY_PATH"
-      chmod 600 "$AGE_KEY_PATH"
-      info "wrote $AGE_KEY_PATH"
-    else
-      warn "age key not created — sops-encrypted secrets will be unavailable"
-    fi
-  else
-    info "age key already exists at $AGE_KEY_PATH"
-  fi
-
-  # Public key lives in the "public key:" comment line of the keys file.
-  PUBKEY=""
-  [[ -f "$AGE_KEY_PATH" ]] && PUBKEY="$(grep -oE 'age1[A-Za-z0-9]+' "$AGE_KEY_PATH" | head -1 || true)"
-
-  if [[ -f "$SOPS_YAML" ]]; then
-    info "secrets/.sops.yaml already exists"
-  elif [[ -f "$SOPS_YAML_EXAMPLE" ]]; then
-    if confirm "Create secrets/.sops.yaml from the example?"; then
-      if [[ -n "$PUBKEY" ]]; then
-        sed "s/age1REPLACEME\.\.\./$PUBKEY/" \
-          "$SOPS_YAML_EXAMPLE" > "$SOPS_YAML"
-        info "sops.yaml written with public key $PUBKEY"
-      else
-        cp "$SOPS_YAML_EXAMPLE" "$SOPS_YAML"
-        info "sops.yaml written (placeholder kept — no age key found; edit secrets/.sops.yaml)"
-      fi
-    else
-      warn "sops.yaml skipped"
-    fi
-  else
-    warn "missing template secrets/.sops.yaml.example — skipping"
-  fi
-}
-
-# ---------------------------------------------------------------------------
-# Step 5 — secrets file
-# ---------------------------------------------------------------------------
-step_secrets() {
-  log "secrets/secrets.yaml"
-
-  [[ -f "$SECRETS_FILE" ]] && { info "encrypted secrets file already exists"; return 0; }
-
-  # sops needs a valid .sops.yaml with a real age key (not the placeholder).
-  if [[ ! -f "$SOPS_YAML" ]]; then
-    warn "secrets/.sops.yaml not found — run step_age first or create it manually"
-    return 0
-  fi
-  if grep -q 'age1REPLACEME' "$SOPS_YAML"; then
-    warn "secrets/.sops.yaml still has the placeholder key — edit it with your real age key first"
-    return 0
-  fi
-
-  if confirm "Create an initial encrypted secrets/secrets.yaml?"; then
-    # An empty sops file needs at least a comment to store something.
-    local tmp
-    tmp="$(mktemp --suffix=.yaml)"
-    trap 'rm -f "$tmp"' RETURN
-    printf '# secrets.yaml\n# key: value\n' > "$tmp"
-    if sops --config "$SOPS_YAML" -i -e "$tmp"; then
-      cp "$tmp" "$SECRETS_FILE"
-      info "created encrypted $SECRETS_FILE (edit with: sops $SECRETS_FILE)"
-    else
-      warn "sops encryption failed — secrets file not created"
-    fi
-  else
-    warn "secrets file skipped"
-  fi
-}
-
-# ---------------------------------------------------------------------------
-# Step 5 — deploy
+# Step 4 — deploy
 # ---------------------------------------------------------------------------
 # Patch the selected host's modules/hosts/<name>.nix to flip
 # mySystem.enable{Luks,Tpm2,SecureBoot} from false to true when the
@@ -696,18 +570,16 @@ step_deploy() {
       || mount -o fmask=0077,dmask=0077 /dev/disk/by-label/nixos-boot /mnt/boot \
       || die "mount boot failed"
 
-    # Copy the flake including dotfiles (.git, .gitignore, secrets/.sops.yaml*).
+    # Copy the flake including dotfiles (.git, .gitignore).
     # Without .git the target is a plain path flake whose NAR hash changes
     # whenever the lock file updates, breaking nixos-install with "NAR hash
     # mismatch in input path:...".
     mkdir -p /mnt/etc/nixos
     cp -r "$REPO_ROOT"/. /mnt/etc/nixos/
 
-    # Provision the password hash and age key on the target.
+    # Provision the password hash on the target.
     [[ -n "$PASSWORD_HASH" ]] && printf '%s\n' "$PASSWORD_HASH" > /mnt/etc/hashed-password \
       && chmod 600 /mnt/etc/hashed-password
-    [[ -f "$AGE_KEY_PATH" ]] && install -d -m 700 /mnt/root/.config/sops/age \
-      && install -m 600 "$AGE_KEY_PATH" /mnt/root/.config/sops/age/keys.txt
 
     info "-> nixos-install for '$name'"
     nixos-install --flake "/mnt/etc/nixos#$name" --no-root-passwd
@@ -745,9 +617,6 @@ preflight
 step_zram
 step_partition
 step_password
-ensure_tools age age-keygen sops
-step_age
-step_secrets
 step_deploy
 
 log "All done."

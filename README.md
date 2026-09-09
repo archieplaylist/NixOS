@@ -1,667 +1,102 @@
 # NixOS Desktop Configuration
 
-A modular, flake-based NixOS configuration for Mario's machines (NixOS 26.05,
-GNOME, Intel), organized with the
+Flake-based NixOS 26.05 for Mario's machines, organized with the
 [dendritic pattern](https://github.com/mightyiam/dendritic): every Nix file
 except the entry point is a top-level (flake-parts) module, auto-imported from
-`modules/`. Four hosts share the same baseline: `desktop`,
-`laptop`, `work`, and `vm` (a VM guest).
+`modules/`. Four hosts: `desktop`, `laptop`, `work`, `vm` (VM guest).
 
 ## Layout
 
 ```
 ├── flake.nix            # entry point: flake-parts; auto-imports every module under modules/
-├── Makefile             # day-to-day commands: check, fmt, update, rebuild
+├── Makefile             # check, fmt, build, switch
 ├── .githooks/           # git hooks (install with `make hooks`)
 ├── modules/             # EVERY .nix file here is a top-level (flake-parts) module
-│   ├── options.nix      # top-level slot options: nixos.modules/hosts, home.modules
-│   ├── outputs.nix      # flake wiring: nixosConfigurations, checks, devShell, formatter
-│   ├── features/        # NixOS feature modules, each merging into a slot
+│   ├── options.nix      # slot options: nixos.modules/hosts, home.modules
+│   ├── outputs.nix      # nixosConfigurations, checks, devShell, formatter
+│   ├── features/        # NixOS modules, merged into slots
 │   │   ├── mySystem.nix     # mySystem.* options + GNOME extension source of truth
-│   │   ├── basics.nix       # locale, kernel, nix, firewall, fonts, ...
-│   │   ├── optimisation.nix # store/disk maintenance: GC, TRIM, zram, smartd, journald
-│   │   ├── services.nix     # ssh, docker, tailscale, virtualbox
-│   │   ├── secrets.nix      # sops-nix
-│   │   ├── users.nix        # mario user
-│   │   ├── filesystems.nix  # XFS layout
-│   │   ├── desktop.nix      # GNOME/Plasma/XFCE desktop
-│   │   ├── audio.nix        # PipeWire + low-latency gaming audio
+│   │   ├── basics.nix       # locale, kernel, firewall, fonts, printing
+│   │   ├── optimisation.nix # nh-clean, TRIM, zram, earlyoom, journald
+│   │   ├── services.nix     # ssh, docker, tailscale, virtualbox, smartd
+│   │   ├── users.nix        # mario user (hashedPasswordFile)
+│   │   ├── filesystems.nix  # XFS by label, or LUKS2 via disko
+│   │   ├── desktop.nix      # GNOME/Plasma/XFCE + flatpak
+│   │   ├── audio.nix        # PipeWire (+ low-latency when gaming on)
 │   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers
-│   │   └── hardware/        # intel, uefi (systemd-boot), laptop, vm-guest
+│   │   ├── nix-ld.nix       # minimal dynamic-linker libs (add on demand)
+│   │   └── hardware/        # intel, uefi, laptop, vm-guest
 │   ├── home/            # home-manager modules (all merge into home.modules.mario)
-│   │   ├── user.nix     # user identity + XDG/session settings
-│   │   ├── shell.nix    # bash, direnv, ~/.local/bin scripts (yt, tomp3)
-│   │   ├── apps.nix     # user packages, gated on mySystem.appGroups.*
-│   │   ├── gnome.nix    # GNOME dconf (extensions, theme, tweaks)
-│   │   ├── plasma.nix   # KDE Plasma via plasma-manager
-│   │   ├── themes.nix   # WhiteSur dark GTK/icon/cursor + shell theme
-│   │   ├── tooling.nix  # git config + global excludes
-│   │   ├── fastfetch.nix
-│   │   └── scripts/     # plain bash scripts -> ~/.local/bin
-│   └── hosts/           # per-machine modules (imports + mySystem flags)
-│       └── <host>.nix   # e.g. desktop.nix -> nixos.hosts.desktop
-└── secrets/             # sops-nix placeholders (encrypted secrets never in git)
+│   │   ├── user.nix / shell.nix / apps.nix / tooling.nix
+│   │   ├── gnome.nix / plasma.nix / xfce.nix / themes.nix
+│   │   ├── pi.nix / gaming.nix / easyeffects.nix / fastfetch.nix
+│   │   └── scripts/     # yt, tomp3, switch-de, gnome-backup -> ~/.local/bin
+│   └── hosts/           # one file per machine -> nixos.hosts.<name>
+└── secrets/             # local secret templates only (never commit real values)
 ```
 
-## Dendritic pattern
+Adding a host = add one file under `modules/hosts/` (see `desktop.nix`).
+No wiring in `flake.nix`.
 
-Lower-level modules (NixOS and home-manager) are stored as **option values**
-of the top-level flake-parts configuration (`lib.types.deferredModule` in
-`modules/options.nix`):
+## Host flags (`mySystem.*`)
 
-- `nixos.modules.<slot>` — NixOS feature modules, merged by slot name
-  (`base`, `desktop`, `intel`, `uefi`, `laptop`, `vm-guest`). Feature files
-  in `modules/features/` merge into these slots.
-- `nixos.hosts.<name>` — one NixOS module per machine, whose key is the flake
-  output name. Host files in `modules/hosts/` set it, importing the feature
-  slots they need plus their `mySystem` flags.
-- `home.modules.<user>` — home-manager modules, all merged into one slot per
-  user (single user `mario`), wired to home-manager in `modules/outputs.nix`.
+- `enableDesktop` + `desktop = "gnome" | "plasma" | "xfce"` — DE + GDM/SDDM/LightDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
+- `enableLaptop` / `enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSmartd`.
+- `enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install only (repartition required).
+- `flatpakApps`, `gnomeExtensions`, `sshAuthorizedKeys`.
+- `appGroups.{browsers,media,office,comms,editor,gaming,dev,work,ai}.enable` — package toggles shared by system + home (`apps.nix` via `osConfig`).
 
-Since every file is a top-level module, files can be moved and renamed freely
-(paths only *name* the feature), and adding a machine is just adding one file —
-no wiring in `flake.nix` (see "Adding a host").
+## Application groups (`modules/home/apps.nix`)
 
-## Host flags
+- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode + antigravity-ide (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
+- System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo), `audio.nix` (low-latency PipeWire when gaming on).
 
-Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`):
+## Scripts (`~/.local/bin`)
 
-- `mySystem.enableDesktop` — desktop environment (GNOME via GDM, Plasma via
-  SDDM, XFCE via LightDM), PipeWire, Bluetooth, NetworkManager, Flatpak daemon.
-- `mySystem.desktop` — `"gnome"` (default), `"plasma"` or `"xfce"`; selects
-  which DE the `desktop` slot installs. Switch with `switch-de` (see "Custom
-  scripts") or by editing the host file and rebuilding.
-- `mySystem.enableLaptop` — power-profiles-daemon + lid handling.
-- `mySystem.enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSops`.
-- `mySystem.enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install-only full-disk encryption
-  (see [Full-disk encryption](#full-disk-encryption-luks--tpm2--secure-boot)). Defaults off; flipping
-  on an already-installed machine breaks boot until you repartition.
-- `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
-- `mySystem.gnomeExtensions` — single source of truth for GNOME extensions.
-- `mySystem.appGroups.{browsers,media,office,comms,editor,gaming,dev,work,ai}.enable` — application group
-  toggles used by **both** the system side (`desktop.nix`, `audio.nix`,
-  `gaming.nix`) and the user side
-  (`modules/home/apps.nix` via `osConfig`). This is the per-host switch for the
-  package groups below.
-
-## Adding a host
-
-1. Create `modules/hosts/new-host.nix`:
-
-   ```nix
-   { config, ... }: {
-     config.nixos.hosts.new-host = {
-       imports = [
-         config.nixos.modules.base
-         config.nixos.modules.desktop   # only for desktop hosts
-         config.nixos.modules.intel     # only for Intel hardware
-         config.nixos.modules.uefi
-       ];
-       mySystem.hostname = "new-host";
-       # ... any mySystem flags you need (see "Host flags")
-     };
-   }
-   ```
-
-2. That's it — the host is auto-imported and becomes
-   `nixosConfigurations.new-host` (flake.nix derives all outputs from the
-   `nixos.hosts` slots, so nothing else needs to change).
-3. Set `mySystem.hostname` (filesystems are referenced by label — see the
-   partition step below).
-4. Toggle application groups if needed, e.g.
-   `mySystem.appGroups.dev.enable = false;`.
-
-## Application groups
-
-User packages live in `modules/home/apps.nix`, each group gated behind its
-`mySystem.appGroups.<group>.enable` flag:
-
-- **browsers** (default on): Firefox, Chromium, Vivaldi.
-- **media** (default on): VLC, mpv, yt-dlp, ffmpeg.
-- **office** (default on): Joplin, OnlyOffice, LibreOffice.
-- **comms** (default on): Discord (from nixpkgs-unstable).
-- **editor** (default on): VS Code (from nixpkgs-unstable).
-- **dev** (default on): Node.js, GitHub CLI, docker-compose, jq, yq.
-- **gaming** (default on): Heroic, MangoHud, Cartridges, goverlay, OpenMW,
-  Daggerfall Unity, SuperTuxKart, vulkan-tools, protonup-qt, vkbasalt (user
-  packages). At the system level (`gaming.nix`): Steam (32-bit OpenGL + Remote
-  Play/Dedicated Server/LAN transfer firewall + Proton env overrides), GameMode
-  (renice + flips the power profile to performance while gaming), gamescope
-  (`capSysNice` + `--rt --adaptive-sync -e --mangoapp`), Xbox/Steam controller
-  support (xone, xpadneo, steam-hardware), `split_lock_detect=off`, a raised
-  `vm.max_map_count`, `systemd.oomd` and Intel `thermald`. Recommended Steam
-  launch option for any game: `mangohud --dlsym gamemoderun %command%`.
-- **work** (default off, opt-in): dbeaver-bin (database client), FileZilla,
-  Remmina. Often combined with `mySystem.enableVirtualBox = true;`
-  (`services.nix` builds the vboxdrv kernel module, `users.nix` adds `mario`
-  to `vboxusers` for USB passthrough).
-- **ai** (default on, off on `vm`): pi-coding-agent (from nixpkgs-unstable) + Node.js,
-  plus declarative `~/.pi/agent/` config (`modules/home/pi.nix`): global
-  `AGENTS.md`, upstream `ponytail`/`caveman` skills (flake inputs, update with
-  `nix flake update ponytail caveman`),
-  `review`/`commit` prompts, plan-mode extension. Auth via `pi` + `/login`,
-  or API keys from sops secrets.
-
-## Custom scripts
-
-`modules/home/scripts/` holds plain bash scripts installed as `~/.local/bin` (put on
-PATH via `home.sessionPath` in `modules/home/user.nix`):
-
-- `yt <url>` — best mp4 video + m4a audio; `yt -a <url>` — audio-only m4a.
-  Downloads go to `~/Downloads`.
-- `tomp3 file...` — converts any ffmpeg-supported file to a 192 kbps MP3 in
-  place.
-- `switch-de <gnome|plasma|xfce>` — flips `mySystem.desktop` in this host's module,
-  builds the new system with `nh os boot` (nothing activates until
-  reboot), and archives the dormant DE's runtime state to
-  `~/.local/share/de-archive/` so the home directory stays clean. HM-managed
-  config (symlinks), caches and KWallet data are never touched. Reboot after
-  running to start the new display manager.
+- `yt <url>` / `yt -a <url>` — video / audio-only to `~/Downloads`.
+- `tomp3 file...` — to 192k MP3 in place.
+- `switch-de <gnome|plasma|xfce>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
+- `gnome-backup backup|restore <file>|list` — `dconf dump/load /org/gnome/`.
 
 ## Desktop environments
 
-The `desktop` feature slot installs GNOME, KDE Plasma or XFCE, chosen per host
-via `mySystem.desktop`:
-
-- **GNOME** (default) — fully declarative: dconf settings in
-  `modules/home/gnome.nix`, extensions declared via `mySystem.gnomeExtensions`.
-- **KDE Plasma** — fully declarative via
-  [plasma-manager](https://nix-community.github.io/plasma-manager/) in
-  `modules/home/plasma.nix`: panel layout, widgets, shortcuts and the WhiteSur
-  dark theme (from `pkgs.whitesur-kde`, matching the GTK side) are all
-  declared, with `overrideConfig` resetting unset settings to Plasma defaults
-  on every rebuild. Runtime tweaks via System Settings are overwritten by the
-  next rebuild — edit `plasma.nix` instead.
-- **XFCE** — X11 (not Wayland). The system side (LightDM + the XFCE session
-  itself) lives in `modules/features/lightdm.nix`; all user-facing xfconf
-  settings are managed by home-manager in `modules/home/xfce.nix`
-  (`~/.config/xfce4/xfconf/xfce-perchannel-xml/...`): WhiteSur-Dark xfwm4
-  window theme (matching the GTK side), xsettingsd theme/icon/cursor sync, and
-  a default panel — Whisker menu, tasklist, clock, systray — with Super/Meta
-  bound to open the Whisker menu. XFCE runs under LightDM.
-
-Each DE runs under its own display manager: GNOME and Plasma on Wayland (GDM
-and SDDM), XFCE on X11 under LightDM.
-
-### Switching desktop environments
-
-1. Run `switch-de <gnome|plasma|xfce>` — it flips `mySystem.desktop` in this host's
-   module, builds the new system with `nh os boot` (the running session
-   is untouched), and moves the dormant DE's leftover runtime state into
-   `~/.local/share/de-archive/`.
-2. Reboot. The new display manager (GDM for GNOME, SDDM for Plasma, LightDM
-   for XFCE) starts and offers the new session at login.
-3. Switch back anytime with `switch-de <the-other-de>`. Your previous DE's
-   archived state is recoverable from `~/.local/share/de-archive/`; delete that
-   directory when you no longer need it.
-
-If `switch-de` is unavailable (fresh checkout), do the same by hand: set
-`mySystem.desktop` in `modules/hosts/<host>.nix`, run
-`sudo nixos-rebuild boot --flake .#<host>`, and reboot.
+GNOME (GDM/Wayland), Plasma (SDDM/Wayland, via plasma-manager), XFCE (LightDM/X11). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming: Orchis-Dark (stable `pkgs.orchis-theme`) + Tela-circle-dark + Bibata.
 
 ## Flatpak
 
-Flatpak apps are declared declaratively via
-[nix-flatpak](https://github.com/gmodena/nix-flatpak). The daemon and wiring
-live in `modules/features/desktop.nix`; each host picks its own apps with
-`mySystem.flatpakApps = [ ... ]`. Current shared set: EasyEffects, LocalSend,
-GearLever, Flatseal, Extension Manager (`work` additionally has
-Insomnia).
+Declared via nix-flatpak (`desktop.nix` + `mySystem.flatpakApps`). Shared: LocalSend, GearLever, Flatseal (+ ExtensionManager per host, Insomnia on `work`).
 
 ## First-time setup
 
-The quickest way is the setup script:
+```bash
+sudo ./setup.sh              # interactive
+sudo ./setup.sh --yes        # non-interactive
+sudo ./setup.sh --luks --tpm2
+```
+
+Does: preflight → optional destructive partitioning (installer ISO only, type disk + `WIPE`) → user password hash to `/etc/hashed-password` (never in repo) → pick host → `nixos-install` (ISO) or `nixos-rebuild switch`. See `./setup.sh --help`.
+
+Filesystems are by label (`nixos-root` / `nixos-boot`); LUKS2 is `cryptroot` via disko. With `--luks`, `setup.sh` patches `mySystem.enableLuks` (+ disko device when non-`/dev/sda`) into the host file. Secure Boot needs one-time `sbctl create-keys && sbctl enroll-keys --microsoft` after first boot.
+
+Password later: `printf '%s\n' "$(openssl passwd -6)" | sudo tee /etc/hashed-password` + rebuild, or `sudo passwd mario`.
+
+## Day-to-day
 
 ```bash
-./setup.sh          # interactive
-./setup.sh --yes    # answer yes to everything
-./setup.sh --luks --tpm2   # interactive, LUKS2 root + TPM2 auto-unlock
+make check   # nix flake check — builds every host, run before push
+make fmt     # nix fmt — run before commit
+nh os build -H <host>   # dry run
+nh os boot -H <host>    # next boot
+nh os switch -H <host>  # now (also updates home-manager)
+nh clean all            # GC (weekly timer does this automatically)
 ```
 
-It will:
-1. check the repo layout and required tools,
-2. **optionally partition + format a disk** (only offered on the NixOS
-   installer ISO; destructive — requires typing the device path and `WIPE`).
-   Pass `--luks` to wrap the root partition in LUKS2 (interactive passphrase
-   prompt, or `LUKS_PASSPHRASE` env with `--yes`); `--tpm2` additionally
-   enrolls TPM2 auto-unlock when a TPM2 device is present; `--secure-boot`
-   prints the manual `sbctl` enrollment steps after install,
-3. **set the user password**: hashed (SHA-512); the hash is written to
-   `/etc/hashed-password` on the target system during the deploy step (never
-   stored in the repo),
-4. create a sops age key and `secrets/.sops.yaml` from the example,
-5. create an encrypted (empty) `secrets/secrets.yaml`, and
-6. let you pick a host and run `nixos-rebuild switch`.
-
-The chosen host must set the matching `mySystem.enableLuks`/`enableTpm2`/
-`enableSecureBoot` flags — `setup.sh` only prints a reminder, it cannot edit
-the host module for you.
-
-Filesystems are referenced by **label** (`/dev/disk/by-label/nixos-root` for
-`/`, `/dev/disk/by-label/nixos-boot` for `/boot`), which the partition step
-creates — no UUID detection needed.
-
-> **Note on the password**: the SHA-512 hash is stored on the machine at
-> `/etc/hashed-password`, read at **every system activation** through
-> `users.users.mario.hashedPasswordFile` (`modules/features/users.nix`). It
-> never lives in the repo, so there is no git interaction and nothing for a
-> fresh clone to leak. The hash path itself is always set in the config; if
-> the file is missing on a machine, activation only warns and `mario` has no
-> password until one is provisioned. To change it later, re-run `./setup.sh`
-> or run `sudo passwd mario` on the machine.
-
-Partitioning creates this layout on the selected disk (GPT, XFS):
-
-```
-/dev/sdX
-├── 1: ESP  1 GiB  vfat (label nixos-boot)
-└── 2: root  rest  xfs  (label nixos-root)
-```
-
-With `--luks`, partition 2 is LUKS2 (partition label `nixos-root`, LUKS container
-label `nixos-root-luks`) with XFS inside (mapper `cryptroot`, label `nixos-root`).
-
-The nix store and all system/user state live on the root filesystem — no
-subvolumes, no `/persist`. Swap is handled with zram (`zramSwap.enable`), so
-no swap partition is needed. The partition step refuses to run on an
-installed system and refuses disks with mounted partitions. Everything it
-does is also documented manually below.
-
-### Manual steps
-
-1. **Generate an age key** for sops-nix (used for secrets):
-
-   ```bash
-   nix run nixpkgs#age -c mkdir -p ~/.config/sops/age
-   nix run nixpkgs#age-keygen -o ~/.config/sops/age/keys.txt
-   ```
-
-2. **Port our secrets**: copy `secrets/.sops.yaml.example` to
-   `secrets/.sops.yaml`, put your public age key in it, then:
-
-   ```bash
-   sops secrets/secrets.yaml
-   # add e.g.:
-   #   my-secret: supersecretvalue
-   ```
-
-   Reference the secret in a module (see `modules/features/secrets.nix`
-   for the example-wifi secret):
-
-   ```nix
-   sops.secrets.my-secret = { };
-   # decrypted path: /run/secrets/my-secret
-   ```
-
-   > The module reads the age key at `/root/.config/sops/age/keys.txt` on
-   > the **installed** system (root's home). setup.sh copies the key there
-   > during the installer flow; if you install manually, copy/mount the key
-   > into the target's `/root/.config/sops/age/keys.txt` before the first
-   > switch — otherwise a new key is generated that doesn't match
-   > `secrets/.sops.yaml` and sops activation fails.
-
-3. **Make sure the disk labels exist** for the host's `fileSystems`:
-
-   ```bash
-   # format with the expected labels (or set them explicitly):
-   mkfs.vfat -F 32 -n nixos-boot /dev/sdX1
-   mkfs.xfs -f -L nixos-root   /dev/sdX2
-   lsblk -f   # confirm the labels match modules/hosts/*.nix
-   ```
-
-4. Rebuild a host:
-
-   ```bash
-   sudo nixos-rebuild switch --flake .#desktop
-   # or: make rebuild HOST=laptop
-   ```
-
-5. **Set the user password** (manual fallback — setup.sh does this for
-   you): generate a SHA-512 hash and place it on the machine so the config
-   picks it up at the next activation:
-
-   ```bash
-   openssl passwd -6            # type the password, copy the printed hash
-   printf '%s\n' 'PASTE-HASH-HERE' | sudo tee /etc/hashed-password >/dev/null
-   sudo chmod 600 /etc/hashed-password
-   sudo nixos-rebuild switch --flake .#<host>
-   ```
-
-   The file is read on **each** activation via `hashedPasswordFile` (see the
-   note under "First-time setup"), so you can also just write it and wait
-   for the next rebuild.
-
-### Manual partitioning (fallback)
-
-From the NixOS installer ISO, without setup.sh:
-
-```bash
-# wipe the disk and create the GPT layout (sdX -> your disk)
-sgdisk --zap-all /dev/sdX
-sgdisk -n 1:0:+1G -t 1:ef00 -c 1:nixos-boot /dev/sdX
-sgdisk -n 2:0:0  -t 2:8300 -c 2:nixos-root /dev/sdX
-
-# format (nvme/mmcblk: use ${disk}p1 / ${disk}p2 instead of sdX1/sdX2)
-mkfs.vfat -F 32 -n nixos-boot /dev/sdX1
-mkfs.xfs -f -L nixos-root /dev/sdX2
-
-# mount and install
-mount /dev/sdX2 /mnt
-mkdir -p /mnt/boot && mount /dev/sdX1 /mnt/boot
-nixos-generate-config --root /mnt
-# copy the flake into /mnt/etc/nixos, then:
-nixos-install --flake /mnt/etc/nixos#desktop
-```
-
-## Full-disk encryption (LUKS + TPM2 + Secure Boot)
-
-Fresh-install only. Existing machines (desktop, work, vm) are untouched and
-stay unencrypted until you repartition them — there is no in-place migration.
-
-**How it maps:**
-
-- `mySystem.enableLuks` — root partition becomes LUKS2 (partition label
-  `nixos-root`, LUKS container label `nixos-root-luks` → mapper `cryptroot` →
-  XFS). Declared via `disko.devices` in
-  `modules/features/filesystems.nix` (non-LUKS hosts keep the plain
-  `fileSystems`). `setup.sh --luks` does the actual `cryptsetup luksFormat`
-  + `open` + `mkfs.xfs` at install time.
-- `mySystem.enableTpm2` — auto-unlock via `systemd-cryptenroll` (PCR 7+8) when
-  a TPM2 device is present; the passphrase stays as fallback. Requires
-  `enableLuks`. `boot.initrd.systemd` is enabled for LUKS hosts (needed for
-  TPM2 unlock).
-- `mySystem.enableSecureBoot` — replaces systemd-boot with lanzaboote (signed
-  UKIs) and locks the TPM2 auto-unlock to PCR 7. Requires `enableLuks`.
-  `vm` never uses any of this (no TPM, disposable).
-
-**Install:**
-
-```bash
-sudo ./setup.sh --luks --tpm2        # or add --secure-boot
-```
-
-`setup.sh` automatically patches the matching `mySystem.enable*` flags and
-(when LUKS is enabled on a non-`/dev/sda` disk) the
-`disko.devices.disk.nixos.device` path into the selected host file under
-`modules/hosts/`, so no manual edits are needed afterward.
-
-**Secure Boot key enrollment (one-time, after first boot):**
-
-```bash
-sudo sbctl create-keys
-sudo sbctl enroll-keys --microsoft   # keeps Microsoft keys for dual-boot
-```
-
-with `mySystem.enableSecureBoot = true` set in the host file.
-
-**Rotation / recovery:**
-
-- Add a recovery slot: `sudo cryptsetup luksAddKey /dev/disk/by-label/nixos-root-luks`.
-- Wipe a TPM2 slot: `sudo systemd-cryptenroll --wipe-slot=tpm2 /dev/disk/by-label/nixos-root-luks`.
-- Losing the passphrase loses the data — keep a recovery key file elsewhere.
-
-> Note: TPM2 auto-unlock without Secure Boot (PCR 7 not bound) is vulnerable
-> to an Evil Maid attack — a build-time warning reminds you. Keep `enableTpm2`
-> and `enableSecureBoot` together for real protection.
-
-## Day-to-day maintenance
-
-This section covers the everyday and periodic upkeep of an installed host:
-updating, rebuilding, rolling back, and cleaning up. Unless noted, run these
-**on the machine** and from the **repo directory**.
-
-A `Makefile` wraps the common commands (run `make help` for the full list):
-
-| Command | What it does |
-|---------|--------------|
-| `make check` | `nix flake check` — builds every host config to catch errors |
-| `make fmt-check` | fails if `nix fmt` would change anything |
-| `make update` | `nix flake update` — refresh all inputs |
-| `make build` / `make rebuild` | build / build+activate the `HOST` (default `desktop`) |
-| `make nh-build` / `make nh-boot` / `make nh-switch` | nh equivalents of build/boot/switch for the `HOST` |
-| `make nh-clean` | `nh clean all` — enhanced garbage collection |
-| `make hooks` | install git hooks (`core.hooksPath` → `.githooks`, once per clone) |
-| `make develop` | `nix develop` — formatter + Nix linters (nixpkgs-fmt, deadnix, statix) |
-
-Some cleanup runs automatically already (see `modules/features/optimisation.nix`):
-
-- **`programs.nh.clean`** — weekly `nh clean all` (keeps 3 generations + 7 days,
-  preserves direnv gcroots) via the `nh-clean` timer
-- **`nix.settings.auto-optimise-store = true`** — dedupe store paths
-- **`nix.settings.min-free` / `max-free`** — auto-GC when the store drops below 5 GiB free
-- **`services.fstrim.enable = true`** — weekly SSD TRIM
-- **`systemd.tmpfiles.rules`** — daily cleanup of browser caches, thumbnails, and `/tmp/nix-build-*`
-- **`services.journald.extraConfig`** — journal capped at 500 MiB / 30 days
-
-### nh — Nix CLI helper
-
-[nh](https://github.com/nix-community/nh) is installed system-wide
-(`programs.nh` in `modules/features/optimisation.nix`) as a friendlier
-replacement for the common `nixos-rebuild` / `nix-collect-garbage` /
-`home-manager` workflows. It's configured with:
-
-- `programs.nh.flake = "/home/mario/nixos"` — sets `NH_FLAKE`, so you can omit
-  the path to the repo in every command below.
-- `programs.nh.clean` — a weekly `nh-clean` timer that runs `nh clean all`
-  (replaces the old `nix.gc.automatic`).
-
-| Task | Old command | nh command |
-|------|-------------|------------|
-| Build + activate | `sudo nixos-rebuild switch --flake .#<host>` | `nh os switch -H <host>` |
-| Build + set as next boot | `sudo nixos-rebuild boot --flake .#<host>` | `nh os boot -H <host>` |
-| Build only (dry run) | `sudo nixos-rebuild build --flake .#<host>` | `nh os build -H <host>` |
-| Roll back | `sudo nixos-rebuild switch --rollback` | `nh os rollback` |
-| Garbage collect | `sudo nix-collect-garbage -d` | `nh clean all` |
-| Search packages | `nix search nixpkgs <query>` | `nh search <query>` |
-| Diff generations | — | `nh diff` |
-
-Notes:
-
-- `-H <host>` is the **flake output name** (`desktop`, `laptop`,
-  `work`, `vm`), not the machine hostname (`nixdesks`, `nixlappys`,
-  `nixworks`, `nixvms`) — nh auto-resolves by machine hostname, which doesn't
-  match the flake keys here.
-- nh self-elevates with `sudo` when needed; flakes are already enabled
-  (`nix.settings.experimental-features`).
-- Home-manager is configured **inside** the flake, so `nh os switch` updates it
-  too — no separate `nh home switch` needed (it exists if you ever want to test
-  just the user environment: `nh home switch -c mario`).
-- `nh clean all` also cleans gcroots; `--no-direnv` (set in the config) keeps
-  nix-direnv's caches alive.
-
-### direnv — automatic dev shells
-
-[direnv](https://direnv.net/) loads a directory's environment automatically
-when you `cd` into it. It's configured in `modules/home/shell.nix`
-(`programs.direnv` with `nix-direnv.enable = true`), so it's installed and
-hooked into bash on every host. `.direnv` is also in the global git exclude
-(`modules/home/tooling.nix`), so the cache never gets committed.
-
-To get this repo's dev shell (`nixpkgs-fmt`, `deadnix`, `statix` — the same
-tools as `make develop`) automatically, create a `.envrc` at the repo root:
-
-```bash
-echo "use flake" > .envrc
-direnv allow
-```
-
-Now every time you `cd` into the repo, direnv builds and enters the flake's
-`devShells.default` — no manual `nix develop` needed. Leave the directory and
-the tools drop off your PATH again.
-
-Common commands:
-
-| Command | What it does |
-|---------|--------------|
-| `direnv allow` | approve the `.envrc` in the current directory |
-| `direnv reload` | re-run after editing `.envrc` |
-| `direnv deny` | revoke approval |
-| `direnv edit` | open `.envrc` in `$EDITOR` |
-| `direnv status` | debug current state |
-
-Other useful `.envrc` variants:
-
-- `use flake .#name` — enter a specific devShell
-- `use nix` — legacy `shell.nix`-based shell
-- `export FOO=bar` — plain environment variables
-
-> The weekly `nh-clean` timer runs `nh clean all --no-direnv` (see
-> `modules/features/optimisation.nix`), which preserves nix-direnv's cached
-> gcroots so your dev shells don't get garbage-collected out from under you.
-
-### Regular update (weekly)
-
-The most common task: pull the latest packages, rebuild, and switch to the
-new generation.
-
-```bash
-git status                    # make sure you have no uncommitted changes
-git pull                      # if the repo is shared/pushed
-nix flake update              # update nixpkgs, home-manager, sops-nix together
-git diff flake.lock           # review what changed before committing/building
-nix fmt                       # keep formatting clean
-git add flake.nix flake.lock && git commit -m "chore: update flake inputs"
-nh os switch -H desktop   # or: make rebuild (nixos-rebuild)
-systemctl --failed            # confirm nothing broke
-```
-
-- Only update a single input: `nix flake update nixpkgs`
-  (+ you can lock just one: `nix flake lock --update-input nixpkgs`).
-- Home-manager is configured **inside** the flake, so `nixos-rebuild switch`
-  updates it too — no separate `home-manager switch` is needed.
-- Before pushing, the `pre-push` hook runs `nix fmt --check` + `nix flake check`
-  (install once with `make hooks`).
-
-### Rebuild safely (before flipping the switch)
-
-```bash
-nh os build -H desktop    # build only, don't activate (make build)
-nh os boot -H desktop     # build + set as next boot
-nh os switch -H desktop   # build + activate now (make rebuild)
-```
-
-- `build` is a harmless dry run for syntax/config errors; `switch` changes the
-  running system right away.
-- After a rebuild, spot-check: `systemctl --failed`, `journalctl -p 3 -b`.
-
-### Updating just home-manager state
-
-You don't normally do this separately. But if you edit something in
-`modules/home/`
-and only want to apply the user part on a machine without rebuilding the
-system profile (useful for quick experiments):
-
-```bash
-nix fmt
-sudo nixos-rebuild switch --flake .#desktop
-# or, to test just the user environment:
-nix run home-manager/release-26.05 -- switch --flake .
-```
-
-### Rolling back
-
-If an update breaks something, there are two ways — the boot-menu is the most
-reliable because it works even if modules fail to load:
-
-| Method | When to use | Command |
-|--------|-------------|---------|
-| Boot menu | system won't boot / you want the old snapshot | restart, pick an older **systemd-boot** entry |
-| Rebuild switch | system boots but you want the previous profile | `nh os rollback` (or `sudo nixos-rebuild switch --rollback`) |
-| Older gen | roll back to a specific past generation | `sudo nix-env --profile /nix/var/nix/profiles/system --list-generations` |
-
-- systemd-boot keeps every generation up to
-  `boot.loader.systemd-boot.configurationLimit = 24` (see
-   `modules/features/hardware/uefi.nix`), and the ESP is masked root-only. To actually
-  see the menu at boot, you may want `boot.loader.timeout = 10;` in the host
-  file.
-- `switch --rollback` activates the previously *active* generation (NOT the
-  list of boot entries — the two swap lists can differ), so the menu is the
-  source of truth for going "further back".
-
-### Cleaning up (periodic)
-
-Garbage collection is automatic, but you may want to reclaim space manually
-or shrink logs:
-
-```bash
-nh clean all                 # enhanced GC: keeps 3 gens + 7 days, cleans gcroots
-sudo nix-collect-garbage -d  # fallback: delete all unused paths (incl. old generations)
-sudo nix-store --optimise    # dedupe hardlinks (you have auto-optimise on)
-sudo du -sh /nix/store        # total store size
-sudo ncdu /nix                # interactive: find big /nix paths
-journalctl --vacuum-size=1G  # cap the system journal to 1 GB
-sudo nixos-rebuild list-generations   # see system generations + how old
-```
-
-- `nh clean all` keeps 3 generations + anything newer than 7 days (the weekly
-  `nh-clean` timer does this automatically); `sudo nix-collect-garbage -d`
-  clears *all* old generations, so you lose the boot-menu rollback history —
-  keep at least one before it (use `list-generations` first).
-
-### Practical schedule
-
-| Frequency | Action |
-|-----------|--------|
-| Weekly | `nix flake update` → `nh os switch -H <host>` → `systemctl --failed` |
-| Monthly | `nh clean all` + `journalctl --vacuum-size=...` |
-| After install | verify with `systemctl --failed`, `lsblk -f` (labels match) |
+`nix flake update` refreshes all inputs (`nixpkgs-unstable` provides `pkgs.unstable` for discord/vscode/antigravity/pi). `nix develop` gives nixpkgs-fmt + deadnix + statix. Pre-push hook runs `fmt-check` + `check` (install with `make hooks`).
 
 ## Notes
 
-- **Boot / snapshots**: systemd-boot lists NixOS generations (up to
-   `systemd-boot.configurationLimit` — see `modules/features/hardware/uefi.nix`), so
-  opening the boot menu lets you boot a previous system state ("snapshot").
-  Every entry carries a kernel+initrd on the ESP (~100MB), so the limit keeps
-  the 1 GiB ESP from filling up; the weekly `nh-clean` timer prunes old store
-  generations in parallel.
-- **First login**: the password is whatever you set during setup — the hash
-  is stored on the machine at `/etc/hashed-password` (read at activation). If
-  it wasn't provisioned (e.g. a fresh clone on a machine that never ran
-  ./setup.sh), `mario` has no password until you write the file or run
-  `sudo passwd mario`.
-- Exact version pinning is handled by `flake.lock`; `nix flake update`
-  updates all inputs together. sops-nix and nix-flatpak both follow
-  `nixpkgs`, so there is exactly one nixpkgs revision in the lock.
-- **Unstable packages**: `nixpkgs-unstable` is a separate input exposed as
-  `pkgs.unstable` via an overlay in `flake.nix`. It's used for apps that
-  aren't on the stable channel (currently Discord). It gets updated together
-  with everything else on `nix flake update`.
-- `nix fmt` uses the `#formatter` output (nixpkgs-fmt); `nix develop` drops
-  you into a shell with `nixpkgs-fmt`, `deadnix`, and `statix`.
-- `nix flake check` builds every host config (`#checks`) — run it before
-  rebuilding on a real machine or after structural refactors.
-- **SSH access**: on hosts with `mySystem.enableSSH = true` the server rejects
-  password logins, so access depends entirely on
-  `mySystem.sshAuthorizedKeys` — put your real public keys there or SSH will
-  accept no one (a build-time warning reminds you of this).
-
-### SSH setup
-
-`work` ships with `enableSSH = false` until you add a key — flip it on in one edit:
-
-1. **Generate a key on the client** (not the NixOS host):
-   ```bash
-   ssh-keygen -t ed25519 -C "mario@client"
-   cat ~/.ssh/id_ed25519.pub  # copy the single line
-   ```
-2. **Paste the pubkey into the host file** `modules/hosts/work.nix`:
-   ```nix
-   mySystem.enableSSH = true;
-   mySystem.sshAuthorizedKeys = [
-     "ssh-ed25519 AAAAC3... mario@client"
-   ];
-   ```
-3. **Rebuild and test:**
-   ```bash
-   make check                    # catches empty-key warning
-   nh os switch -H work          # or: make switch HOST=work
-   systemctl status sshd         # should be active
-   ssh mario@central8            # from client, no password prompt
-   ```
-   Troubleshooting: `journalctl -u sshd -b`, `ss -tlnp | grep :22`, and ensure `~/.ssh` perms are `700`/`600` on client. `PasswordAuthentication` is forced `false` in `modules/features/services.nix`, so a key is the only way in.
-
-## Roadmap
-
-- [x] sops-nix real secrets (opt-in via `mySystem.enableSops`)
-- [x] simple two-partition XFS layout (impermanence removed)
-- [x] local quality gates: `make check`, `make fmt-check`, git hooks, devShell
+- Boot menu lists generations (systemd-boot, limit 10); `nh os rollback` reverts the last switch.
+- `nixpkgs-unstable` + stable both in `flake.lock`; most packages are stable, only fresher apps use `pkgs.unstable`.
+- SSH hosts force key-only auth; set `mySystem.sshAuthorizedKeys` or nobody can log in (build warns). `work` template: paste pubkey, set `enableSSH = true`, `make check && nh os switch -H work`.
+- `programs.nix-ld` ships a minimal lib set; when an unpatched binary misses a lib: `nix run github:nix-community/nix-index-database -- lib/<name>.so`, then add it to `modules/features/nix-ld.nix`.
+- OOM handling is `earlyoom` only (no `systemd.oomd`).

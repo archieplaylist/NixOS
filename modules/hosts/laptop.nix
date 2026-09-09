@@ -18,7 +18,6 @@
     mySystem.enableSSH = false;
     mySystem.enableDocker = false;
     mySystem.enableTailscale = true;
-    mySystem.enableSops = true;
     mySystem.enableSmartd = true;
     
     mySystem.enableLuks = false;

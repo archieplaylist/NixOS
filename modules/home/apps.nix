@@ -21,7 +21,6 @@ _: {
         zip
         unrar
         file-roller
-        pkgs.unstable.qbittorrent
       ])
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
         git
@@ -40,6 +39,7 @@ _: {
         mpv
         yt-dlp
         ffmpeg
+        pkgs.unstable.qbittorrent
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.office.enable (with pkgs; [
         joplin-desktop
@@ -60,7 +60,6 @@ _: {
         dbeaver-bin
         remmina
         filezilla
-        gnumake
       ]))
     ];
 

@@ -123,11 +123,6 @@ _: {
         default = false;
         description = "Enable the Tailscale daemon.";
       };
-      enableSops = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable sops-nix secret decryption.";
-      };
       enableSmartd = lib.mkOption {
         type = lib.types.bool;
         default = false;

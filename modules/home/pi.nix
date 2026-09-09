@@ -13,8 +13,8 @@
 
         # ponytail: per-file entries only — never manage ~/.pi/agent/ as a whole,
         # or imperative `pi install` packages in npm/|git/ get wiped on rebuild.
-        # Auth is hybrid: `pi` + `/login` works with zero config; for API keys add
-        # them to secrets/secrets.yaml and export from /run/secrets in bash initExtra.
+        # Auth is hybrid: `pi` + `/login` works with zero config; for API keys
+        # export them via ~/.bashrc or /run/secrets (see README).
         home.file.".pi/agent/settings.json".text = builtins.toJSON {
           theme = "dark";
           thinking = "high";

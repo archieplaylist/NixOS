@@ -35,7 +35,7 @@ switch: ## Build + activate now (HOST=...)
 clean: ## Garbage collect (nh clean all)
 	nh clean all
 
-update: ## Refresh flake inputs (nixpkgs, home-manager, sops-nix, nix-flatpak)
+update: ## Refresh flake inputs
 	nix flake update
 
 develop: ## Enter a shell with the formatter and Nix linters

@@ -14,7 +14,6 @@
     mySystem.enableSSH = false;
     mySystem.enableDocker = true;
     mySystem.enableTailscale = false;
-    mySystem.enableSops = true;
     mySystem.enableVirtualBox = true;
     mySystem.enableSmartd = true;
     

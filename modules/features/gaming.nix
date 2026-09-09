@@ -14,7 +14,7 @@ _: {
       };
       boot.kernelParams = [ "split_lock_detect=off" ];
       boot.kernel.sysctl."vm.max_map_count" = 1048576;
-      systemd.oomd.enable = true;
+      # ponytail: OOM handled by earlyoom (optimisation.nix) — no systemd.oomd here
       services.thermald.enable = true;
       hardware.xone.enable = true;
       hardware.xpadneo.enable = true;

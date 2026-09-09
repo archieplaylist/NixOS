@@ -15,7 +15,6 @@
     mySystem.enableSSH = true;
     mySystem.enableDocker = false;
     mySystem.enableTailscale = false;
-    mySystem.enableSops = false;
     
     mySystem.enableLuks = false;
     mySystem.enableTpm2 = false;
