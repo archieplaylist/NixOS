@@ -140,6 +140,22 @@ if ! nh os boot "$REPO" -H "$HOST"; then
 fi
 rm -f "$HOST_FILE.bak"
 
+# ponytail: archive moves state, so ensure a backup exists first (missing-only, no date logic)
+if [ -z "${BACKUP_DIR:-}" ]; then BACKUP_CHECK_DIR="$REPO/backups/$CURRENT"; else BACKUP_CHECK_DIR="$BACKUP_DIR/$CURRENT"; fi
+if ! ls "$BACKUP_CHECK_DIR"/* >/dev/null 2>&1; then
+  echo "no backup found for $CURRENT in $BACKUP_CHECK_DIR" >&2
+  if command -v backup-de >/dev/null 2>&1; then
+    if [ -t 0 ]; then
+      printf "run backup-de first? [Y/n] " >&2; read -r ans || ans="n"
+      case "$ans" in n|N|no|NO) echo "skipping backup — archive only" >&2 ;; *) backup-de backup "$CURRENT" || { echo "error: backup failed; aborting switch" >&2; exit 1; } ;; esac
+    else
+      echo "non-interactive shell — skipping backup (run: backup-de backup $CURRENT)" >&2
+    fi
+  else
+    echo "backup-de not on PATH — skipping backup (archive only)" >&2
+  fi
+fi
+
 # Hand off runtime state: archive what the DE we're leaving wrote, so the home
 # directory only ever holds the active DE's files. Caches and wallets stay put.
 case "$CURRENT" in

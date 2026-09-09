@@ -1,13 +1,14 @@
-# GNOME Backups — ponytail edition
+# DE Backups — ponytail edition
 
-Single file per backup: `dconf dump /org/gnome/ > gnome-*.dconf` (7KB, not 1MB).
+One artifact per backup under `backups/<de>/`, newest 3 kept per pattern:
 
 ```bash
-gnome-backup backup                         # → backups/gnome/gnome-YYYYMMDD-HHMMSS.dconf
-gnome-backup list                           # ls + line count
-gnome-backup restore backups/gnome/gnome-*.dconf
-gnome-backup restore backups/gnome/gnome-backup-*.tar.gz  # old bundle compat
+backup-de backup [gnome|plasma|xfce|all]     # gnome → .dconf + files tar; plasma/xfce → files tar
+backup-de list [gnome|plasma|xfce]
+backup-de restore backups/gnome/gnome-*.dconf
+backup-de restore backups/<de>/<de>-*.tar.gz  # extracts into $HOME
+backup-de restore backups/gnome/gnome-backup-*.tar.gz  # old bundle compat
 ```
 
 Restore needs relogin. Nix manages extensions declaratively — no tar needed.
-Override dir: `BACKUP_DIR=/tmp gnome-backup backup`.
+Override base dir: `BACKUP_DIR=/tmp backup-de backup`.

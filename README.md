@@ -30,7 +30,7 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── user.nix / shell.nix / apps.nix / tooling.nix
 │   │   ├── gnome.nix / plasma.nix / xfce.nix / themes.nix
 │   │   ├── pi.nix / gaming.nix / easyeffects.nix / fastfetch.nix
-│   │   └── scripts/     # yt, tomp3, switch-de, gnome-backup -> ~/.local/bin
+│   │   └── scripts/     # yt, tomp3, switch-de, backup-de -> ~/.local/bin
 │   └── hosts/           # one file per machine -> nixos.hosts.<name>
 └── secrets/             # local secret templates only (never commit real values)
 ```
@@ -56,11 +56,11 @@ No wiring in `flake.nix`.
 - `yt <url>` / `yt -a <url>` — video / audio-only to `~/Downloads`.
 - `tomp3 file...` — to 192k MP3 in place.
 - `switch-de <gnome|plasma|xfce>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
-- `gnome-backup backup|restore <file>|list` — `dconf dump/load /org/gnome/`.
+- `backup-de backup [gnome|plasma|xfce|all]|restore <file>|list` — dconf dump/load (gnome) + file tars, newest 3 kept per DE. `switch-de` prompts for a backup when none exists.
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), Plasma (SDDM/Wayland, via plasma-manager), XFCE (LightDM/X11). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming: Orchis-Dark (stable `pkgs.orchis-theme`) + Tela-circle-dark + Bibata.
+GNOME (GDM/Wayland), Plasma (SDDM/Wayland, via plasma-manager), XFCE (LightDM/X11). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (GNOME only, unstable `pkgs.orchis-theme`): Orchis-Dark + Tela-circle-dark + Bibata — Plasma/XFCE stay stock defaults.
 
 ## Flatpak
 

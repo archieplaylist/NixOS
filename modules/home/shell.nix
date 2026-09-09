@@ -1,6 +1,6 @@
-# Bash + direnv + ~/.local/bin scripts (yt, tomp3, switch-de)
+# Bash + direnv + ~/.local/bin scripts (yt, tomp3, switch-de, backup-de)
 _: {
-  config.home.modules.mario = { lib, osConfig, ... }: {
+  config.home.modules.mario = {
     programs.bash = {
       enable = true;
       enableCompletion = true;
@@ -30,8 +30,8 @@ _: {
       source = ./scripts/switch-de;
       executable = true;
     };
-    home.file.".local/bin/gnome-backup" = lib.mkIf (osConfig.mySystem.desktop == "gnome") {
-      source = ./scripts/gnome-backup;
+    home.file.".local/bin/backup-de" = {
+      source = ./scripts/backup-de;
       executable = true;
     };
   };

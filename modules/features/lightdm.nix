@@ -4,22 +4,8 @@ _: {
     config = lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {
       services.xserver.displayManager.lightdm.enable = true;
 
-      # Greeter needs its own theme (runs before user session)
-      services.xserver.displayManager.lightdm.greeters.gtk = {
-        enable = true;
-        theme = {
-          package = pkgs.orchis-theme;
-          name = "Orchis-Dark";
-        };
-        iconTheme = {
-          package = pkgs.tela-circle-icon-theme;
-          name = "Tela-circle-dark";
-        };
-        cursorTheme = {
-          package = pkgs.bibata-cursors;
-          name = "Bibata-Modern-Classic";
-        };
-      };
+      # Greeter stock defaults (no custom theme)
+      services.xserver.displayManager.lightdm.greeters.gtk.enable = true;
 
       services.gnome.gnome-keyring.enable = true;
       services.upower.enable = true;

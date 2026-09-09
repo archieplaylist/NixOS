@@ -1,10 +1,8 @@
-# GTK/icon/cursor/font theming — Orchis-Dark / Tela-circle-dark / Bibata (Orchis https://github.com/vinceliuice/Orchis-theme)
+# GTK/icon/cursor/font theming — GNOME only (plasma/xfce stay stock defaults)
+# Orchis-Dark / Tela-circle-dark / Bibata (Orchis https://github.com/vinceliuice/Orchis-theme)
 _: {
   config.home.modules.mario = { pkgs, lib, osConfig, ... }:
-    let
-      isGnome = osConfig.mySystem.desktop == "gnome";
-    in
-    {
+    lib.mkIf (osConfig.mySystem.desktop == "gnome") {
       gtk = {
         enable = true;
         gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
@@ -30,7 +28,7 @@ _: {
         gtk2.force = true;
       };
 
-      dconf.settings."org/gnome/desktop/interface".color-scheme = lib.mkIf isGnome "prefer-dark";
+      dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
       home.file.".themes/Orchis-Dark" = {
         source = "${pkgs.orchis-theme}/share/themes/Orchis-Dark";

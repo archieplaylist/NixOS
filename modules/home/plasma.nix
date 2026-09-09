@@ -1,111 +1,18 @@
-# Plasma via plasma-manager — Nordic dark, only when desktop == plasma
+# Plasma via plasma-manager — stock defaults, only when desktop == plasma
 _: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     home.packages = lib.mkIf (osConfig.mySystem.desktop == "plasma") [
       pkgs.kitty
+      # ponytail: packages only, no declarative config — set manually in System Settings
+      pkgs.orchis-theme
+      pkgs.tela-circle-icon-theme
+      pkgs.bibata-cursors
       pkgs.nordic
     ];
-
-    # ponytail: force baloo off regardless of overrideConfig (plasma-manager won't overwrite with false)
-    xdg.configFile."baloofilerc" = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
-      force = true;
-      text = ''
-        [Basic Settings]
-        Indexing-Enabled=false
-      '';
-    };
 
     programs.plasma = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
       enable = true;
       overrideConfig = false; # ponytail: true rewrites kwinrc/plasmarc every login → 3-5s plasmashell restart
-
-      session = {
-        sessionRestore = {
-          restoreOpenApplicationsOnLogin = "startWithEmptySession";
-        };
-      };
-
-      configFile."kwalletrc" = {
-        Wallet = {
-          Enabled = true;
-          "First Use" = false;
-        };
-      };
-
-      input = {
-        touchpads = [
-          {
-            enable = true;
-            name = "SynPS/2 Synaptics TouchPad";
-            vendorId = "0002";
-            productId = "0007";
-            naturalScroll = true;
-          }
-        ];
-      };
-
-      # Explicit theme components — don't use workspace.lookAndFeel (wipes Aurorae in Plasma 6)
-      workspace = {
-        theme = "Nordic";
-        colorScheme = "Nordic"; # ponytail: string not store path
-        iconTheme = "Papirus-Dark";
-        cursor = {
-          theme = "Bibata-Modern-Classic";
-          size = 20;
-        };
-        windowDecorations = {
-          library = "org.kde.kwin.aurorae.v2";
-          theme = "__aurorae__svg__Nordic";
-        };
-        wallpaper = "${./assets/wallpaper.png}";
-      };
-
-      configFile.kwinrc = {
-        Compositing = {
-          Backend = "OpenGL";
-          LatencyPolicy = "low";
-          GLPreferBufferSwap = "a";
-          WindowsBlockCompositing = true;
-        };
-      };
-
-      panels = [
-        {
-          location = "bottom";
-          height = 36;
-          widgets = [
-            "org.kde.plasma.kickoff"
-            {
-              iconTasks = {
-                launchers = [
-                  "applications:org.kde.dolphin.desktop"
-                  "applications:org.kde.konsole.desktop"
-                  "applications:vivaldi-stable.desktop"
-                ];
-              };
-            }
-            "org.kde.plasma.systemtray"
-            {
-              digitalClock = {
-                time.format = "24h";
-              };
-            }
-          ];
-        }
-      ];
-
-      shortcuts = {
-        "services.org.kde.dolphin.desktop"._launch = "Meta+E";
-        "services.org.kde.konsole.desktop"._launch = "Meta+Return";
-        kwin = {
-          "Expose" = "Meta+,";
-          "Switch Window Down" = "Meta+J";
-          "Switch Window Left" = "Meta+H";
-          "Switch Window Right" = "Meta+L";
-          "Switch Window Up" = "Meta+K";
-          "Window Close" = "Meta+Q";
-        };
-      };
     };
   };
 }
