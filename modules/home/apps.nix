@@ -21,6 +21,7 @@ _: {
         zip
         unrar
         file-roller
+        pkgs.unstable.qbittorrent
       ])
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
         git
