@@ -29,7 +29,7 @@
           thinking = "high";
           defaultProjectTrust = "ask";
           enableInstallTelemetry = false;
-          packages = [ "npm:pi-web-access" ];
+          packages = [ "npm:pi-web-access" "npm:pi-memory" ];
         };
 
         # Global instructions only — repo rules live in <repo>/AGENTS.md (context file).
