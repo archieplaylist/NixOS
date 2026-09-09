@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# backup-de — backup/restore per-DE config (gnome/plasma/xfce)
+# ponytail: dconf dump/load for gnome (native), tar of DE file lists for the rest.
+# No manifests, no live-reload — restore + relogin. Auto-prune keeps newest 3 per DE.
+set -euo pipefail
+
+# repo detection (same as switch-de)
+detect_repo() {
+  [[ -n "${REPO:-}" && -d "$REPO" ]] && { echo "$REPO"; return; }
+  [[ -n "${NIXOS_REPO:-}" && -d "$NIXOS_REPO" ]] && { echo "$NIXOS_REPO"; return; }
+  [[ -d "$HOME/NixOS" ]] && { echo "$HOME/NixOS"; return; }
+  [[ -d "$HOME/nixos" ]] && { echo "$HOME/nixos"; return; }
+  git rev-parse --show-toplevel 2>/dev/null || echo ""
+}
+REPO="$(detect_repo)"
+BASE="${BACKUP_DIR:-${REPO:+$REPO/backups}}"
+BASE="${BASE:-${XDG_DATA_HOME:-$HOME/.local/share}/de-backups}"
+
+# File lists mirror switch-de's archive lists (minus dconf DB — the dump covers it).
+# Symlinks stored as-is (never followed into /nix/store); wallets/caches skipped.
+plasma_paths=(
+  ".config/plasma-*" ".config/plasmarc" ".config/kdeglobals"
+  ".config/kwin*" ".config/kglobalshortcutsrc" ".config/khotkeysrc"
+  ".config/krunnerrc" ".config/kscreenlockerrc" ".config/kactivitymanagerdrc"
+  ".config/baloofilerc" ".config/breezerc"
+  ".local/share/plasma*" ".local/share/kactivitymanagerd"
+  ".local/share/klipper" ".local/share/baloo" ".local/share/konsole"
+)
+gnome_files=(
+  ".config/mutter"
+  ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
+)
+xfce_paths=(
+  ".config/xfce4" ".config/xfconf" ".config/xfce4-session"
+  ".config/Thunar" ".local/share/xfce4"
+)
+
+usage() { cat <<'USAGE'
+backup-de backup [gnome|plasma|xfce|all]  → backups/<de>/<de>-*.{dconf,tar.gz} (default: current DE)
+backup-de restore <file>                  → dconf load (.dconf, old bundle tars) or tar -xzf into $HOME
+backup-de list [gnome|plasma|xfce]        → ls backup dirs
+USAGE
+}
+
+# prune <dir> <glob> — keep newest 3 matches
+prune() {
+  local dir="$1" pat="$2" n=0 f
+  [ -d "$dir" ] || return 0
+  # shellcheck disable=SC2086
+  while IFS= read -r f; do
+    n=$((n + 1))
+    [ "$n" -gt 3 ] && rm -f "$f"
+  done < <(ls -t "$dir"/$pat 2>/dev/null)
+}
+
+# tar_files <out.tar.gz> <patterns...> — tar existing paths relative to $HOME
+tar_files() {
+  local out="$1"; shift
+  local -a files=()
+  local pat p
+  for pat in "$@"; do
+    # shellcheck disable=SC2086
+    for p in $HOME/$pat; do
+      [ -e "$p" ] || [ -L "$p" ] || continue
+      case "$p" in */.cache/*|*keyrings*|*kwalletd*|*kwalletrc*|*gnome-keyring*|*kwallet*) continue ;; esac
+      files+=("${p#"$HOME"/}")
+    done
+  done
+  [ "${#files[@]}" -eq 0 ] && return 1
+  tar -czf "$out" -C "$HOME" "${files[@]}"
+}
+
+backup_gnome() {
+  local dir="$BASE/gnome" ts f t
+  mkdir -p "$dir"
+  ts="$(date +%Y%m%d-%H%M%S)"
+  if command -v dconf >/dev/null; then
+    f="$dir/gnome-$ts.dconf"
+    dconf dump /org/gnome/ > "$f"
+    echo "$f ($(wc -l < "$f") lines)"
+  else
+    echo "skip dconf dump (no dconf on this host)" >&2
+  fi
+  t="$dir/gnome-files-$ts.tar.gz"
+  if tar_files "$t" "${gnome_files[@]}"; then
+    echo "$t"
+  else
+    rm -f "$t"
+  fi
+  prune "$dir" "gnome-*.dconf"
+  prune "$dir" "gnome-files-*.tar.gz"
+  # ponytail: old gnome-backup-*.tar.gz bundles are restore-only legacy — never pruned, delete by hand when unused
+}
+
+backup_files() {
+  local de="$1" dir="$BASE/$1" f
+  mkdir -p "$dir"
+  f="$dir/$de-$(date +%Y%m%d-%H%M%S).tar.gz"
+  case "$de" in
+    plasma) tar_files "$f" "${plasma_paths[@]}" ;;
+    xfce) tar_files "$f" "${xfce_paths[@]}" ;;
+    *) echo "unknown DE: $de" >&2; return 1 ;;
+  esac || { rm -f "$f"; echo "nothing to back up for $de" >&2; return 0; }
+  echo "$f"
+  prune "$dir" "$de-*.tar.gz"
+}
+
+current_de() {
+  case "${XDG_CURRENT_DESKTOP:-}${DESKTOP_SESSION:-}" in
+    *[Gg][Nn][Oo][Mm][Ee]*) echo gnome ;;
+    *[Pp][Ll][Aa][Ss][Mm][Aa]*|*[Kk][Dd][Ee]*) echo plasma ;;
+    *[Xx][Ff][Cc][Ee]*) echo xfce ;;
+    *) echo all ;;
+  esac
+}
+
+cmd="${1:-}"; case "$cmd" in
+  backup)
+    de="${2:-$(current_de)}"
+    case "$de" in
+      gnome) backup_gnome ;;
+      plasma|xfce) backup_files "$de" ;;
+      all) backup_gnome; backup_files plasma; backup_files xfce ;;
+      *) usage; echo "unknown DE: $de" >&2; exit 1 ;;
+    esac
+    ;;
+  restore)
+    f="${2:-}"; [[ -f "$f" ]] || { usage; echo "restore requires file" >&2; exit 1; }
+    if [[ "$f" == *.dconf ]]; then
+      command -v dconf >/dev/null || { echo "missing dconf" >&2; exit 1; }
+      if head -n5 "$f" | grep -q "^\[org/"; then dconf load / < "$f"; else dconf load /org/gnome/ < "$f"; fi
+    elif tar -tzf "$f" >/dev/null 2>&1; then
+      if tar -tzf "$f" | grep -q "\.dconf$"; then
+        # old gnome bundle format (restore-only compat)
+        command -v dconf >/dev/null || { echo "missing dconf" >&2; exit 1; }
+        tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+        tar -xzf "$f" -C "$tmp"
+        src=$(find "$tmp" -name "dconf-gnome.dconf" -o -name "dconf-full.dconf" | head -n1)
+        [[ -n "${src:-}" ]] || src=$(find "$tmp" -name "*.dconf" | head -n1)
+        [[ -n "${src:-}" && -f "$src" ]] || { echo "no .dconf in bundle" >&2; exit 1; }
+        if head -n5 "$src" | grep -q "^\[org/"; then dconf load / < "$src"; else dconf load /org/gnome/ < "$src"; fi
+      else
+        # ponytail: refuse absolute-entry tarballs — restore writes into $HOME
+        if tar -tzf "$f" | grep -q "^/"; then echo "refusing tarball with absolute paths" >&2; exit 1; fi
+        tar -xzf "$f" -C "$HOME"
+      fi
+    else
+      usage; echo "unknown backup format: $f" >&2; exit 1
+    fi
+    echo "restore done — relogin to apply"
+    ;;
+  list|"")
+    de="${2:-}"
+    if [[ -n "$de" ]]; then
+      ls -lh "$BASE/$de" 2>/dev/null || echo "no backups in $BASE/$de"
+    else
+      for d in gnome plasma xfce; do
+        echo "== $d =="
+        ls -lh "$BASE/$d" 2>/dev/null || echo "no backups in $BASE/$d"
+      done
+    fi
+    command -v dconf >/dev/null && echo "current gnome: $(dconf dump /org/gnome/ 2>/dev/null | wc -l) lines"
+    ;;
+  help|-h|--help) usage ;;
+  *) echo "unknown: $cmd" >&2; usage; exit 1 ;;
+esac
