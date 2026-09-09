@@ -63,7 +63,7 @@ _: {
               enable = lib.mkOption {
                 type = lib.types.bool;
                 default = true;
-                description = "Office and productivity (joplin, onlyoffice, libreoffice).";
+                description = "Office and productivity (joplin, onlyoffice, libreoffice, zoom).";
               };
             };
             comms = {

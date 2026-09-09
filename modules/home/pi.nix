@@ -3,7 +3,14 @@
   config.home.modules.mario = { lib, pkgs, osConfig, ... }:
     {
       config = lib.mkIf osConfig.mySystem.appGroups.ai.enable {
-        home.packages = [ pkgs.nodejs pkgs.unstable.pi-coding-agent ];
+        home.packages = [
+          pkgs.nodejs
+          pkgs.unstable.pi-coding-agent
+          # pi-web-access optional deps: frame extraction + curator browser launch on Linux
+          pkgs.ffmpeg
+          pkgs.yt-dlp
+          pkgs.xdg-utils
+        ];
 
         # ponytail: telemetry off, update checks stay on (never set PI_OFFLINE=1 globally)
         home.sessionVariables = {
@@ -15,11 +22,14 @@
         # or imperative `pi install` packages in npm/|git/ get wiped on rebuild.
         # Auth is hybrid: `pi` + `/login` works with zero config; for API keys
         # export them via ~/.bashrc or /run/secrets (see README).
+        # Packages are declarative here so they survive rebuilds —
+        # pi auto-installs missing npm packages from this list on next startup.
         home.file.".pi/agent/settings.json".text = builtins.toJSON {
           theme = "dark";
           thinking = "high";
           defaultProjectTrust = "ask";
           enableInstallTelemetry = false;
+          packages = [ "npm:pi-web-access" ];
         };
 
         home.file.".pi/agent/AGENTS.md".text = ''

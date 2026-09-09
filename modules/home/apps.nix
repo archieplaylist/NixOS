@@ -45,6 +45,7 @@ _: {
         joplin-desktop
         onlyoffice-desktopeditors
         libreoffice-fresh
+        zoom-us
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.comms.enable (with pkgs; [
         pkgs.unstable.discord
