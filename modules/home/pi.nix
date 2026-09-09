@@ -32,19 +32,16 @@
           packages = [ "npm:pi-web-access" ];
         };
 
+        # Global instructions only — repo rules live in <repo>/AGENTS.md (context file).
         home.file.".pi/agent/AGENTS.md".text = ''
           # Global agent instructions
 
-          General coding: stdlib first, explicit error handling, smallest diff that works.
-          No abstraction, dependency, or config surface without a caller. Tests for logic.
-
-          In this NixOS repo additionally: `nix fmt` before commit, `make check` before push,
-          dendritic layout (`modules/` auto-imported, hosts add one file), per-host toggles
-          via `mySystem.appGroups.*`, no secrets in git.
-
-          Git: conventional commits (`feat:`/`fix:`/`chore:`), `init.defaultBranch=main`,
-          `push.autoSetupRemote=true`. Never commit `result/`, `.direnv/`, or secrets.
-          Never print secrets to chat or logs.
+          - Prefer stdlib / platform features over new dependencies; no new
+            abstraction, dependency, or config surface without a direct caller.
+          - Handle errors explicitly at the boundary; never swallow failures silently.
+          - Make the smallest diff that works; don't refactor unrelated code.
+          - Add or update tests for logic changes; skip tests for trivial renames.
+          - Never print secrets to chat or logs.
         '';
 
         # ponytail: upstream skill dirs, versioned in flake.lock —
