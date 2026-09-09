@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "caveman": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788769183,
+        "narHash": "sha256-GuCK3oy0DsMOQq7gHjIY/aeaukJcTvelfg+tp7R7Du4=",
+        "owner": "juliusbrussee",
+        "repo": "caveman",
+        "rev": "15581d14007fd01fb3f132016741962f34936ca2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "juliusbrussee",
+        "repo": "caveman",
+        "type": "github"
+      }
+    },
     "crane": {
       "locked": {
         "lastModified": 1731098351,
@@ -279,6 +295,22 @@
         "type": "github"
       }
     },
+    "ponytail": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788798420,
+        "narHash": "sha256-LPNMyHsri3+eeDmphEAKL1JgoRE4dLIPfZ4XZ+xu5UY=",
+        "owner": "DietrichGebert",
+        "repo": "ponytail",
+        "rev": "356918eba965ee1eac64bd3a7f0dd02108350de5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "DietrichGebert",
+        "repo": "ponytail",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks-nix": {
       "inputs": {
         "flake-compat": [
@@ -308,6 +340,7 @@
     },
     "root": {
       "inputs": {
+        "caveman": "caveman",
         "disko": "disko",
         "flake-parts": "flake-parts",
         "home-manager": "home-manager",
@@ -316,6 +349,7 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "plasma-manager": "plasma-manager",
+        "ponytail": "ponytail",
         "sops-nix": "sops-nix"
       }
     },

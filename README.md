@@ -78,7 +78,7 @@ Each host file sets `mySystem` flags (defined in `modules/features/mySystem.nix`
   on an already-installed machine breaks boot until you repartition.
 - `mySystem.flatpakApps` — declarative Flatpak apps (nix-flatpak).
 - `mySystem.gnomeExtensions` — single source of truth for GNOME extensions.
-- `mySystem.appGroups.{browsers,media,office,comms,editor,gaming,dev,work}.enable` — application group
+- `mySystem.appGroups.{browsers,media,office,comms,editor,gaming,dev,work,ai}.enable` — application group
   toggles used by **both** the system side (`desktop.nix`, `audio.nix`,
   `gaming.nix`) and the user side
   (`modules/home/apps.nix` via `osConfig`). This is the per-host switch for the
@@ -135,6 +135,12 @@ User packages live in `modules/home/apps.nix`, each group gated behind its
   Remmina. Often combined with `mySystem.enableVirtualBox = true;`
   (`services.nix` builds the vboxdrv kernel module, `users.nix` adds `mario`
   to `vboxusers` for USB passthrough).
+- **ai** (default on, off on `vm`): pi-coding-agent (from nixpkgs-unstable) + Node.js,
+  plus declarative `~/.pi/agent/` config (`modules/home/pi.nix`): global
+  `AGENTS.md`, upstream `ponytail`/`caveman` skills (flake inputs, update with
+  `nix flake update ponytail caveman`),
+  `review`/`commit` prompts, plan-mode extension. Auth via `pi` + `/login`,
+  or API keys from sops secrets.
 
 ## Custom scripts
 

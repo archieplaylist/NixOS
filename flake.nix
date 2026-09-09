@@ -28,6 +28,15 @@
       url = "github:nix-community/lanzaboote/v0.4.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # pi skills (plain sources, not flakes) — update with `nix flake update ponytail caveman`
+    ponytail = {
+      url = "github:DietrichGebert/ponytail";
+      flake = false;
+    };
+    caveman = {
+      url = "github:juliusbrussee/caveman";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ flake-parts, nixpkgs, ... }:

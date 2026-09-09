@@ -27,6 +27,7 @@
     mySystem.appGroups.comms.enable = false;
     mySystem.appGroups.office.enable = false;
     mySystem.appGroups.editor.enable = false;
+    mySystem.appGroups.ai.enable = false;
 
     # ponytail: vm never prints — save CUPS + Avahi broadcast
     services.printing.enable = false;

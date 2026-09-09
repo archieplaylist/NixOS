@@ -101,6 +101,13 @@ _: {
                 description = "Work applications (dbeaver-bin, filezilla, remmina).";
               };
             };
+            ai = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "AI coding agents (pi-coding-agent + ~/.pi/agent config).";
+              };
+            };
           };
         };
         default = { };
