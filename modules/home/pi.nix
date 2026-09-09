@@ -12,6 +12,17 @@
           pkgs.xdg-utils
         ];
 
+        # qmd binary for pi-memory `memory_search` (not in nixpkgs):
+        # user-scoped npm prefix keeps it out of the Nix store.
+        home.sessionPath = [ "$HOME/.local/share/npm-global/bin" ];
+        home.activation.installQmd = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          export PATH="${pkgs.nodejs}/bin:$PATH"
+          export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+          if [ ! -x "$NPM_CONFIG_PREFIX/bin/qmd" ]; then
+            $DRY_RUN_CMD npm install -g @tobilu/qmd \
+              || echo "warn: qmd install failed — memory_search stays keyword-only" >&2
+          fi
+        '';
         # ponytail: telemetry off, update checks stay on (never set PI_OFFLINE=1 globally)
         home.sessionVariables = {
           PI_TELEMETRY = "0";

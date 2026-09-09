@@ -33,6 +33,8 @@
   YouTube/local video. Zero-config; keys go in `~/.pi/web-search.json`.
 - `/plan` writes `PLAN.md` and gates edits behind approval; `/review` (prompt)
   for bug/security/perf review sorted by severity with minimal diffs.
+- `memory_*` tools persist facts across sessions; `memory_search` needs the
+  `qmd` binary (auto-installed to `~/.local/share/npm-global/bin` on switch).
 
 ## Git
 
