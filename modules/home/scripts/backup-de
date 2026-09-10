@@ -2,6 +2,7 @@
 # backup-de — backup/restore per-DE config (gnome/plasma/xfce)
 # ponytail: dconf dump/load for gnome (native), tar of DE file lists for the rest.
 # No manifests, no live-reload — restore + relogin. Auto-prune keeps newest 3 per DE.
+# Stable *-latest copies (1 per DE) are git-tracked; timestamped ones stay machine-local.
 set -euo pipefail
 
 # repo detection (same as switch-de)
@@ -42,7 +43,7 @@ backup-de list [gnome|plasma|xfce]        → ls backup dirs
 USAGE
 }
 
-# prune <dir> <glob> — keep newest 3 matches
+# prune <dir> <glob> — keep newest 3 matches (never the git-tracked *-latest copies)
 prune() {
   local dir="$1" pat="$2" n=0 f
   [ -d "$dir" ] || return 0
@@ -50,7 +51,7 @@ prune() {
   while IFS= read -r f; do
     n=$((n + 1))
     [ "$n" -gt 3 ] && rm -f "$f"
-  done < <(ls -t "$dir"/$pat 2>/dev/null)
+  done < <(ls -t "$dir"/$pat 2>/dev/null | grep -v -- '-latest\.')
 }
 
 # tar_files <out.tar.gz> <patterns...> — tar existing paths relative to $HOME
@@ -77,12 +78,14 @@ backup_gnome() {
   if command -v dconf >/dev/null; then
     f="$dir/gnome-$ts.dconf"
     dconf dump /org/gnome/ > "$f"
+    cp -f "$f" "$dir/gnome-latest.dconf"
     echo "$f ($(wc -l < "$f") lines)"
   else
     echo "skip dconf dump (no dconf on this host)" >&2
   fi
   t="$dir/gnome-files-$ts.tar.gz"
   if tar_files "$t" "${gnome_files[@]}"; then
+    cp -f "$t" "$dir/gnome-files-latest.tar.gz"
     echo "$t"
   else
     rm -f "$t"
@@ -101,6 +104,7 @@ backup_files() {
     xfce) tar_files "$f" "${xfce_paths[@]}" ;;
     *) echo "unknown DE: $de" >&2; return 1 ;;
   esac || { rm -f "$f"; echo "nothing to back up for $de" >&2; return 0; }
+  cp -f "$f" "$dir/$de-latest.tar.gz"
   echo "$f"
   prune "$dir" "$de-*.tar.gz"
 }
