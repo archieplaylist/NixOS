@@ -25,7 +25,6 @@
         { "type": "os",       "key": "│ \uf313  OS        │" },
         { "type": "kernel",   "key": "│ \uf31a  Kernel    │" },
         { "type": "uptime",   "key": "│ 󰅐  Uptime    │" },
-        { "key": "│   Age       │", "type": "command", "text": "birth_install=$(stat -c %W /); current=$(date +%s); time_progression=$((current - birth_install)); days_difference=$((time_progression / 86400)); echo $days_difference days" },
         { "type": "packages", "key": "│ 󰏓  Packages  │" },
         { "type": "shell",    "key": "│ \ue795  Shell     │" },
         { "type": "custom", "key": "├──────────────┤", "format": "" },

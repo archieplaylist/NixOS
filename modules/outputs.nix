@@ -3,20 +3,6 @@
 let
   system = "x86_64-linux";
 
-  # VirtualBox GuestAdditions fix for kernel 6.12+ (drm_fb_helper_alloc_info removed)
-  patchVboxGuestAdditions = kernelPackages:
-    kernelPackages.extend (_final: prev: {
-      virtualboxGuestAdditions = prev.virtualboxGuestAdditions.overrideAttrs (old: {
-        prePatch = (old.prePatch or "") + ''
-          fb=$(find src -name vbox_fb.c 2>/dev/null | head -n1)
-          if [ -n "$fb" ]; then
-            sed -i 's@info = drm_fb_helper_alloc_info(helper);@info = helper->info;@' "$fb"
-            sed -i 's@if (IS_ERR(info))@if (IS_ERR(info) || !info)@' "$fb"
-          fi
-        '';
-      });
-    });
-
   buildHost = name: inputs.nixpkgs.lib.nixosSystem {
     inherit system;
     modules = [
@@ -36,12 +22,6 @@ let
           (_final: prev: {
             # ponytail: orchis from unstable for latest release (stable lags)
             orchis-theme = prev.unstable.orchis-theme;
-          })
-          # ponytail: VirtualBox GuestAdditions fix for kernel 6.12+ (drm_fb_helper_alloc_info removed)
-          # Re-check on VirtualBox >7.2.16 / kernel >6.18 — delete when vm/work build without it.
-          (_final: prev: {
-            linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
-            linuxPackages_latest = patchVboxGuestAdditions prev.linuxPackages_latest;
           })
         ];
       }

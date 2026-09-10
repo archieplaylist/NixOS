@@ -4,29 +4,19 @@
     {
       config = lib.mkIf osConfig.mySystem.appGroups.ai.enable {
         home.packages = [
+          # ponytail: nodejs overlaps dev group on purpose — ai hosts run with dev off
           pkgs.nodejs
           pkgs.unstable.pi-coding-agent
-          # pi-web-access optional deps: frame extraction + curator browser launch on Linux
-          pkgs.ffmpeg
-          pkgs.yt-dlp
           pkgs.xdg-utils
         ];
 
         # qmd binary for pi-memory `memory_search` (not in nixpkgs):
-        # user-scoped npm prefix keeps it out of the Nix store.
+        # install once by hand: NPM_CONFIG_PREFIX=~/.local/share/npm-global npm install -g @tobilu/qmd
+        # ponytail: no activation-time npm fetch — keeps switches offline and reproducible.
         home.sessionPath = [ "$HOME/.local/share/npm-global/bin" ];
-        home.activation.installQmd = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          export PATH="${pkgs.nodejs}/bin:$PATH"
-          export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
-          if [ ! -x "$NPM_CONFIG_PREFIX/bin/qmd" ]; then
-            $DRY_RUN_CMD npm install -g @tobilu/qmd \
-              || echo "warn: qmd install failed — memory_search stays keyword-only" >&2
-          fi
-        '';
         # ponytail: telemetry off, update checks stay on (never set PI_OFFLINE=1 globally)
         home.sessionVariables = {
           PI_TELEMETRY = "0";
-          PI_OFFLINE = "0";
         };
 
         # ponytail: per-file entries only — never manage ~/.pi/agent/ as a whole,
@@ -102,13 +92,13 @@
               });
               if (typeof pi.on === "function") {
                 pi.on("tool_call", async (event: any) => {
-                  if (armed && event?.toolName === "edit")
+                  if (armed && (event?.toolName === "edit" || event?.toolName === "write"))
                     return { block: true, reason: "Plan mode armed — say `approved` to allow edits." };
                   return undefined;
                 });
                 pi.on("input", async (event: any, ctx: any) => {
                   const t = (event?.text ?? "").trim().toLowerCase();
-                  if (t === "approved" || t === "done") {
+                  if (t === "approved" || t.startsWith("approved ") || t === "done" || t.startsWith("done ")) {
                     armed = false;
                     ctx.ui.notify(t === "approved" ? "Edits approved." : "Plan mode disarmed.", "info");
                     return { action: "handled" };
@@ -116,7 +106,7 @@
                   return undefined;
                 });
               }
-            } catch { /* never break pi boot */ }
+            } catch (e) { console.warn("plan-mode init failed:", e); }
           }
         '';
       };

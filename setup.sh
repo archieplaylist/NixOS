@@ -83,7 +83,7 @@ ensure_tools() {
   done
   [[ ${#missing[@]} -eq 0 ]] && return 0
 
-  have nix || { warn "nix not in PATH — install ${missing[*]} manually"; return 0; }
+  have nix || die "missing tools (${missing[*]}) and nix is not in PATH — install them manually";
 
   # Deduplicate package list.
   local -a unique_pkgs
@@ -545,6 +545,23 @@ step_deploy() {
     die "invalid host number: $choice"
   fi
   local name="${HOSTS[$((choice-1))]%.nix}"
+
+  # ponytail: --luks without a fresh wipe leaves INSTALL_DISK empty (disko defaults
+  # to /dev/sda) — offer a one-time override so the initrd finds the LUKS partition.
+  if [[ $ENABLE_LUKS -eq 1 && -z "$INSTALL_DISK" ]]; then
+    if [[ $AN_YES_SET -eq 0 ]]; then
+      disk_ans="$(ask "Disk holding the LUKS partition for disko (empty = keep default)")" || true
+      if [[ -n "${disk_ans:-}" ]]; then
+        if [[ "$disk_ans" =~ $DISK_PATTERN ]] && [[ -b "$disk_ans" ]]; then
+          INSTALL_DISK="$disk_ans"
+        else
+          warn "not a valid disk ($disk_ans) — disko device left as declared"
+        fi
+      else
+        info "disko device left as declared (default /dev/sda)"
+      fi
+    fi
+  fi
 
   # Sync the selected host's mySystem.enable* flags with the CLI flags
   # BEFORE copying the source or running nixos-rebuild. Both branches

@@ -2,18 +2,24 @@
 _: {
   config.nixos.modules.base = { config, lib, pkgs, ... }: {
     config = {
-      warnings = lib.mkIf config.mySystem.enableSSH (
-        lib.optionals (config.mySystem.sshAuthorizedKeys == [ ]) [
-          "SSH is enabled but 'mySystem.sshAuthorizedKeys' is empty — nobody can log in over SSH."
-        ]
-      );
+      services = {
+        # ponytail: password login on purpose (keys optional) — user password comes from /etc/hashed-password
+        openssh = lib.mkIf config.mySystem.enableSSH {
+          enable = true;
+          settings = {
+            PasswordAuthentication = true;
+            PermitRootLogin = "no";
+            KbdInteractiveAuthentication = false;
+          };
+        };
 
-      services.openssh = lib.mkIf (config.mySystem.enableSSH && config.mySystem.sshAuthorizedKeys != [ ]) {
-        enable = true;
-        settings = {
-          PasswordAuthentication = false;
-          PermitRootLogin = "no";
-          KbdInteractiveAuthentication = false;
+        tailscale = lib.mkIf config.mySystem.enableTailscale {
+          enable = true;
+        };
+
+        smartd = lib.mkIf config.mySystem.enableSmartd {
+          enable = true;
+          autodetect = true;
         };
       };
 
@@ -26,17 +32,8 @@ _: {
         };
       };
 
-      services.tailscale = lib.mkIf config.mySystem.enableTailscale {
-        enable = true;
-      };
-
       virtualisation.virtualbox = lib.mkIf config.mySystem.enableVirtualBox {
         host.enable = true;
-      };
-
-      services.smartd = lib.mkIf config.mySystem.enableSmartd {
-        enable = true;
-        autodetect = true;
       };
 
       environment.systemPackages = with pkgs; [
