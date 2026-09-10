@@ -15,10 +15,8 @@ check: ## Build every host config (`nix flake check`)
 fmt: ## Reformat all Nix files (`nix fmt`)
 	nix fmt
 
-fmt-check: ## Fail if `nix fmt` would change anything
-	@nix fmt
-	@git diff --quiet --exit-code \
-		|| { echo "error: nix fmt would change files — run 'make fmt' first"; exit 1; }
+fmt-check: ## Fail if `nix fmt` would change anything (no mutation)
+	nix develop --command bash -c "nixpkgs-fmt --check ." 
 
 hooks: ## Install the repo's git hooks (core.hooksPath -> .githooks, once per clone)
 	git config core.hooksPath .githooks

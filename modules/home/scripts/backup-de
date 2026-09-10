@@ -8,8 +8,8 @@ set -euo pipefail
 detect_repo() {
   [[ -n "${REPO:-}" && -d "$REPO" ]] && { echo "$REPO"; return; }
   [[ -n "${NIXOS_REPO:-}" && -d "$NIXOS_REPO" ]] && { echo "$NIXOS_REPO"; return; }
-  [[ -d "$HOME/NixOS" ]] && { echo "$HOME/NixOS"; return; }
   [[ -d "$HOME/nixos" ]] && { echo "$HOME/nixos"; return; }
+  [[ -d "$HOME/NixOS" ]] && { echo "$HOME/NixOS"; return; }
   git rev-parse --show-toplevel 2>/dev/null || echo ""
 }
 REPO="$(detect_repo)"

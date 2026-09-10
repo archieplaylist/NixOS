@@ -16,18 +16,18 @@
 
 set -euo pipefail
 
-# Repo location: canonical is ~/NixOS (capital N), fallback to ~/nixos for
-# backwards-compat or env override via $REPO / $NIXOS_REPO.
+# Repo location: canonical is ~/nixos (lowercase, matches programs.nh.flake).
+# ~/NixOS (capital N) kept as fallback, or override via $REPO / $NIXOS_REPO.
 if [ -n "${REPO:-}" ]; then
   :
 elif [ -n "${NIXOS_REPO:-}" ]; then
   REPO="$NIXOS_REPO"
-elif [ -d "$HOME/NixOS" ]; then
-  REPO="$HOME/NixOS"
 elif [ -d "$HOME/nixos" ]; then
   REPO="$HOME/nixos"
-else
+elif [ -d "$HOME/NixOS" ]; then
   REPO="$HOME/NixOS"
+else
+  REPO="$HOME/nixos"
 fi
 ARCHIVE_DIR="$HOME/.local/share/de-archive"
 
@@ -53,13 +53,23 @@ xfce_paths=(
 )
 
 host_module() {
-  case "$(hostname)" in
+  # ponytail: derive from host files first — new hosts need no script edit
+  local h f
+  h="$(hostname)"
+  for f in "$REPO/modules/hosts"/*.nix; do
+    [ -f "$f" ] || continue
+    if grep -Eq "mySystem\.hostname *= *\"$h\"" "$f" 2>/dev/null; then
+      basename "$f" .nix
+      return 0
+    fi
+  done
+  case "$h" in
     nixdesks) echo "desktop" ;;
     nixlappys) echo "laptop" ;;
     central8|nixworks) echo "work" ;;
     nixvms) echo "vm" ;;
-    *) echo "error: no host module known for hostname '$(hostname)'" >&2
-       echo "add it to host_module() in $HOME/.local/bin/switch-de" >&2
+    *) echo "error: no host module known for hostname '$h'" >&2
+       echo "add a file to $REPO/modules/hosts/ with mySystem.hostname = '$h'" >&2
        exit 1 ;;
   esac
 }
@@ -142,7 +152,7 @@ rm -f "$HOST_FILE.bak"
 
 # ponytail: archive moves state, so ensure a backup exists first (missing-only, no date logic)
 if [ -z "${BACKUP_DIR:-}" ]; then BACKUP_CHECK_DIR="$REPO/backups/$CURRENT"; else BACKUP_CHECK_DIR="$BACKUP_DIR/$CURRENT"; fi
-if ! ls "$BACKUP_CHECK_DIR"/* >/dev/null 2>&1; then
+if [ -z "$(find "$BACKUP_CHECK_DIR" -mindepth 1 -print -quit 2>/dev/null)" ]; then
   echo "no backup found for $CURRENT in $BACKUP_CHECK_DIR" >&2
   if command -v backup-de >/dev/null 2>&1; then
     if [ -t 0 ]; then
@@ -169,7 +179,6 @@ restore_de "$TARGET"
 # clean up old DE config after switch and backup — remove empty dirs left behind
 # ponytail: one find, no extra backup (archive already is the backup)
 find "$HOME/.config" "$HOME/.local/share" -type d -empty -delete 2>/dev/null || true
-rm -f "$HOST_FILE.bak"
 
 echo
 echo "built the $TARGET boot entry. Reboot to start the new display manager"

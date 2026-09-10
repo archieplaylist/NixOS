@@ -4,3 +4,7 @@ result
 *.swp
 .kilo
 PLAN.md
+
+# DE backups are machine-local (large binaries)
+backups/**/*.tar.gz
+backups/**/*.dconf
