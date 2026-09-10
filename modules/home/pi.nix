@@ -53,6 +53,8 @@
           - Make the smallest diff that works; don't refactor unrelated code.
           - Add or update tests for logic changes; skip tests for trivial renames.
           - Never print secrets to chat or logs.
+          - Always apply `ponytail:full` + `caveman:full` for code/write/review/audit/read — read `~/.pi/agent/skills/ponytail/SKILL.md` and `~/.pi/agent/skills/caveman/SKILL.md` if needed. Ponytail = ladder YAGNI→reuse→stdlib→native→dep→one-liner; caveman = terse, no filler/narration.
+          - Minimize code comments: no obvious/redundant comments; comment only non-obvious logic or `ponytail:` ceilings; prefer self-documenting names over commented code.
         '';
 
         # ponytail: upstream skill dirs, versioned in flake.lock —
@@ -61,8 +63,16 @@
         home.file.".pi/agent/skills/caveman".source = "${inputs.caveman}/skills/caveman";
 
         home.file.".pi/agent/prompts/review.md".text = ''
+          ---
+          description: Review code — always ponytail + caveman
+          ---
+          Apply skills `ponytail:full` and `caveman:full` — always. Read `~/.pi/agent/skills/ponytail/SKILL.md` and `~/.pi/agent/skills/caveman/SKILL.md` if needed.
+
           Review this code for bugs, security issues, and performance problems.
           Focus on: {{focus}}
+
+          Ponytail: ladder YAGNI → reuse existing → stdlib → native platform → installed dep → one-liner → minimal code; root-cause fix in shared function, not per-caller; no unrequested abstraction/boilerplate; fewest files, shortest working diff; `ponytail:` comment for deliberate ceilings.
+          Caveman: terse, drop articles/filler/pleasantries/hedging, fragments OK, short synonyms, no tool-call narration, no decorative tables/emoji, code/error strings verbatim, preserve user's language.
 
           Output issues sorted by severity with minimal diffs.
         '';
@@ -82,17 +92,27 @@
               let armed = false;
               pi.registerCommand("plan", {
                 description: "Write plan to file and require approval before edits",
-                handler: async (ctx: any, args: string) => {
+                handler: async (args: string, ctx: any) => {
                   armed = true;
                   const fs = await import("node:fs");
-                  fs.writeFileSync("PLAN.md", `# Plan\n\n''${args}\n`);
-                  return "Plan written to PLAN.md. Say `approved` to arm edits, `done` to disarm.";
+                  const path = await import("node:path");
+                  fs.writeFileSync(path.join(ctx.cwd, "PLAN.md"), `# Plan\n\n''${args}\n`);
+                  ctx.ui.notify("Plan written to PLAN.md. Say `approved` to allow edits, `done` to disarm.", "info");
                 },
               });
               if (typeof pi.on === "function") {
                 pi.on("tool_call", async (event: any) => {
-                  if (armed && event?.tool === "edit" && !event?.approved)
-                    return { block: true, message: "Plan mode armed — approve first." };
+                  if (armed && event?.toolName === "edit")
+                    return { block: true, reason: "Plan mode armed — say `approved` to allow edits." };
+                  return undefined;
+                });
+                pi.on("input", async (event: any, ctx: any) => {
+                  const t = (event?.text ?? "").trim().toLowerCase();
+                  if (t === "approved" || t === "done") {
+                    armed = false;
+                    ctx.ui.notify(t === "approved" ? "Edits approved." : "Plan mode disarmed.", "info");
+                    return { action: "handled" };
+                  }
                   return undefined;
                 });
               }

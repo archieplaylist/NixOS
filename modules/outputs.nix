@@ -41,7 +41,6 @@ let
           # Re-check on VirtualBox >7.2.16 / kernel >6.18 — delete when vm/work build without it.
           (_final: prev: {
             linuxPackages = patchVboxGuestAdditions prev.linuxPackages;
-            linuxPackages_6_12 = patchVboxGuestAdditions (prev.linuxPackages_6_12 or prev.linuxPackages);
             linuxPackages_latest = patchVboxGuestAdditions prev.linuxPackages_latest;
           })
         ];
