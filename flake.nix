@@ -44,7 +44,8 @@
           entries = builtins.readDir dir;
           names = builtins.attrNames entries;
           files = builtins.filter (n: entries.${n} == "regular" && lib.hasSuffix ".nix" n) names;
-          dirs = builtins.filter (n: entries.${n} == "directory") names;
+          # ponytail: assets holds data files, never modules
+          dirs = builtins.filter (n: entries.${n} == "directory" && n != "assets") names;
         in
         (map (f: dir + "/${f}") files)
         ++ (builtins.concatMap (d: importTree (dir + "/${d}")) dirs);

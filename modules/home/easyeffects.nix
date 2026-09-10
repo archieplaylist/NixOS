@@ -1,14 +1,14 @@
 # EasyEffects presets — vendored from JackHack96/EasyEffects-Presets
 _: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
-    xdg.configFile = lib.mkIf osConfig.mySystem.enableDesktop {
+    xdg.configFile = lib.mkIf (osConfig.mySystem.enableDesktop && osConfig.mySystem.hostname != "nixvms") {
       "easyeffects/output".source = ./assets/easyeffects/output;
       "easyeffects/output".recursive = true;
       "easyeffects/irs".source = ./assets/easyeffects/irs;
       "easyeffects/irs".recursive = true;
     };
 
-    systemd.user.services.easyeffects = lib.mkIf osConfig.mySystem.enableDesktop {
+    systemd.user.services.easyeffects = lib.mkIf (osConfig.mySystem.enableDesktop && osConfig.mySystem.hostname != "nixvms") {
       Unit = {
         Description = "EasyEffects audio effects for PipeWire";
         After = [

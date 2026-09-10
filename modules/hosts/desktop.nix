@@ -15,10 +15,6 @@
     mySystem.enableDocker = true;
     mySystem.enableTailscale = true;
     mySystem.enableSmartd = true;
-    
-    mySystem.enableLuks = false;
-    mySystem.enableTpm2 = false;
-    mySystem.enableSecureBoot = false;
 
     mySystem.appGroups.comms.enable = false;
     mySystem.appGroups.dev.enable = false;
@@ -27,6 +23,5 @@
     powerManagement.cpuFreqGovernor = "performance";
 
     mySystem.flatpakApps = lib.mkAfter [ "com.mattjakeman.ExtensionManager" ];
-    mySystem.sshAuthorizedKeys = [ ];
   };
 }

@@ -2,7 +2,7 @@
 _: {
   config.home.modules.mario = { lib, osConfig, ... }: {
     dconf = {
-      enable = true;
+      enable = osConfig.mySystem.desktop == "gnome";
       settings = lib.mkIf (osConfig.mySystem.desktop == "gnome") {
         "org/gnome/shell" = {
           enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;

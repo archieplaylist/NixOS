@@ -10,15 +10,17 @@ _: {
       (with pkgs; [
         fzf
         bat
-        eza
         fastfetch
         btop
-        exfatprogs
-        ntfs3g
         zip
         unrar
         file-roller
       ])
+      # ponytail: no USB disks in vm guest
+      (lib.mkIf (osConfig.mySystem.hostname != "nixvms") (with pkgs; [
+        exfatprogs
+        ntfs3g
+      ]))
       (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
         git
         lazygit
@@ -66,9 +68,18 @@ _: {
     # GTK3 dialog aborts on launch. GSettings reads the user data dir
     # (~/.local/share/glib-2.0/schemas) regardless of XDG_DATA_DIRS, so
     # symlink gtk3's compiled schemas there. No VirtualBox rebuild needed.
-    xdg.dataFile = lib.mkIf osConfig.mySystem.appGroups.work.enable {
-      "glib-2.0/schemas/gschemas.compiled".source =
-        "${pkgs.gtk3}/share/gsettings-schemas/gtk+3-${pkgs.gtk3.version}/glib-2.0/schemas/gschemas.compiled";
-    };
+    xdg.dataFile =
+      let
+        gtkSchema = "${pkgs.gtk3}/share/gsettings-schemas/gtk+3-${pkgs.gtk3.version}/glib-2.0/schemas/gschemas.compiled";
+      in
+      lib.mkIf (osConfig.mySystem.appGroups.work.enable && builtins.pathExists gtkSchema) {
+        "glib-2.0/schemas/gschemas.compiled".source = gtkSchema;
+      };
+    warnings =
+      let
+        gtkSchema = "${pkgs.gtk3}/share/gsettings-schemas/gtk+3-${pkgs.gtk3.version}/glib-2.0/schemas/gschemas.compiled";
+      in
+      lib.optional (osConfig.mySystem.appGroups.work.enable && !(builtins.pathExists gtkSchema))
+        "gtk3 gsettings path moved — update the VirtualBox workaround in apps.nix";
   };
 }

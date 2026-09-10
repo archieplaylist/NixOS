@@ -3,7 +3,6 @@ _: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }:
     lib.mkIf (osConfig.mySystem.desktop == "xfce") {
       home.packages = with pkgs; [
-        kitty
         xfce4-terminal
         xfce4-screenshooter
         xfce4-clipman-plugin

@@ -11,15 +11,10 @@
     mySystem.hostname = "central8";
     mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
-    mySystem.enableSSH = false;
     mySystem.enableDocker = true;
     mySystem.enableTailscale = false;
     mySystem.enableVirtualBox = true;
     mySystem.enableSmartd = true;
-    
-    mySystem.enableLuks = false;
-    mySystem.enableTpm2 = false;
-    mySystem.enableSecureBoot = false;
 
     mySystem.sshAuthorizedKeys = [
       # "ssh-ed25519 AAAAC3... mario@client" # ponytail: add client pubkey here, then set enableSSH=true

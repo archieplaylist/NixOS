@@ -29,9 +29,5 @@ _: {
       };
 
       dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
-
-      home.file.".themes/Orchis-Dark" = {
-        source = "${pkgs.orchis-theme}/share/themes/Orchis-Dark";
-      };
     };
 }

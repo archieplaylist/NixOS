@@ -9,24 +9,17 @@
       config.nixos.modules.laptop
     ];
 
+    # ponytail: latest kernel for newer laptop hardware — drop when stable suffices
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     mySystem.hostname = "nixlappys";
     mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
     mySystem.enableLaptop = true;
-    mySystem.enableSSH = false;
-    mySystem.enableDocker = false;
     mySystem.enableTailscale = true;
     mySystem.enableSmartd = true;
-    
-    mySystem.enableLuks = false;
-    mySystem.enableSecureBoot = false;
-    mySystem.enableTpm2 = false;
 
     mySystem.appGroups.dev.enable = false;
     mySystem.appGroups.work.enable = false;
-
-    mySystem.sshAuthorizedKeys = [ ];
   };
 }

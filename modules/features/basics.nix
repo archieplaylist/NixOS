@@ -12,30 +12,28 @@ _: {
       boot.kernelPackages = lib.mkDefault pkgs.linuxPackages;
       nixpkgs.config.allowUnfree = true;
 
-      # LocalSend (flatpak) needs TCP+UDP 53317
-      networking.firewall = {
-        enable = true;
-        allowPing = true;
-        allowedTCPPorts = [ 53317 ];
-        allowedUDPPorts = [ 53317 ];
-      };
+      # LocalSend (flatpak) needs TCP+UDP 53317 — desktop hosts only
+      networking.firewall.enable = true;
+      networking.firewall.allowPing = true;
+      networking.firewall.allowedTCPPorts = lib.mkIf config.mySystem.enableDesktop [ 53317 ];
+      networking.firewall.allowedUDPPorts = lib.mkIf config.mySystem.enableDesktop [ 53317 ];
 
-      services.avahi = {
-        enable = true;
-        nssmdns4 = true;
-        nssmdns6 = true;
-        publish = {
+      services = {
+        avahi = {
           enable = true;
-          addresses = true;
-          workstation = true;
+          nssmdns4 = true;
+          nssmdns6 = true;
+          publish = {
+            enable = config.mySystem.enableDesktop;
+            addresses = true;
+            workstation = true;
+          };
         };
-      };
 
-      services.printing = {
-        enable = lib.mkDefault true;
-        drivers = [ pkgs.gutenprint ];
+        # ponytail: no explicit drivers — add gutenprint when a printer needs it
+        printing.enable = lib.mkDefault true;
+        system-config-printer.enable = lib.mkDefault true;
       };
-      services.system-config-printer.enable = lib.mkDefault true;
 
       boot.binfmt.registrations.appimage = {
         wrapInterpreterInShell = false;

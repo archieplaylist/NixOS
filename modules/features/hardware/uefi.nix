@@ -11,6 +11,6 @@ _: {
 
     boot.lanzaboote.enable = config.mySystem.enableSecureBoot;
     boot.lanzaboote.pkiBundle = "/var/lib/sbctl";
-    boot.lanzaboote.configurationLimit = 10;
+    boot.lanzaboote.configurationLimit = lib.mkIf config.mySystem.enableSecureBoot 10;
   };
 }
