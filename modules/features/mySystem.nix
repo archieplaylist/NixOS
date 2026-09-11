@@ -42,73 +42,36 @@ _: {
         default = false;
         description = "Enable the VirtualBox host (with kernel modules).";
       };
+      isVm = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "VM guest tweaks: no USB storage, small zram, no ananicy/EasyEffects.";
+      };
       appGroups = lib.mkOption {
         type = lib.types.submodule {
-          options = {
-            browsers = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Web browsers (firefox, chromium, vivaldi).";
+          options =
+            let
+              groups = {
+                browsers = "Web browsers (firefox, chromium, vivaldi).";
+                media = "Media players and tooling (vlc, mpv, yt-dlp, ffmpeg).";
+                office = "Office and productivity (joplin, onlyoffice, libreoffice, zoom).";
+                comms = "Communication apps (discord).";
+                editor = "Code editors (vscode).";
+                gaming = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";
+                dev = "Development tooling (editors, languages, CLIs).";
+                work = "Work applications (dbeaver-bin, filezilla, remmina).";
+                ai = "AI coding agents (pi-coding-agent, opencode + ponytail/caveman skills).";
               };
-            };
-            media = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Media players and tooling (vlc, mpv, yt-dlp, ffmpeg).";
-              };
-            };
-            office = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Office and productivity (joplin, onlyoffice, libreoffice, zoom).";
-              };
-            };
-            comms = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Communication apps (discord).";
-              };
-            };
-            editor = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Code editors (vscode).";
-              };
-            };
-            gaming = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";
-              };
-            };
-            dev = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Development tooling (editors, languages, CLIs).";
-              };
-            };
-            work = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = false;
-                description = "Work applications (dbeaver-bin, filezilla, remmina).";
-              };
-            };
-            ai = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "AI coding agents (pi-coding-agent, opencode + ponytail/caveman skills).";
-              };
-            };
-          };
+            in
+            lib.mapAttrs
+              (name: description: {
+                enable = lib.mkOption {
+                  type = lib.types.bool;
+                  default = name != "work";
+                  inherit description;
+                };
+              })
+              groups;
         };
         default = { };
         description = "Per-host application group toggles (mirrored to home-manager).";

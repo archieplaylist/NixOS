@@ -17,7 +17,7 @@ _: {
         file-roller
       ])
       # ponytail: no USB disks in vm guest
-      (lib.mkIf (osConfig.mySystem.hostname != "nixvms") (with pkgs; [
+      (lib.mkIf (!osConfig.mySystem.isVm) (with pkgs; [
         exfatprogs
         ntfs3g
       ]))
@@ -62,6 +62,17 @@ _: {
         filezilla
       ]))
     ];
+
+    # MangoHud — only when gaming group enabled
+    home.file.".config/MangoHud/MangoHud.conf" = lib.mkIf osConfig.mySystem.appGroups.gaming.enable {
+      text = ''
+        gpu_stats
+        cpu_stats
+        fps
+        frametime
+        temperature
+      '';
+    };
 
     # ponytail: nixpkgs VirtualBox wrapper clobbers XDG_DATA_DIRS to its own
     # empty share → GSettings can't find org.gtk.Settings.FileChooser → Qt's

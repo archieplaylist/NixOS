@@ -1,4 +1,5 @@
-# Gaming: GameMode, Steam, gamescope, controllers (desktop slot, gaming group)
+# Gaming: GameMode, Steam, gamescope, controllers + low-latency PipeWire
+# (desktop slot, gaming group)
 _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkIf (config.mySystem.enableDesktop && config.mySystem.appGroups.gaming.enable) {
@@ -38,7 +39,7 @@ _: {
       };
       boot.kernelParams = [ "split_lock_detect=off" ];
       boot.kernel.sysctl."vm.max_map_count" = 1048576;
-      # ponytail: OOM handled by earlyoom (optimisation.nix) — no systemd.oomd here
+      # ponytail: OOM handled by earlyoom (base.nix) — no systemd.oomd here
       services.thermald.enable = true;
       hardware = {
         xone.enable = true;
@@ -49,6 +50,27 @@ _: {
       mySystem.gnomeExtensions = lib.mkIf (config.mySystem.desktop == "gnome") (lib.mkAfter [
         { uuid = "gamemode@charlieq0137gmail.com"; package = "gamemode-shell-extension"; }
       ]);
+      # 48kHz / 128 quantum low-latency audio
+      services.pipewire.extraConfig.pipewire."99-lowlatency.conf" = {
+        "context.properties" = {
+          "default.clock.rate" = 48000;
+          "default.clock.quantum" = 128;
+          "default.clock.min-quantum" = 64;
+          "default.clock.max-quantum" = 512;
+        };
+      };
+      services.pipewire.wireplumber.extraConfig."99-lowlatency.conf" = {
+        "monitor.rules" = [
+          {
+            matches = [{ "node.name" = "~alsa_output.*"; }];
+            "actions.update-props" = {
+              "api.alsa.period-size" = 128;
+              "api.alsa.headroom" = 128;
+              "session.suspend-timeout-seconds" = 0;
+            };
+          }
+        ];
+      };
     };
   };
 }

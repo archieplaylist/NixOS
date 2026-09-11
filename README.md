@@ -16,20 +16,14 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   ├── outputs.nix      # nixosConfigurations, checks, devShell, formatter
 │   ├── features/        # NixOS modules, merged into slots
 │   │   ├── mySystem.nix     # mySystem.* options + GNOME extension source of truth
-│   │   ├── basics.nix       # locale, kernel, firewall, fonts, printing
-│   │   ├── optimisation.nix # nh-clean, TRIM, zram, earlyoom, journald
-│   │   ├── services.nix     # ssh, docker, tailscale, virtualbox, smartd
-│   │   ├── users.nix        # mario user (hashedPasswordFile)
+│   │   ├── base.nix         # locale/firewall/printing, ssh/docker/tailscale, store upkeep, nix-ld, user
 │   │   ├── filesystems.nix  # XFS by label, or LUKS2 via disko
-│   │   ├── desktop.nix      # GNOME/Plasma/XFCE + flatpak
-│   │   ├── audio.nix        # PipeWire (+ low-latency when gaming on)
-│   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers
-│   │   ├── nix-ld.nix       # minimal dynamic-linker libs (add on demand)
-│   │   └── hardware/        # intel, uefi, laptop, vm-guest
+│   │   ├── desktop.nix      # GNOME/Plasma/XFCE + PipeWire + flatpak
+│   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers + low-latency audio
+│   │   └── hardware.nix     # intel, uefi, laptop, vm-guest slots
 │   ├── home/            # home-manager modules (all merge into home.modules.mario)
-│   │   ├── user.nix / shell.nix / apps.nix / tooling.nix
-│   │   ├── gnome.nix / plasma.nix / xfce.nix / themes.nix
-│   │   ├── pi.nix / gaming.nix / easyeffects.nix / fastfetch.nix
+│   │   ├── core.nix / apps.nix / ai.nix (pi + opencode)
+│   │   ├── desktops.nix (gnome/plasma/xfce/themes) / easyeffects.nix
 │   │   └── scripts/     # yt, tomp3, switch-de, backup-de -> ~/.local/bin
 │   └── hosts/           # one file per machine -> nixos.hosts.<name>
 └── secrets/             # local secret templates only (never commit real values)
@@ -49,7 +43,7 @@ No wiring in `flake.nix`.
 ## Application groups (`modules/home/apps.nix`)
 
 - **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
-- System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo), `audio.nix` (low-latency PipeWire when gaming on).
+- System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo + low-latency PipeWire).
 
 ## Scripts (`~/.local/bin`)
 
@@ -98,5 +92,5 @@ nh clean all            # GC (weekly timer does this automatically)
 - Boot menu lists generations (systemd-boot, limit 10); `nh os rollback` reverts the last switch.
 - `nixpkgs-unstable` + stable both in `flake.lock`; most packages are stable, only fresher apps use `pkgs.unstable`.
 - SSH hosts force key-only auth; set `mySystem.sshAuthorizedKeys` or nobody can log in (build warns). `work` template: paste pubkey, set `enableSSH = true`, `make check && nh os switch -H work`.
-- `programs.nix-ld` ships a minimal lib set; when an unpatched binary misses a lib: `nix run github:nix-community/nix-index-database -- lib/<name>.so`, then add it to `modules/features/nix-ld.nix`.
+- `programs.nix-ld` ships a minimal lib set; when an unpatched binary misses a lib: `nix run github:nix-community/nix-index-database -- lib/<name>.so`, then add it to `modules/features/base.nix` (nix-ld section).
 - OOM handling is `earlyoom` only (no `systemd.oomd`).

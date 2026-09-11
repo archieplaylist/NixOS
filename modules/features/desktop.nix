@@ -1,4 +1,5 @@
-# Desktop slot: GNOME/GDM, Plasma/SDDM, plus shared X/Bluetooth/NetworkManager/Flatpak
+# Desktop slot: shared X/Bluetooth/NetworkManager/Flatpak + PipeWire,
+# GNOME/GDM, Plasma/SDDM, XFCE/LightDM. Sections merged, behavior unchanged.
 _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
@@ -18,6 +19,18 @@ _: {
         };
 
         networking.networkmanager.enable = true;
+      })
+
+      (lib.mkIf config.mySystem.enableDesktop {
+        security.rtkit.enable = true;
+        services.pipewire = {
+          enable = true;
+          audio.enable = true;
+          alsa.enable = true;
+          alsa.support32Bit = true;
+          pulse.enable = true;
+          jack.enable = true;
+        };
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "gnome") {
@@ -84,6 +97,30 @@ _: {
           kdePackages.gwenview
           seahorse
         ];
+      })
+
+      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {
+        services = {
+          xserver.displayManager.lightdm.enable = true;
+
+          # Greeter stock defaults (no custom theme)
+          xserver.displayManager.lightdm.greeters.gtk.enable = true;
+
+          gnome.gnome-keyring.enable = true;
+          upower.enable = true;
+          xserver.desktopManager.xfce.enable = true;
+        };
+
+        security.polkit.enable = true;
+        environment.systemPackages = [ pkgs.polkit_gnome ];
+
+        security.pam.services.lightdm.enableGnomeKeyring = true;
+
+        xdg.portal = {
+          enable = true;
+          extraPortals = with pkgs; [ xdg-desktop-portal-gtk xdg-desktop-portal-gnome ];
+          config.common.default = "gtk";
+        };
       })
     ];
   };

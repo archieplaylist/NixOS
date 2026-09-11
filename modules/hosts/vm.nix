@@ -9,6 +9,7 @@
     ];
 
     mySystem.hostname = "nixvms";
+    mySystem.isVm = true;
     mySystem.desktop = "xfce";
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;
