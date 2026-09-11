@@ -105,7 +105,7 @@ _: {
               enable = lib.mkOption {
                 type = lib.types.bool;
                 default = true;
-                description = "AI coding agents (pi-coding-agent + ~/.pi/agent config).";
+                description = "AI coding agents (pi-coding-agent, opencode + ponytail/caveman skills).";
               };
             };
           };
