@@ -50,7 +50,7 @@ ENABLE_TPM2=0
 ENABLE_SECURE_BOOT=0
 LUKS_PASSPHRASE=""
 # Password hash captured in step_password; written to /etc/hashed-password
-# on the target by step_deploy (hosts/users.nix reads it via hashedPasswordFile).
+# on the target by step_deploy (base.nix user section reads it via hashedPasswordFile).
 PASSWORD_HASH=""
 # Disk path captured in step_partition (only set when partitioning actually
 # happens — empty on --yes re-runs against an already-formatted disk, in which
@@ -452,7 +452,7 @@ step_password() {
   [[ -n "$hash" ]] || { warn "openssl failed to hash the password"; return 1; }
 
   # Keep only the hash in memory; step_deploy writes it to the machine at
-  # /etc/hashed-password (hosts/users.nix reads it via hashedPasswordFile).
+  # /etc/hashed-password (base.nix user section reads it via hashedPasswordFile).
   # It never touches git-tracked files.
   PASSWORD_HASH="$hash"
   info "password hash ready — it will be written to /etc/hashed-password during deploy"

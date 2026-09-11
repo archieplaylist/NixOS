@@ -63,15 +63,9 @@ host_module() {
       return 0
     fi
   done
-  case "$h" in
-    nixdesks) echo "desktop" ;;
-    nixlappys) echo "laptop" ;;
-    central8|nixworks) echo "work" ;;
-    nixvms) echo "vm" ;;
-    *) echo "error: no host module known for hostname '$h'" >&2
-       echo "add a file to $REPO/modules/hosts/ with mySystem.hostname = '$h'" >&2
-       exit 1 ;;
-  esac
+  echo "error: no host module known for hostname '$h'" >&2
+  echo "add a file to $REPO/modules/hosts/ with mySystem.hostname = '$h'" >&2
+  exit 1
 }
 
 archive_de() {

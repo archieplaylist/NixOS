@@ -92,7 +92,6 @@ backup_gnome() {
   fi
   prune "$dir" "gnome-*.dconf"
   prune "$dir" "gnome-files-*.tar.gz"
-  # ponytail: old gnome-backup-*.tar.gz bundles are restore-only legacy — never pruned, delete by hand when unused
 }
 
 backup_files() {
@@ -134,20 +133,9 @@ cmd="${1:-}"; case "$cmd" in
       command -v dconf >/dev/null || { echo "missing dconf" >&2; exit 1; }
       if head -n5 "$f" | grep -q "^\[org/"; then dconf load / < "$f"; else dconf load /org/gnome/ < "$f"; fi
     elif tar -tzf "$f" >/dev/null 2>&1; then
-      if tar -tzf "$f" | grep -q "\.dconf$"; then
-        # old gnome bundle format (restore-only compat)
-        command -v dconf >/dev/null || { echo "missing dconf" >&2; exit 1; }
-        tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-        tar -xzf "$f" -C "$tmp"
-        src=$(find "$tmp" -name "dconf-gnome.dconf" -o -name "dconf-full.dconf" | head -n1)
-        [[ -n "${src:-}" ]] || src=$(find "$tmp" -name "*.dconf" | head -n1)
-        [[ -n "${src:-}" && -f "$src" ]] || { echo "no .dconf in bundle" >&2; exit 1; }
-        if head -n5 "$src" | grep -q "^\[org/"; then dconf load / < "$src"; else dconf load /org/gnome/ < "$src"; fi
-      else
-        # ponytail: refuse absolute-entry tarballs — restore writes into $HOME
-        if tar -tzf "$f" | grep -q "^/"; then echo "refusing tarball with absolute paths" >&2; exit 1; fi
-        tar -xzf "$f" -C "$HOME"
-      fi
+      # ponytail: refuse absolute-entry tarballs — restore writes into $HOME
+      if tar -tzf "$f" | grep -q "^/"; then echo "refusing tarball with absolute paths" >&2; exit 1; fi
+      tar -xzf "$f" -C "$HOME"
     else
       usage; echo "unknown backup format: $f" >&2; exit 1
     fi

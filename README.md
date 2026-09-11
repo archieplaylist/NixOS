@@ -91,6 +91,6 @@ nh clean all            # GC (weekly timer does this automatically)
 
 - Boot menu lists generations (systemd-boot, limit 10); `nh os rollback` reverts the last switch.
 - `nixpkgs-unstable` + stable both in `flake.lock`; most packages are stable, only fresher apps use `pkgs.unstable`.
-- SSH hosts force key-only auth; set `mySystem.sshAuthorizedKeys` or nobody can log in (build warns). `work` template: paste pubkey, set `enableSSH = true`, `make check && nh os switch -H work`.
+- SSH allows password login; `mySystem.sshAuthorizedKeys` is optional extra. `work` template: paste pubkey, set `enableSSH = true`, `make check && nh os switch -H work`.
 - `programs.nix-ld` ships a minimal lib set; when an unpatched binary misses a lib: `nix run github:nix-community/nix-index-database -- lib/<name>.so`, then add it to `modules/features/base.nix` (nix-ld section).
 - OOM handling is `earlyoom` only (no `systemd.oomd`).

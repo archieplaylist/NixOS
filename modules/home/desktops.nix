@@ -26,8 +26,8 @@ _: {
             allow-volume-above-100-percent = true;
           };
           "org/gnome/desktop/background" = {
-            picture-uri = "file://${./assets/wallpaper.png}";
-            picture-uri-dark = "file://${./assets/wallpaper.png}";
+            picture-uri = "file://${./assets/wallpaper.jpg}";
+            picture-uri-dark = "file://${./assets/wallpaper.jpg}";
             picture-options = "zoom";
           };
         };
