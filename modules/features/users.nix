@@ -9,7 +9,7 @@ _: {
         ++ lib.optionals config.mySystem.enableDesktop [ "networkmanager" ]
         ++ lib.optionals config.mySystem.enableDocker [ "docker" ]
         ++ lib.optionals config.mySystem.enableVirtualBox [ "vboxusers" ]
-        ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" ];
+        ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" "input" ];
       openssh.authorizedKeys.keys = config.mySystem.sshAuthorizedKeys;
       hashedPasswordFile = "/etc/hashed-password";
     };
