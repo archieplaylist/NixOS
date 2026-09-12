@@ -54,6 +54,7 @@ in
         nixpkgs-fmt
         deadnix
         statix
+        shellcheck
       ];
     };
 

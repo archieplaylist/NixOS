@@ -63,9 +63,11 @@ Declared via nix-flatpak (`desktop.nix` + `mySystem.flatpakApps`). Shared: Local
 ## First-time setup
 
 ```bash
-sudo ./setup.sh              # interactive
+./setup.sh --list-hosts        # no root needed: see installable hosts
+sudo ./setup.sh              # interactive (fzf menu when available, plain fallback)
 sudo ./setup.sh --yes        # non-interactive
 sudo ./setup.sh --luks --tpm2
+sudo ./setup.sh --resume       # restore choices after Ctrl-C / disconnect
 ```
 
 Does: preflight → optional destructive partitioning (installer ISO only, type disk + `WIPE`) → user password hash to `/etc/hashed-password` (never in repo) → pick host → `nixos-install` (ISO) or `nixos-rebuild switch`. See `./setup.sh --help`.

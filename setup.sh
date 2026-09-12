@@ -2,16 +2,14 @@
 # setup.sh — bootstrap a new machine from this flake-based NixOS config.
 #
 # Usage:
-#   sudo ./setup.sh                  interactive setup
-#   sudo ./setup.sh --yes            noninteractive (answers yes to all confirm prompts;
-#                                    LUKS passphrase is still prompted interactively,
-#                                    or pass LUKS_PASSPHRASE env to skip)
-#   sudo ./setup.sh --luks           also LUKS2-encrypt the root partition (prompts for passphrase;
-#                                    pass LUKS_PASSPHRASE env to skip the prompt)
-#   sudo ./setup.sh --luks --tpm2    enroll TPM2 auto-unlock after luksFormat (requires --luks + TPM2 hw)
-#   sudo ./setup.sh --secure-boot    hint that Secure Boot (lanzaboote) still needs manual
-#                                    `sbctl` enrollment after first boot (works with or without --luks)
-#   sudo ./setup.sh --help           show usage
+#   sudo ./setup.sh [--luks] [--tpm2] [--secure-boot] [--yes]   interactive setup
+#   sudo ./setup.sh --luks --tpm2      encrypt root + TPM2 auto-unlock
+#   ./setup.sh --help | --list-hosts | --dry-run   work without root
+#
+# Flags: --yes (noninteractive; secrets still prompt, LUKS_PASSPHRASE skips),
+#   --tui=auto|plain|fzf|gum|whiptail, --no-tui, --no-color ($NO_COLOR too),
+#   --resume (restore choices after interrupt), --fresh (discard saved state),
+#   --dry-run (print plan, change nothing), --list-hosts.
 #
 # Required tools are assumed present (run from the NixOS installer ISO, or under
 # `nix shell nixpkgs#openssl nixpkgs#cryptsetup
@@ -19,26 +17,35 @@
 # nixpkgs#xfsprogs` on any other NixOS).
 #
 # Steps (each is idempotent and non-destructive — skips when already done):
-#   1.  preflight: repo layout + required tools
-#   2.  OPTIONAL destructive: guided partitioning + formatting of a disk
-#       (only offered on the installer ISO; refuses mounted disks; requires
-#       typing the disk path and the word WIPE to confirm). Pass --luks to
-#       wrap the root partition in LUKS2 (partition label nixos-root, LUKS container
-#       label nixos-root-luks → mapper cryptroot).
-#   3.  user password: SHA-512 hash via openssl, written to
+#   1.  preflight + orientation summary
+#   2.  pick host (first, so LUKS/disk defaults are known early)
+#   3.  zram swap on the installer ISO (OOM guard, auto only)
+#   4.  OPTIONAL destructive: guided partitioning + formatting of a disk
+#       (only offered on the installer ISO; refuses mounted disks; pick
+#       from a numbered menu, preview with lsblk -f, type WIPE to confirm).
+#       --luks wraps root in LUKS2 (label nixos-root, container
+#       nixos-root-luks -> mapper cryptroot); offered interactively if omitted.
+#   5.  user password: SHA-512 hash via openssl, written to
 #       /etc/hashed-password on the target during the deploy step (read at
 #       activation via `users.users.mario.hashedPasswordFile`); the hash is
 #       never stored in the repo
-#   4.  select host and rebuild via nixos-rebuild
+#   6.  deploy via nh (fallback nixos-rebuild) or nixos-install on the ISO
 #
 # See README.md for details.
 set -euo pipefail
 
-# Require root — partitioning, nixos-rebuild all need it.
-if [[ $EUID -ne 0 ]]; then
-  echo "[error] setup.sh must be run as root (try: sudo ./setup.sh)" >&2
-  exit 1
-fi
+# Interactive defaults. require_root() runs after --help/--list-hosts/--dry-run
+# so those work rootless; partitioning + deploy still need root.
+SELECTED_HOST=""
+DRY_RUN=0
+USE_COLOR=1
+TUI_MODE="auto"
+RESUME=0
+DO_FRESH=0
+LIST_HOSTS=0
+CLI_LUKS=-1
+CLI_TPM2=-1
+CLI_SB=-1
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOSTS_DIR="$REPO_ROOT/modules/hosts"
@@ -57,11 +64,22 @@ PASSWORD_HASH=""
 # case patch_host_flags leaves the disko device override alone).
 INSTALL_DISK=""
 
-log()  { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
-info() { printf '    %s\n' "$*"; }
-warn() { printf '\033[1;33m[!] %s\033[0m\n' "$*"; }
-die()  { printf '\033[1;31m[error] %s\033[0m\n' "$*" >&2; exit 1; }
+_emit() {
+  local c="$1"; shift
+  if [[ $USE_COLOR -eq 1 && -n "$c" ]]; then
+    printf '\033[%sm%s\033[0m\n' "$c" "$*"
+  else
+    printf '%s\n' "$*"
+  fi
+}
+log()  { _emit "1;34" "==> $*"; }
+info() { _emit "" "    $*"; }
+warn() { _emit "1;33" "[!] $*" >&2; }
+die()  { _emit "1;31" "[error] $*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
+require_root() {
+  [[ $EUID -eq 0 ]] || die "setup.sh needs root (try: sudo ./setup.sh). --help, --list-hosts, --dry-run work rootless."
+}
 
 # Ensure tools are on PATH — on NixOS systems, install via nix if missing.
 # Maps tool names to their nixpkgs attribute for auto-install.
@@ -77,6 +95,11 @@ ensure_tools() {
         sgdisk|gdisk)   pkgs+=(nixpkgs#gptfdisk) ;;
         mkfs.vfat|dosfslabel) pkgs+=(nixpkgs#dosfstools) ;;
         mkfs.xfs|xfs_db) pkgs+=(nixpkgs#xfsprogs) ;;
+        partprobe)      pkgs+=(nixpkgs#parted) ;;
+        udevadm)        pkgs+=(nixpkgs#systemd) ;;
+        fzf)            pkgs+=(nixpkgs#fzf) ;;
+        gum)            pkgs+=(nixpkgs#gum) ;;
+        whiptail)       pkgs+=(nixpkgs#libnewt) ;;
         *)              warn "don't know how to install '$tool' via nix"; continue ;;
       esac
     fi
@@ -90,70 +113,64 @@ ensure_tools() {
   mapfile -t unique_pkgs < <(printf '%s\n' "${pkgs[@]}" | sort -u)
 
   info "Installing ${missing[*]} via nix..."
-  local out
-  out="$(nix --extra-experimental-features "nix-command flakes" build --no-link --print-out-paths "${unique_pkgs[@]}" 2>/dev/null)" || true
+  local out err
+  err="$(mktemp)"
+  out="$(nix --extra-experimental-features "nix-command flakes" build --no-link --print-out-paths "${unique_pkgs[@]}" 2>"$err")" || true
   if [[ -n "$out" ]]; then
     local bins
     bins="$(echo "$out" | while IFS= read -r p; do [[ -d "$p/bin" ]] && echo "$p/bin" || true; done | tr '\n' ':')"
     export PATH="${bins}${PATH}"
-    info "tools available"
+    info "ready: ${missing[*]}"
   else
-    warn "nix build failed — install ${missing[*]} manually"
+    warn "nix build failed for ${missing[*]} (tail of log):"
+    tail -5 "$err" >&2 || true
+    warn "install ${missing[*]} manually and rerun"
   fi
+  rm -f "$err"
 }
 
 usage() {
-  sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  cat <<'EOF'
+setup.sh -- bootstrap a new machine from this flake-based NixOS config.
+
+Usage:
+  sudo ./setup.sh [--luks] [--tpm2] [--secure-boot] [--yes]
+  sudo ./setup.sh --luks --tpm2        encrypt root + TPM2 auto-unlock
+  ./setup.sh --help | --list-hosts | --dry-run     (no root needed)
+
+Steps (idempotent, skip when done):
+  1. preflight + orientation   2. pick host   3. zram (ISO only)
+  4. optional wipe + format     5. user password  6. deploy (nh or nixos-*)
+
+Flags:
+  --yes           answer yes to confirms (passphrases still prompt;
+                  set LUKS_PASSPHRASE env to skip the LUKS prompt)
+  --luks          LUKS2-encrypt root (offered interactively if omitted)
+  --tpm2          TPM2 auto-unlock (needs --luks + TPM2 hardware)
+  --secure-boot   patch mySystem.enableSecureBoot + print sbctl next steps
+  --tui=BACKEND   auto (default) | plain | fzf | gum | whiptail
+  --no-tui        force plain prompts. --no-color  plain output ($NO_COLOR too)
+  --resume        restore choices saved before an interrupt
+  --fresh         discard saved state. --dry-run  print plan, change nothing
+  --list-hosts    print host names, exit. -h, --help  this text
+
+State file: /var/tmp/nixos-setup.state (choices only, never secrets).
+See README.md for details.
+EOF
 }
 
-# ponytail: TUI flag is computed lazily (after ensure_tools may have
-# ponytail: plain read prompts only — no whiptail TUI. --yes answers yes.
-ask() {
-  # Menu form: -m <prompt> <tag> <item> ... <default>
-  if [[ $1 == "-m" ]]; then
-    local prompt="$2"; shift 2
-    local default="${!#}"; set -- "${@:1:$#-1}"
-    echo "$prompt" >&2
-    while [[ $# -gt 0 ]]; do
-      local tag="$1" item="$2"; shift 2
-      printf '  %s) %s\n' "$tag" "$item" >&2
-    done
-    local ans; read -r -p "pick [$default]: " ans || return 1
-    printf '%s' "${ans:-$default}"
-    return $?
-  fi
-  # Password form: -s <prompt>
-  if [[ $1 == "-s" ]]; then
-    local ans; read -r -s -p "$2: " ans || return 1; echo >&2
-    printf '%s' "$ans"
-    return $?
-  fi
-  # Plain input: ask <prompt>
-  local ans
-  local prompt="${!#}"
-  read -r -p "$prompt: " ans || return 1
-  printf '%s' "$ans"
-}
-
-confirm() {
-  # confirm "prompt" -> 0 on yes, 1 on no. --yes always returns 0.
-  [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
-  local answer
-  while :; do
-    read -r -p "$1 [y/N] " answer
-    case "$answer" in
-      y|Y|yes|YES) return 0 ;;
-      n|N|no|NO|"") return 1 ;;
-      *) echo "please answer yes or no" ;;
-    esac
-  done
-}
+# Prompts (ask/confirm) + crash-resume (save_state/load_state) live in lib/.
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/lib" && pwd)"
+# shellcheck disable=SC1091
+source "$LIB_DIR/tui.sh"
+# shellcheck disable=SC1091
+source "$LIB_DIR/state.sh"
 
 # ---------------------------------------------------------------------------
 # Step 1 — preflight
 # ---------------------------------------------------------------------------
 preflight() {
-  log "Preflight"
+  log "Step 1/6 — Preflight"
 
   [[ -f "$REPO_ROOT/flake.nix" ]] \
     || die "flake.nix not found — run setup.sh from the repo root"
@@ -165,8 +182,50 @@ preflight() {
 
   info "repo: $REPO_ROOT"
   info "hosts: ${HOSTS[*]}"
+  if is_installer_env; then
+    info "mode: installer ISO (fresh path: partition + nixos-install)"
+  else
+    info "mode: live system (in-place path: rebuild switch)"
+  fi
+  info "prompts: $(tui_backend) (override: --tui= / --no-tui)"
+  [[ $DRY_RUN -eq 1 ]] && info "dry run — nothing will change"
 
-  have nixos-rebuild || warn "'nixos-rebuild' is not in PATH (available after nixos-install)"
+  have nixos-rebuild || have nh || warn "neither 'nixos-rebuild' nor 'nh' in PATH (normal on the installer ISO)"
+}
+
+# ---------------------------------------------------------------------------
+# Step 2 — pick host first (LUKS/disk defaults depend on it)
+# ---------------------------------------------------------------------------
+step_host() {
+  log "Step 2/6 — Host"
+  if [[ -n "$SELECTED_HOST" ]]; then
+    local want="$SELECTED_HOST.nix"
+    if [[ " ${HOSTS[*]} " == *" $want "* ]]; then
+      if confirm -y "Keep host '$SELECTED_HOST'?"; then mark_done "host"; return 0; fi
+      SELECTED_HOST=""
+    else
+      warn "saved host '$SELECTED_HOST' not in modules/hosts — repicking"
+      SELECTED_HOST=""
+    fi
+  fi
+  if [[ $AN_YES_SET -eq 1 ]]; then
+    SELECTED_HOST="${HOSTS[0]%.nix}"
+    info "host: $SELECTED_HOST (--yes default)"
+  else
+    [[ -t 0 ]] || die "no TTY and no host chosen — rerun with --yes, or --resume with saved state"
+    local -a menu_args
+    local i choice
+    for i in "${!HOSTS[@]}"; do menu_args+=("$((i+1))" "${HOSTS[$i]%.nix}"); done
+    while :; do
+      choice="$(ask -m "Pick a host to install:" "${menu_args[@]}" "1")" || die "host selection aborted"
+      if [[ "$choice" =~ ^[0-9]+$ ]] && ((choice >= 1 && choice <= ${#HOSTS[@]})); then
+        SELECTED_HOST="${HOSTS[$((choice-1))]%.nix}"
+        break
+      fi
+      warn "invalid host number: $choice — try again"
+    done
+  fi
+  mark_done "host"
 }
 
 # ---------------------------------------------------------------------------
@@ -177,6 +236,10 @@ preflight() {
 # no extra package needed. Activates only inside the installer env so it
 # never touches an already-installed system.
 step_zram() {
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "dry run — would enable zram swap on installer ISO"
+    return 0
+  fi
   if ! is_installer_env; then
     return 0
   fi
@@ -233,7 +296,7 @@ step_zram() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 2 — OPTIONAL: guided partitioning (destructive!)
+# Step 4 — OPTIONAL: guided partitioning (destructive!)
 # ---------------------------------------------------------------------------
 # Allow multi-letter sd/vd/hd devices (sdaa+ on large arrays / virtual disks beyond sdz);
 # nvme/mmcblk partition suffix 'p' is handled via pfx logic below (p1/p2 vs 1/2).
@@ -256,7 +319,7 @@ disk_is_mounted() {
 }
 
 step_partition() {
-  log "Partition & format (optional, DESTRUCTIVE)"
+  log "Step 4/6 — Partition & format (optional, DESTRUCTIVE)"
 
   if ! is_installer_env; then
     info "not on the installer ISO (root is a real filesystem) — skipping"
@@ -269,18 +332,45 @@ step_partition() {
     return 0
   fi
 
+  # Offer encryption when flags weren't given (installer + interactive only).
+  if [[ $ENABLE_LUKS -eq 0 && $AN_YES_SET -eq 0 ]] && [[ -t 0 ]]; then
+    if confirm "Encrypt the root partition with LUKS2?"; then ENABLE_LUKS=1; fi
+  fi
+  if [[ $ENABLE_LUKS -eq 1 && $ENABLE_TPM2 -eq 0 && $AN_YES_SET -eq 0 ]] && [[ -t 0 ]]; then
+    if have systemd-cryptenroll && [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)" ]]; then
+      if confirm "Also enroll TPM2 auto-unlock (PCR 7+8)?"; then ENABLE_TPM2=1; fi
+    fi
+  fi
+  if [[ $ENABLE_LUKS -eq 1 && -z "${LUKS_PASSPHRASE:-}" ]] && [[ ! -t 0 ]]; then
+    die "LUKS needs a passphrase but stdin is not a TTY — set LUKS_PASSPHRASE env and rerun"
+  fi
+
   ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
 
-  echo
-  echo "Available disks:"
-  lsblk -dno NAME,SIZE,MODEL | awk '{printf "  /dev/%s  %s  %s\n", $1, $2, ($3?$3:"")}'
+  mapfile -t DISKS < <(lsblk -dno NAME,SIZE,MODEL | awk '{print "/dev/"$1"  "$2"  "$3}')
+  [[ ${#DISKS[@]} -gt 0 ]] || die "no disks found via lsblk"
+  local -a dmenu
+  local i pick
+  for i in "${!DISKS[@]}"; do dmenu+=("$((i+1))" "${DISKS[$i]}"); done
+  dmenu+=("0" "type device path manually")
 
   local disk
   while :; do
-    disk="$(ask "Type the full device path to wipe (e.g. /dev/sda)")" || {
+    pick="$(ask -m "Pick a disk to WIPE (all data erased):" "${dmenu[@]}" "0")" || {
       info "no input — aborting partition step"
       return 0
     }
+    if [[ "$pick" == "0" ]]; then
+      disk="$(ask "Type the full device path (e.g. /dev/sda)")" || {
+        info "no input — aborting partition step"
+        return 0
+      }
+    elif [[ "$pick" =~ ^[0-9]+$ ]] && ((pick >= 1 && pick <= ${#DISKS[@]})); then
+      disk="${DISKS[$((pick-1))]%% *}"
+    else
+      warn "invalid pick: $pick — try again"
+      continue
+    fi
     [[ -n "$disk" ]] || continue
     [[ "$disk" =~ $DISK_PATTERN ]] || { warn "invalid device path: $disk"; continue; }
     [[ -b "$disk" ]] || { warn "not a block device: $disk"; continue; }
@@ -288,11 +378,16 @@ step_partition() {
       warn "disk $disk has mounted partitions — refusing to wipe it"
       continue
     fi
+    local size_b
+    size_b="$(lsblk -dnbo SIZE "$disk" 2>/dev/null || echo 0)"
+    (( size_b < 8*1024*1024*1024 )) && warn "disk smaller than 8 GiB — install may fail"
     break
   done
 
   echo
   warn "ABOUT TO ERASE ALL DATA ON: $disk"
+  info "current content of $disk:"
+  lsblk -f "$disk" || true
   echo "  partition 1: ESP   1 GiB  vfat label 'nixos-boot'"
   if [[ $ENABLE_LUKS -eq 1 ]]; then
     echo "  partition 2: root  rest  LUKS2 label 'nixos-root' (LUKS container label 'nixos-root-luks') -> XFS inside (label 'nixos-root')"
@@ -410,12 +505,28 @@ step_partition() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 3 — user password (hash only, kept in PASSWORD_HASH)
+# Step 5 — user password (hash only, kept in PASSWORD_HASH)
 # The hash is written on the system at /etc/hashed-password by step_deploy
 # (read at activation by `users.users.mario.hashedPasswordFile`).
 # ---------------------------------------------------------------------------
+pw_strength() {
+  # Echo weak reason, or nothing when ok. ponytail: length + classes, no dep.
+  local pw="$1" n=0
+  (( ${#pw} >= 12 )) || { echo "shorter than 12 chars"; return 0; }
+  [[ "$pw" == *[a-z]* ]] && ((n+=1))
+  [[ "$pw" == *[A-Z]* ]] && ((n+=1))
+  [[ "$pw" == *[0-9]* ]] && ((n+=1))
+  case "$pw" in *[^a-zA-Z0-9]*) ((n+=1)) ;; esac
+  (( n >= 3 )) || echo "needs 3+ of: lower, upper, digit, symbol"
+  return 0
+}
 step_password() {
-  log "User password (mario)"
+  log "Step 5/6 — User password (mario)"
+
+  if [[ $AN_YES_SET -eq 1 && ! -t 0 ]]; then
+    info "skipped — password prompt needs a TTY (set later via passwd)"
+    return 0
+  fi
 
   if ! confirm "Set/update the password for user 'mario'?"; then
     info "skipped — no password will be set (provision it manually later)"
@@ -436,6 +547,12 @@ step_password() {
     }
     [[ -n "$p1" ]] || { warn "empty password not allowed — try again"; continue; }
     [[ "$p1" == "$p2" ]] || { warn "passwords do not match — try again"; continue; }
+    local weak
+    weak="$(pw_strength "$p1" || true)"
+    if [[ -n "$weak" ]]; then
+      warn "weak password ($weak)"
+      confirm "Use it anyway?" || continue
+    fi
     break
   done
   unset p2
@@ -459,7 +576,7 @@ step_password() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 4 — deploy
+# Step 6 — deploy
 # ---------------------------------------------------------------------------
 # Patch the selected host's modules/hosts/<name>.nix to flip
 # mySystem.enable{Luks,Tpm2,SecureBoot} from false to true when the
@@ -482,6 +599,17 @@ patch_host_flags() {
   [[ $ENABLE_TPM2 -eq 1 ]]        && flips+=(enableTpm2)
   [[ $ENABLE_SECURE_BOOT -eq 1 ]] && flips+=(enableSecureBoot)
   [[ ${#flips[@]} -eq 0 ]] && return 0
+
+  info "pending change(s) in $host_file:"
+  local key
+  for key in "${flips[@]}"; do
+    if grep -q "mySystem.${key}[[:space:]]*=[[:space:]]*true" "$host_file"; then
+      info "  mySystem.$key already true — no change needed"
+    else
+      info "  mySystem.$key -> true"
+    fi
+  done
+  confirm "Patch $host_file as above?" || { info "skipped — set flags manually"; return 0; }
 
   for key in "${flips[@]}"; do
     # Match "mySystem.<key> = false;" with optional trailing whitespace;
@@ -527,24 +655,15 @@ patch_host_flags() {
 }
 
 step_deploy() {
-  log "Deploy"
+  log "Step 6/6 — Deploy ($SELECTED_HOST)"
 
-  confirm "Rebuild the system now?" || {
+  confirm -y "Rebuild the system now?" || {
     info "skipped — run later with: sudo nixos-rebuild switch --flake .#<host>"
     info "             or:           sudo nixos-install --flake .#<host>  (installer ISO)"
     return 0
   }
 
-  # Build tag/item pairs for the menu.
-  local -a menu_args
-  local i
-  for i in "${!HOSTS[@]}"; do menu_args+=("$((i+1))" "${HOSTS[$i]%.nix}"); done
-  local choice
-  choice="$(ask -m "Pick a host to rebuild:" "${menu_args[@]}" "1")" || die "host selection aborted"
-  if ! [[ "$choice" =~ ^[0-9]+$ ]] || ! ((choice >= 1 && choice <= ${#HOSTS[@]})); then
-    die "invalid host number: $choice"
-  fi
-  local name="${HOSTS[$((choice-1))]%.nix}"
+  local name="$SELECTED_HOST"
 
   # ponytail: --luks without a fresh wipe leaves INSTALL_DISK empty (disko defaults
   # to /dev/sda) — offer a one-time override so the initrd finds the LUKS partition.
@@ -603,8 +722,13 @@ step_deploy() {
   else
     [[ -n "$PASSWORD_HASH" ]] && printf '%s\n' "$PASSWORD_HASH" > /etc/hashed-password \
       && chmod 600 /etc/hashed-password
-    info "-> nixos-rebuild for '$name'"
-    nixos-rebuild switch --flake ".#$name"
+    if have nh; then
+      info "-> nh os switch for '$name'"
+      nh os switch ".#$name"
+    else
+      info "-> nixos-rebuild for '$name' (nh not in PATH)"
+      nixos-rebuild switch --flake ".#$name"
+    fi
   fi
 }
 
@@ -615,26 +739,69 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -y|--yes) AN_YES_SET=1 ;;
-    --luks) ENABLE_LUKS=1 ;;
-    --tpm2) ENABLE_TPM2=1 ;;
-    --secure-boot) ENABLE_SECURE_BOOT=1 ;;
-    *) die "unknown option: $1" ;;
+    --luks) ENABLE_LUKS=1; CLI_LUKS=1 ;;
+    --tpm2) ENABLE_TPM2=1; CLI_TPM2=1 ;;
+    --secure-boot) ENABLE_SECURE_BOOT=1; CLI_SB=1 ;;
+    --dry-run) DRY_RUN=1 ;;
+    --list-hosts) LIST_HOSTS=1 ;;
+    --no-color) USE_COLOR=0 ;;
+    --no-tui) TUI_MODE="plain" ;;
+    --tui=*) TUI_MODE="${1#--tui=}" ;;
+    --tui) if [[ $# -ge 2 ]]; then TUI_MODE="$2"; shift; else TUI_MODE="auto"; fi ;;
+    --resume) RESUME=1 ;;
+    --fresh) DO_FRESH=1 ;;
+    *) die "unknown option: $1 (try --help)" ;;
   esac
   shift
 done
 
+[[ -n "${NO_COLOR:-}" ]] && USE_COLOR=0
+[[ -t 1 || -t 2 ]] || USE_COLOR=0
+
+if [[ $LIST_HOSTS -eq 1 ]]; then
+  find "$HOSTS_DIR" -maxdepth 1 -name '*.nix' ! -name '.*' -printf '%f\n' 2>/dev/null | sed 's/\.nix$//' | sort
+  exit 0
+fi
+
 # --tpm2 enrolls a TPM2 key against the LUKS volume, so it requires --luks.
-# --secure-boot only emits a post-install hint (lanzaboote works fine on plain
-# unencrypted roots too), so it stands alone.
 if [[ $ENABLE_TPM2 -eq 1 ]] && [[ $ENABLE_LUKS -eq 0 ]]; then
   die "--tpm2 requires --luks (e.g.: sudo ./setup.sh --luks --tpm2)"
 fi
 
+: "${TUI_MODE:=auto}"  # consumed by lib/tui.sh init_tui
+init_tui
+[[ $DO_FRESH -eq 1 ]] && clear_state
+if [[ $RESUME -eq 1 ]]; then
+  if load_state; then
+    [[ $CLI_LUKS -ne -1 ]] && ENABLE_LUKS=$CLI_LUKS
+    [[ $CLI_TPM2 -ne -1 ]] && ENABLE_TPM2=$CLI_TPM2
+    [[ $CLI_SB -ne -1 ]] && ENABLE_SECURE_BOOT=$CLI_SB
+    info "restored: host='${SELECTED_HOST:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT (after: $COMPLETED_STEP)"
+    if ! confirm -y "Continue with restored choices?"; then
+      clear_state; SELECTED_HOST=""; INSTALL_DISK=""; info "starting fresh"
+    fi
+  else
+    warn "no saved state at $STATE_FILE — starting fresh"
+  fi
+fi
+trap save_state INT TERM EXIT
+
 preflight
-step_zram
-step_partition
-step_password
-step_deploy
+step_host
+if [[ $DRY_RUN -eq 1 ]]; then
+  info "dry run — plan: host '$SELECTED_HOST', wipe '${INSTALL_DISK:-<ask>}' (luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT), password, deploy. Nothing changed."
+  exit 0
+fi
+require_root
+step_zram; mark_done "zram"
+step_partition; mark_done "partition"
+step_password; mark_done "password"
+step_deploy; mark_done "deploy"
+
+# shellcheck disable=SC2034  # read by lib/state.sh save_state guard
+DONE=1
+clear_state
+trap - INT TERM EXIT
 
 log "All done."
 warn "Password hash lives in /etc/hashed-password on the system (never in the repo)."
@@ -654,4 +821,9 @@ fi
 if [[ $ENABLE_SECURE_BOOT -eq 1 ]]; then
   info "mySystem.enableSecureBoot = true was patched into the selected host file."
   warn "Secure Boot still needs manual key enrollment after first boot: sbctl create-keys && sbctl enroll-keys --microsoft"
+fi
+if is_installer_env; then
+  info "next: reboot into the installed system (remove the ISO), verify login + network."
+else
+  info "next: already live — verify with: nh os build . -H $SELECTED_HOST (or nixos-rebuild dry-build --flake .#$SELECTED_HOST)."
 fi
