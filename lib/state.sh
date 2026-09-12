@@ -16,6 +16,8 @@ save_state() {
     printf "ENABLE_LUKS=%q\n" "${ENABLE_LUKS:-0}"
     printf "ENABLE_TPM2=%q\n" "${ENABLE_TPM2:-0}"
     printf "ENABLE_SECURE_BOOT=%q\n" "${ENABLE_SECURE_BOOT:-0}"
+    printf "SKIP_WIPE=%q\n" "${SKIP_WIPE:-0}"
+    printf "BACKUP_DEV=%q\n" "${BACKUP_DEV:-}"
     printf "COMPLETED_STEP=%q\n" "$COMPLETED_STEP"
   } > "$STATE_FILE" 2>/dev/null || return 0
   chmod 600 "$STATE_FILE" 2>/dev/null || true

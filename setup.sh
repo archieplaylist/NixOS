@@ -16,7 +16,9 @@
 # nixpkgs#systemd nixpkgs#gptfdisk nixpkgs#dosfstools
 # nixpkgs#xfsprogs` on any other NixOS).
 #
-# Steps (each is idempotent and non-destructive — skips when already done):
+# Steps: collect (1-6, prompts only, nothing destructive) -> review + one
+# confirm -> execute (7: zram, USB backup, wipe+format with typed WIPE,
+# deploy). Each step idempotent, skips when already done.
 #   1.  preflight + orientation summary
 #   2.  pick host (first, so LUKS/disk defaults are known early)
 #   3.  zram swap on the installer ISO (OOM guard, auto only)
@@ -46,6 +48,9 @@ LIST_HOSTS=0
 CLI_LUKS=-1
 CLI_TPM2=-1
 CLI_SB=-1
+SKIP_WIPE=0
+BACKUP_DEV=""
+LUKS_PW_MEM=""
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOSTS_DIR="$REPO_ROOT/modules/hosts"
@@ -99,7 +104,7 @@ ensure_tools() {
         udevadm)        pkgs+=(nixpkgs#systemd) ;;
         fzf)            pkgs+=(nixpkgs#fzf) ;;
         gum)            pkgs+=(nixpkgs#gum) ;;
-        whiptail)       pkgs+=(nixpkgs#libnewt) ;;
+        whiptail)       pkgs+=(nixpkgs#newt) ;;
         *)              warn "don't know how to install '$tool' via nix"; continue ;;
       esac
     fi
@@ -138,9 +143,11 @@ Usage:
   sudo ./setup.sh --luks --tpm2        encrypt root + TPM2 auto-unlock
   ./setup.sh --help | --list-hosts | --dry-run     (no root needed)
 
-Steps (idempotent, skip when done):
-  1. preflight + orientation   2. pick host   3. zram (ISO only)
-  4. optional wipe + format     5. user password  6. deploy (nh or nixos-*)
+Steps (collect all choices, then one confirm, then execute):
+  1. preflight + orientation   2. pick host   3. options (luks/tpm2/secure-boot)
+  4. target disk menu          5. user password (hashed now, memory only)
+  6. USB backup (optional)     7. review plan, confirm once, execute
+     execute: zram, USB backup, wipe+format (typed WIPE), deploy (nh or nixos-*)
 
 Flags:
   --yes           answer yes to confirms (passphrases still prompt;
@@ -170,7 +177,7 @@ source "$LIB_DIR/state.sh"
 # Step 1 — preflight
 # ---------------------------------------------------------------------------
 preflight() {
-  log "Step 1/6 — Preflight"
+  log "Step 1/7 — Preflight"
 
   [[ -f "$REPO_ROOT/flake.nix" ]] \
     || die "flake.nix not found — run setup.sh from the repo root"
@@ -197,7 +204,7 @@ preflight() {
 # Step 2 — pick host first (LUKS/disk defaults depend on it)
 # ---------------------------------------------------------------------------
 step_host() {
-  log "Step 2/6 — Host"
+  log "Step 2/7 — Host"
   if [[ -n "$SELECTED_HOST" ]]; then
     local want="$SELECTED_HOST.nix"
     if [[ " ${HOSTS[*]} " == *" $want "* ]]; then
@@ -296,6 +303,163 @@ step_zram() {
 }
 
 # ---------------------------------------------------------------------------
+# Collect phase — every choice up front, nothing destructive runs here.
+# Secrets stay in memory only (LUKS_PW_MEM, PASSWORD_HASH); state file
+# stores choices, never secrets.
+# ---------------------------------------------------------------------------
+collect_flags() {
+  log "Step 3/7 — Options"
+  [[ -t 0 ]] && [[ $AN_YES_SET -eq 0 ]] || return 0
+  if [[ $ENABLE_LUKS -eq 0 ]] && is_installer_env; then
+    if confirm "Encrypt the root partition with LUKS2?"; then ENABLE_LUKS=1; fi
+  fi
+  if [[ $ENABLE_LUKS -eq 1 && $ENABLE_TPM2 -eq 0 ]]; then
+    if have systemd-cryptenroll && [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)" ]]; then
+      if confirm "Also enroll TPM2 auto-unlock (PCR 7+8)?"; then ENABLE_TPM2=1; fi
+    fi
+  fi
+  if [[ $ENABLE_SECURE_BOOT -eq 0 ]]; then
+    if confirm "Enable Secure Boot (lanzaboote, needs sbctl enrollment after first boot)?"; then ENABLE_SECURE_BOOT=1; fi
+  fi
+  mark_done "flags"
+}
+
+collect_disk() {
+  log "Step 4/7 — Target disk"
+  if ! is_installer_env; then
+    info "not on the installer ISO — no wipe needed on a live system"
+    SKIP_WIPE=1
+    return 0
+  fi
+  if [[ -n "$INSTALL_DISK" && -b "$INSTALL_DISK" ]]; then
+    SKIP_WIPE=0
+    if confirm -y "Keep disk '$INSTALL_DISK' for wipe?"; then mark_done "disk"; return 0; fi
+    INSTALL_DISK=""
+  fi
+  if [[ $AN_YES_SET -eq 0 ]]; then
+    if ! confirm "Partition and format a disk? This ERASES all data on it"; then
+      info "skipped — make sure modules/hosts/*.nix point at real disks before deploying"
+      SKIP_WIPE=1
+      return 0
+    fi
+  fi
+  SKIP_WIPE=0
+
+  ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
+
+  mapfile -t DISKS < <(lsblk -dno NAME,SIZE,MODEL | awk '{print "/dev/"$1"  "$2"  "$3}')
+  [[ ${#DISKS[@]} -gt 0 ]] || die "no disks found via lsblk"
+  local -a dmenu
+  local i pick
+  for i in "${!DISKS[@]}"; do dmenu+=("$((i+1))" "${DISKS[$i]}"); done
+  dmenu+=("0" "type device path manually")
+
+  local disk
+  while :; do
+    pick="$(ask -m "Pick a disk to WIPE (all data erased):" "${dmenu[@]}" "0")" || {
+      info "no input — skipping wipe"
+      SKIP_WIPE=1
+      return 0
+    }
+    if [[ "$pick" == "0" ]]; then
+      disk="$(ask "Type the full device path (e.g. /dev/sda)")" || {
+        info "no input — skipping wipe"
+        SKIP_WIPE=1
+        return 0
+      }
+    elif [[ "$pick" =~ ^[0-9]+$ ]] && ((pick >= 1 && pick <= ${#DISKS[@]})); then
+      disk="${DISKS[$((pick-1))]%% *}"
+    else
+      warn "invalid pick: $pick — try again"
+      continue
+    fi
+    [[ -n "$disk" ]] || continue
+    [[ "$disk" =~ $DISK_PATTERN ]] || { warn "invalid device path: $disk"; continue; }
+    [[ -b "$disk" ]] || { warn "not a block device: $disk"; continue; }
+    if disk_is_mounted "$disk"; then
+      warn "disk $disk has mounted partitions — refusing to wipe it"
+      continue
+    fi
+    local size_b
+    size_b="$(lsblk -dnbo SIZE "$disk" 2>/dev/null || echo 0)"
+    (( size_b < 8*1024*1024*1024 )) && warn "disk smaller than 8 GiB — install may fail"
+    break
+  done
+
+  # Remember the disk for the execute phase + patch_host_flags (disko device).
+  INSTALL_DISK="$disk"
+  mark_done "disk"
+}
+
+collect_luks_pw() {
+  [[ $ENABLE_LUKS -eq 0 ]] && return 0
+  [[ -n "${LUKS_PASSPHRASE:-}" ]] && return 0
+  [[ -t 0 ]] || die "LUKS needs a passphrase but stdin is not a TTY — set LUKS_PASSPHRASE env and rerun"
+  while :; do
+    local pw1 pw2
+    pw1="$(ask -s "LUKS passphrase (used at execute time, never saved)")" || die "aborted"
+    pw2="$(ask -s "Repeat LUKS passphrase")" || die "aborted"
+    [[ -n "$pw1" ]] || { warn "empty passphrase not allowed — try again"; continue; }
+    [[ "$pw1" == "$pw2" ]] || { warn "passphrases do not match — try again"; continue; }
+    LUKS_PW_MEM="$pw1"
+    unset pw1 pw2
+    break
+  done
+  mark_done "lukspw"
+}
+
+collect_usb() {
+  log "Step 6/7 — USB backup (optional)"
+  local cands
+  cands="$(lsblk -dnro NAME,RM,TRAN 2>/dev/null | awk -v skip="${INSTALL_DISK#/dev/}" '$2==1 || $3=="usb" { if ($1 != skip) print "/dev/"$1 }')"
+  [[ -n "$cands" ]] || { info "no removable USB disk found — skipping backup"; return 0; }
+  local -a umenu
+  local i=0 u
+  while IFS= read -r u; do
+    i=$((i+1)); umenu+=("$i" "$u")
+  done <<< "$cands"
+  umenu+=("0" "no backup")
+  local pick dev
+  pick="$(ask -m "Back up repo + state to USB before wiping?" "${umenu[@]}" "0")" || return 0
+  [[ "$pick" == "0" ]] && return 0
+  if [[ "$pick" =~ ^[0-9]+$ ]] && ((pick >= 1 && pick <= i)); then
+    dev="$(printf '%s\n' "$cands" | sed -n "${pick}p")"
+    [[ -b "$dev" ]] && BACKUP_DEV="$dev" && info "backup target: $BACKUP_DEV (runs first at execute time)"
+  fi
+  mark_done "usb"
+}
+
+do_backup() {
+  [[ -n "${BACKUP_DEV:-}" ]] || return 0
+  local mnt=/mnt/usb-backup part
+  mkdir -p "$mnt"
+  for part in "${BACKUP_DEV}1" "${BACKUP_DEV}p1" "$BACKUP_DEV"; do
+    if mount "$part" "$mnt" 2>/dev/null; then
+      info "backup: repo + state -> $part"
+      cp -r "$REPO_ROOT/." "$mnt/nixos-backup/" || warn "repo copy failed"
+      [[ -f "$STATE_FILE" ]] && cp "$STATE_FILE" "$mnt/" || true
+      sync
+      umount "$mnt" || warn "umount $mnt failed — unplug USB after reboot"
+      return 0
+    fi
+  done
+  warn "could not mount $BACKUP_DEV — backup skipped"
+}
+
+print_plan() {
+  log "Review — full plan"
+  info "host: $SELECTED_HOST"
+  info "encrypt: luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT"
+  if [[ $SKIP_WIPE -eq 1 ]]; then
+    info "disk: <keep, no wipe>"
+  else
+    info "disk to WIPE: ${INSTALL_DISK:-<unset>}"
+  fi
+  if [[ -n "$PASSWORD_HASH" ]]; then info "password: set"; else info "password: skipped"; fi
+  info "usb backup: ${BACKUP_DEV:-none}"
+}
+
+# ---------------------------------------------------------------------------
 # Step 4 — OPTIONAL: guided partitioning (destructive!)
 # ---------------------------------------------------------------------------
 # Allow multi-letter sd/vd/hd devices (sdaa+ on large arrays / virtual disks beyond sdz);
@@ -319,70 +483,22 @@ disk_is_mounted() {
 }
 
 step_partition() {
-  log "Step 4/6 — Partition & format (optional, DESTRUCTIVE)"
+  log "Partition & format (DESTRUCTIVE — execute phase)"
 
+  [[ $SKIP_WIPE -eq 1 ]] && { info "skipped by choice — using existing disks"; return 0; }
   if ! is_installer_env; then
-    info "not on the installer ISO (root is a real filesystem) — skipping"
-    info "on a fresh install, boot the NixOS installer ISO and run setup.sh from there"
+    info "not on the installer ISO — skipping"
     return 0
   fi
-
-  if ! confirm "Partition and format a disk? This ERASES all data on it"; then
-    info "skipped — make sure modules/hosts/*.nix point at real disks before deploying"
-    return 0
-  fi
-
-  # Offer encryption when flags weren't given (installer + interactive only).
-  if [[ $ENABLE_LUKS -eq 0 && $AN_YES_SET -eq 0 ]] && [[ -t 0 ]]; then
-    if confirm "Encrypt the root partition with LUKS2?"; then ENABLE_LUKS=1; fi
-  fi
-  if [[ $ENABLE_LUKS -eq 1 && $ENABLE_TPM2 -eq 0 && $AN_YES_SET -eq 0 ]] && [[ -t 0 ]]; then
-    if have systemd-cryptenroll && [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)" ]]; then
-      if confirm "Also enroll TPM2 auto-unlock (PCR 7+8)?"; then ENABLE_TPM2=1; fi
-    fi
-  fi
-  if [[ $ENABLE_LUKS -eq 1 && -z "${LUKS_PASSPHRASE:-}" ]] && [[ ! -t 0 ]]; then
-    die "LUKS needs a passphrase but stdin is not a TTY — set LUKS_PASSPHRASE env and rerun"
+  local disk="$INSTALL_DISK"
+  [[ -n "$disk" ]] || die "no disk collected — aborting before wipe"
+  [[ "$disk" =~ $DISK_PATTERN ]] || die "collected disk invalid: $disk"
+  [[ -b "$disk" ]] || die "not a block device: $disk"
+  if disk_is_mounted "$disk"; then
+    die "disk $disk has mounted partitions — refusing to wipe it"
   fi
 
   ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
-
-  mapfile -t DISKS < <(lsblk -dno NAME,SIZE,MODEL | awk '{print "/dev/"$1"  "$2"  "$3}')
-  [[ ${#DISKS[@]} -gt 0 ]] || die "no disks found via lsblk"
-  local -a dmenu
-  local i pick
-  for i in "${!DISKS[@]}"; do dmenu+=("$((i+1))" "${DISKS[$i]}"); done
-  dmenu+=("0" "type device path manually")
-
-  local disk
-  while :; do
-    pick="$(ask -m "Pick a disk to WIPE (all data erased):" "${dmenu[@]}" "0")" || {
-      info "no input — aborting partition step"
-      return 0
-    }
-    if [[ "$pick" == "0" ]]; then
-      disk="$(ask "Type the full device path (e.g. /dev/sda)")" || {
-        info "no input — aborting partition step"
-        return 0
-      }
-    elif [[ "$pick" =~ ^[0-9]+$ ]] && ((pick >= 1 && pick <= ${#DISKS[@]})); then
-      disk="${DISKS[$((pick-1))]%% *}"
-    else
-      warn "invalid pick: $pick — try again"
-      continue
-    fi
-    [[ -n "$disk" ]] || continue
-    [[ "$disk" =~ $DISK_PATTERN ]] || { warn "invalid device path: $disk"; continue; }
-    [[ -b "$disk" ]] || { warn "not a block device: $disk"; continue; }
-    if disk_is_mounted "$disk"; then
-      warn "disk $disk has mounted partitions — refusing to wipe it"
-      continue
-    fi
-    local size_b
-    size_b="$(lsblk -dnbo SIZE "$disk" 2>/dev/null || echo 0)"
-    (( size_b < 8*1024*1024*1024 )) && warn "disk smaller than 8 GiB — install may fail"
-    break
-  done
 
   echo
   warn "ABOUT TO ERASE ALL DATA ON: $disk"
@@ -400,9 +516,6 @@ step_partition() {
   }
   [[ "$ans" == "WIPE" ]] || { info "aborted — nothing was changed"; return 0; }
 
-  # Remember the disk for patch_host_flags (write disko.devices.disk.nixos.device).
-  INSTALL_DISK="$disk"
-
   # Partition device naming: nvme/mmcblk get a trailing "p".
   local p1 p2 pfx=""
   [[ "$disk" =~ /dev/(nvme|mmcblk) ]] && pfx="p"
@@ -417,13 +530,10 @@ step_partition() {
 
   mkfs.vfat -F 32 -n nixos-boot "$p1"
 
-  local luks_pw=""
-  if [[ $ENABLE_LUKS -eq 1 ]]; then
-    # --yes suppresses yes/no confirms; passwords are always interactive
-    # (or read from LUKS_PASSPHRASE env) because they can't be defaulted.
-    if [[ -n "${LUKS_PASSPHRASE:-}" ]]; then
-      luks_pw="$LUKS_PASSPHRASE"
-    else
+  # Collected up front (collect_luks_pw); env/fallback cover --yes re-runs.
+  local luks_pw="${LUKS_PW_MEM:-${LUKS_PASSPHRASE:-}}"
+  unset LUKS_PW_MEM
+  if [[ $ENABLE_LUKS -eq 1 && -z "$luks_pw" ]]; then
       while :; do
         local pw1 pw2
         pw1="$(ask -s "LUKS passphrase for $p2")" || {
@@ -442,6 +552,7 @@ step_partition() {
       done
     fi
 
+  if [[ $ENABLE_LUKS -eq 1 ]]; then
     info "luksFormat $p2 (argon2id)"
     printf '%s' "$luks_pw" | cryptsetup luksFormat --key-file=- --type luks2 --pbkdf argon2id --label nixos-root-luks "$p2"
     printf '%s' "$luks_pw" | cryptsetup open --key-file=- --type luks "$p2" cryptroot
@@ -521,7 +632,7 @@ pw_strength() {
   return 0
 }
 step_password() {
-  log "Step 5/6 — User password (mario)"
+  log "Step 5/7 — User password (mario)"
 
   if [[ $AN_YES_SET -eq 1 && ! -t 0 ]]; then
     info "skipped — password prompt needs a TTY (set later via passwd)"
@@ -655,13 +766,7 @@ patch_host_flags() {
 }
 
 step_deploy() {
-  log "Step 6/6 — Deploy ($SELECTED_HOST)"
-
-  confirm -y "Rebuild the system now?" || {
-    info "skipped — run later with: sudo nixos-rebuild switch --flake .#<host>"
-    info "             or:           sudo nixos-install --flake .#<host>  (installer ISO)"
-    return 0
-  }
+  log "Deploy ($SELECTED_HOST) — execute phase"
 
   local name="$SELECTED_HOST"
 
@@ -776,6 +881,7 @@ if [[ $RESUME -eq 1 ]]; then
     [[ $CLI_LUKS -ne -1 ]] && ENABLE_LUKS=$CLI_LUKS
     [[ $CLI_TPM2 -ne -1 ]] && ENABLE_TPM2=$CLI_TPM2
     [[ $CLI_SB -ne -1 ]] && ENABLE_SECURE_BOOT=$CLI_SB
+    [[ $SKIP_WIPE =~ ^[01]$ ]] || SKIP_WIPE=0
     info "restored: host='${SELECTED_HOST:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT (after: $COMPLETED_STEP)"
     if ! confirm -y "Continue with restored choices?"; then
       clear_state; SELECTED_HOST=""; INSTALL_DISK=""; info "starting fresh"
@@ -788,14 +894,25 @@ trap save_state INT TERM EXIT
 
 preflight
 step_host
+collect_flags
+collect_disk
+collect_luks_pw
+step_password; mark_done "password"
+collect_usb
+print_plan
 if [[ $DRY_RUN -eq 1 ]]; then
-  info "dry run — plan: host '$SELECTED_HOST', wipe '${INSTALL_DISK:-<ask>}' (luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT), password, deploy. Nothing changed."
+  info "dry run — nothing changed."
   exit 0
 fi
+confirm -y "Execute this plan?" || {
+  info "aborted — nothing was changed (rerun with: sudo nixos-rebuild switch --flake .#<host>, or nixos-install on the ISO)"
+  exit 0
+}
+log "Step 7/7 — Execute"
 require_root
 step_zram; mark_done "zram"
+do_backup; mark_done "backup"
 step_partition; mark_done "partition"
-step_password; mark_done "password"
 step_deploy; mark_done "deploy"
 
 # shellcheck disable=SC2034  # read by lib/state.sh save_state guard
