@@ -55,7 +55,7 @@ ask() {
         ;;
       whiptail)
         local -a wt; while [[ $# -gt 0 ]]; do wt+=("$1" "$2"); shift 2; done
-        whiptail --nocancel --menu "$prompt" 20 70 10 "${wt[@]}" "$default" 3>&1 1>&2 2>&3 || return 1
+        whiptail --default-item "$default" --menu "$prompt" 20 70 10 "${wt[@]}" 3>&1 1>&2 2>&3 || return 1
         return 0
         ;;
     esac
