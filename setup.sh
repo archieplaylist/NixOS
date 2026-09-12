@@ -51,6 +51,7 @@ CLI_SB=-1
 SKIP_WIPE=0
 BACKUP_DEV=""
 LUKS_PW_MEM=""
+FORCE_WIPE=0
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOSTS_DIR="$REPO_ROOT/modules/hosts"
@@ -160,7 +161,8 @@ Flags:
   --tui=BACKEND   auto (default) | plain | fzf | gum | whiptail
   --no-tui        force plain prompts. --no-color  plain output ($NO_COLOR too)
   --resume        restore choices saved before an interrupt
-  --fresh         discard saved state. --dry-run  print plan, change nothing
+  --fresh         discard saved state. --force-wipe  skip WIPE typing
+  --dry-run  print plan, change nothing
   --list-hosts    print host names, exit. -h, --help  this text
 
 State file: /var/tmp/nixos-setup.state (choices only, never secrets).
@@ -512,10 +514,15 @@ step_partition() {
   else
     echo "  partition 2: root  rest  xfs  label 'nixos-root'"
   fi
-  ans="$(ask "Type WIPE (exactly) to continue erasing $disk")" || {
-    info "no input — aborting partition step"
-    return 0
-  }
+  ans="SKIP"
+  if [[ $FORCE_WIPE -eq 1 ]]; then
+    info "WIPE typing skipped (--force-wipe) — erasing $disk"
+  else
+    ans="$(ask "Type WIPE (exactly) to continue erasing $disk")" || {
+      info "no input — aborting partition step"
+      return 0
+    }
+  fi
   [[ "$ans" == "WIPE" ]] || { info "aborted — nothing was changed"; return 0; }
 
   # Partition device naming: nvme/mmcblk get a trailing "p".
@@ -701,6 +708,16 @@ step_password() {
 # copied to /mnt/etc/nixos afterward, so the installed system sees
 # the new values. In non-installer mode we still patch in place — the
 # user is running on a host they control and asked for the rebuild.
+append_once() {
+  # append_once <file> <match-regex> <line>: insert line once, after the
+  # LAST line matching regex. ponytail: sed `a` hits every match — root
+  # cause of duplicate-option errors on re-runs and flagless host files.
+  local file="$1" match="$2" text="$3" last
+  last="$(grep -n "$match" "$file" | tail -1 | cut -d: -f1 || true)"
+  [[ -n "$last" ]] || return 1
+  sed -i "${last}a\\$text" "$file"
+}
+
 patch_host_flags() {
   local name="$1"
   local host_file="$HOSTS_DIR/$name.nix"
@@ -733,11 +750,9 @@ patch_host_flags() {
     elif grep -Eq "^[[:space:]]*mySystem\\.${key}[[:space:]]*=[[:space:]]*true[[:space:]]*;" "$host_file"; then
       info "$host_file: mySystem.$key already true — no change"
     else
-      # No assignment for this flag in the host file — append a fresh
-      # one so the user doesn't have to. Append after the last
-      # mySystem.* line if any, else at the end of the config block.
-      if grep -q "^[[:space:]]*mySystem\\." "$host_file"; then
-        sed -i "/^[[:space:]]*mySystem\\./a\\    mySystem.$key = true;" "$host_file"
+      # No assignment for this flag in the host file — add it once after
+      # the last mySystem.* line so re-runs stay no-ops.
+      if append_once "$host_file" "^[[:space:]]*mySystem\\." "    mySystem.$key = true;"; then
         info "appended to $host_file: mySystem.$key = true"
       else
         warn "no mySystem.* assignment found in $host_file — set mySystem.$key = true manually"
@@ -756,9 +771,8 @@ patch_host_flags() {
       sed -i -E "s|^([[:space:]]*disko\\.devices\\.disk\\.nixos\\.device[[:space:]]*=[[:space:]]*)\"[^\"]*\"|\\1\"$INSTALL_DISK\"|" "$host_file"
       info "patched $host_file: disko.devices.disk.nixos.device = \"$INSTALL_DISK\""
     else
-      # Append after the last mySystem.* line so the config stays grouped.
-      if grep -q "^[[:space:]]*mySystem\\." "$host_file"; then
-        sed -i "/^[[:space:]]*mySystem\\./a\\    disko.devices.disk.nixos.device = \"$INSTALL_DISK\";" "$host_file"
+      # Append once after the last mySystem.* line so the config stays grouped.
+      if append_once "$host_file" "^[[:space:]]*mySystem\\." "    disko.devices.disk.nixos.device = \"$INSTALL_DISK\";"; then
         info "appended to $host_file: disko.devices.disk.nixos.device = \"$INSTALL_DISK\""
       else
         warn "no mySystem.* assignment in $host_file — set disko.devices.disk.nixos.device = \"$INSTALL_DISK\" manually"
@@ -908,6 +922,7 @@ while [[ $# -gt 0 ]]; do
     --tui) if [[ $# -ge 2 ]]; then TUI_MODE="$2"; shift; else TUI_MODE="auto"; fi ;;
     --resume) RESUME=1 ;;
     --fresh) DO_FRESH=1 ;;
+    --force-wipe) FORCE_WIPE=1 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
   shift
