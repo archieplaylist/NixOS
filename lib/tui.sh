@@ -23,10 +23,12 @@ init_tui() {
     fi
     return 0
   fi
-  for b in fzf gum whiptail; do
+  for b in whiptail fzf gum; do
     if have "$b"; then TUI_BACKEND="$b"; return 0; fi
   done
-  TUI_BACKEND="plain"
+  # ponytail: newt closure tiny; one install attempt so ISO gets menus free
+  if [[ "${DRY_RUN:-0}" -eq 0 ]]; then ensure_tools whiptail || true; fi
+  have whiptail && TUI_BACKEND="whiptail" || TUI_BACKEND="plain"
 }
 
 tui_backend() { printf '%s' "$TUI_BACKEND"; }

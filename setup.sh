@@ -143,7 +143,9 @@ Usage:
   sudo ./setup.sh --luks --tpm2        encrypt root + TPM2 auto-unlock
   ./setup.sh --help | --list-hosts | --dry-run     (no root needed)
 
-Steps (collect all choices, then one confirm, then execute):
+Steps (interactive = archinstall-style guided menu, defaults shown):
+  pick entries to configure (host, encryption, disk, password, USB),
+  then Review + Execute once. --yes/--dry-run/no-TTY use linear flow.
   1. preflight + orientation   2. pick host   3. options (luks/tpm2/secure-boot)
   4. target disk menu          5. user password (hashed now, memory only)
   6. USB backup (optional)     7. review plan, confirm once, execute
@@ -838,6 +840,57 @@ step_deploy() {
 }
 
 # ---------------------------------------------------------------------------
+# Guided menu (archinstall-style) — interactive only. Each entry shows its
+# current value; picking one reconfigures just that item via the collect
+# functions. Non-interactive (--yes/--dry-run/no TTY) uses the linear flow.
+# ---------------------------------------------------------------------------
+guided_menu() {
+  [[ -z "$SELECTED_HOST" && ${#HOSTS[@]} -gt 0 ]] && SELECTED_HOST="${HOSTS[0]%.nix}"
+  local choice enc_txt sb_txt disk_txt pw_txt
+  while :; do
+    enc_txt="off"
+    [[ $ENABLE_LUKS -eq 1 ]] && enc_txt="LUKS2"
+    [[ $ENABLE_TPM2 -eq 1 ]] && enc_txt+="+TPM2"
+    sb_txt="off"; [[ $ENABLE_SECURE_BOOT -eq 1 ]] && sb_txt="on"
+    if [[ $SKIP_WIPE -eq 1 ]]; then disk_txt="<keep, no wipe>"
+    elif [[ -n "$INSTALL_DISK" ]]; then disk_txt="$INSTALL_DISK (WIPE)"
+    else disk_txt="<choose>"; fi
+    pw_txt="<skipped>"; [[ -n "$PASSWORD_HASH" ]] && pw_txt="set"
+    choice="$(ask -m "Guided setup — configure, then Execute:" \
+      "1" "Host            [$SELECTED_HOST]" \
+      "2" "Encryption      [$enc_txt]" \
+      "3" "Secure Boot     [$sb_txt]" \
+      "4" "Target disk     [$disk_txt]" \
+      "5" "User password   [$pw_txt]" \
+      "6" "USB backup      [${BACKUP_DEV:-none}]" \
+      "7" ">>> Review + Execute" \
+      "1")" || return 1
+    case "$choice" in
+      1) SELECTED_HOST=""; step_host ;;
+      2) if [[ $ENABLE_LUKS -eq 1 ]]; then
+           if confirm "Disable LUKS2 encryption?"; then ENABLE_LUKS=0; ENABLE_TPM2=0; LUKS_PW_MEM=""; mark_done "flags"; fi
+         elif confirm "Encrypt the root partition with LUKS2?"; then
+           ENABLE_LUKS=1
+           if have systemd-cryptenroll && [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)" ]]; then
+             if confirm "Also enroll TPM2 auto-unlock (PCR 7+8)?"; then ENABLE_TPM2=1; fi
+           fi
+           collect_luks_pw; mark_done "flags"
+         fi ;;
+      3) if [[ $ENABLE_SECURE_BOOT -eq 1 ]]; then
+           if confirm "Disable Secure Boot?"; then ENABLE_SECURE_BOOT=0; mark_done "flags"; fi
+         elif confirm "Enable Secure Boot (needs sbctl enrollment after boot)?"; then
+           ENABLE_SECURE_BOOT=1; mark_done "flags"
+         fi ;;
+      4) INSTALL_DISK=""; SKIP_WIPE=0; collect_disk ;;
+      5) PASSWORD_HASH=""; step_password; mark_done "password" ;;
+      6) BACKUP_DEV=""; collect_usb ;;
+      7) return 0 ;;
+      *) warn "invalid pick: $choice" ;;
+    esac
+  done
+}
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
@@ -893,12 +946,16 @@ fi
 trap save_state INT TERM EXIT
 
 preflight
-step_host
-collect_flags
-collect_disk
-collect_luks_pw
-step_password; mark_done "password"
-collect_usb
+if [[ $AN_YES_SET -eq 0 && $DRY_RUN -eq 0 && -t 0 ]]; then
+  guided_menu || { info "aborted — nothing was changed"; exit 0; }
+else
+  step_host
+  collect_flags
+  collect_disk
+  collect_luks_pw
+  step_password; mark_done "password"
+  collect_usb
+fi
 print_plan
 if [[ $DRY_RUN -eq 1 ]]; then
   info "dry run — nothing changed."
