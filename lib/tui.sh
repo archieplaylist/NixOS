@@ -23,12 +23,12 @@ init_tui() {
     fi
     return 0
   fi
-  for b in whiptail fzf gum; do
+  for b in gum fzf whiptail; do
     if have "$b"; then TUI_BACKEND="$b"; return 0; fi
   done
-  # ponytail: newt closure tiny; one install attempt so ISO gets menus free
-  if [[ "${DRY_RUN:-0}" -eq 0 ]]; then ensure_tools whiptail || true; fi
-  have whiptail && TUI_BACKEND="whiptail" || TUI_BACKEND="plain"
+  # ponytail: one install attempt so ISO gets styled menus free; plain fallback offline
+  if [[ "${DRY_RUN:-0}" -eq 0 ]]; then ensure_tools gum || true; fi
+  have gum && TUI_BACKEND="gum" || TUI_BACKEND="plain"
 }
 
 tui_backend() { printf '%s' "$TUI_BACKEND"; }
@@ -69,16 +69,25 @@ ask() {
     printf '%s' "${ans:-$default}"
     return 0
   fi
-  # Password form: -s <prompt> (always plain read; TUI can't hide input)
+  # Password form: -s <prompt> (hidden input, backend-styled when possible)
   if [[ $1 == "-s" ]]; then
-    local ans; read -r -s -p "$2: " ans || return 1; echo >&2
+    local ans
+    case "$TUI_BACKEND" in
+      gum) ans="$(gum input --password --prompt "$2: ")" || return 1 ;;
+      whiptail) ans="$(whiptail --passwordbox "$2" 10 70 3>&1 1>&2 2>&3)" || return 1 ;;
+      *) read -r -s -p "$2: " ans || return 1; echo >&2 ;;
+    esac
     printf '%s' "$ans"
     return 0
   fi
   # Plain input: ask <prompt>
   local ans
   local prompt="${!#}"
-  read -r -p "$prompt: " ans || return 1
+  if [[ "$TUI_BACKEND" == "gum" ]]; then
+    ans="$(gum input --prompt "$prompt: ")" || return 1
+  else
+    read -r -p "$prompt: " ans || return 1
+  fi
   printf '%s' "$ans"
 }
 
