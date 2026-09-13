@@ -3,7 +3,10 @@ _: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
       enable = true;
-      package = pkgs.unstable.vscode;
+      # ponytail: Electron cannot pick backend on niri (XDG_CURRENT_DESKTOP=niri) — force libsecret so Login keyring stores tokens
+      package = pkgs.unstable.vscode.override {
+        commandLineArgs = "--password-store=gnome-libsecret";
+      };
     };
 
     home.packages = lib.mkMerge [
@@ -14,6 +17,7 @@ _: {
         btop
         zip
         unrar
+        nautilus # ponytail: GNOME Files everywhere (niri/xfce ship no manager); gvfs+udisks2 in desktop.nix
         file-roller
       ])
       # ponytail: no USB disks in vm guest

@@ -19,6 +19,10 @@ _: {
         };
 
         networking.networkmanager.enable = true;
+
+        # ponytail: nautilus trash + mtp/smb + sidebar mounts outside GNOME need these
+        services.gvfs.enable = true;
+        services.udisks2.enable = true;
       })
 
       (lib.mkIf config.mySystem.enableDesktop {
@@ -86,6 +90,9 @@ _: {
         services.power-profiles-daemon.enable = lib.mkIf (!config.services.tuned.enable) true;
         services.displayManager.ly.enable = true;
         services.gnome.gnome-keyring.enable = true;
+        # ponytail: gnome-keyring owns ssh here; gcr would run a second ssh agent
+        services.gnome.gcr-ssh-agent.enable = false;
+        programs.seahorse.enable = true; # ponytail: Login-keyring GUI + ssh-askpass
         security.polkit.enable = true;
         security.pam.services.ly.enableGnomeKeyring = true;
 
@@ -94,6 +101,7 @@ _: {
           unstable.xwayland-satellite
           unstable.noctalia # ponytail: v5 from unstable, stable 26.05 lacks it
           foot
+          polkit_gnome # ponytail: niri ships no auth agent; keyring/polkit prompts need one
         ];
 
         xdg.portal = {

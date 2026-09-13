@@ -48,6 +48,43 @@ _: {
         path = "/home/mario/Pictures/Wallpapers/wallpaper.jpg"
       '';
       home.file."Pictures/Wallpapers/wallpaper.jpg".source = ./assets/wallpaper.jpg;
+      # ponytail: Bibata everywhere — cursor{} in config.kdl, GTK/XCURSOR here
+      home.pointerCursor = {
+        package = pkgs.bibata-cursors;
+        name = "Bibata-Modern-Classic";
+        size = 24;
+        gtk.enable = true;
+      };
+      gtk = {
+        enable = true;
+        cursorTheme = {
+          name = "Bibata-Modern-Classic";
+          package = pkgs.bibata-cursors;
+          size = 24;
+        };
+        iconTheme = {
+          name = "Tela-circle-dark";
+          package = pkgs.tela-circle-icon-theme;
+        };
+      };
+      # ponytail: ly PAM unlock is flaky — user daemon guarantees secrets+ssh socket
+      services.gnome-keyring = {
+        enable = true;
+        components = [ "secrets" "ssh" ];
+      };
+      # ponytail: niri has no auth agent; without this keyring/polkit prompts hang
+      systemd.user.services.polkit-gnome-authentication-agent-1 = {
+        Unit = {
+          Description = "Polkit GNOME authentication agent";
+          PartOf = [ "graphical-session.target" ];
+          After = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
+          Restart = "on-failure";
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
     })
 
     (lib.mkIf (osConfig.mySystem.desktop == "xfce") {
