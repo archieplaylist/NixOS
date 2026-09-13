@@ -112,6 +112,57 @@
           }
         '';
 
+        # ponytail: pi ships no ask mode — same stub pattern as plan-mode above.
+        # Defensive no-op if ExtensionAPI drifts (never break `pi` boot or `/reload`).
+        home.file.".pi/agent/extensions/ask-mode.ts".text = ''
+          export default function (pi: any) {
+            try {
+              if (!pi || typeof pi.registerCommand !== "function") return;
+              let enabled = false;
+              const status = (ctx: any) => {
+                if (ctx && ctx.ui && typeof ctx.ui.setStatus === "function")
+                  ctx.ui.setStatus("ask-mode", enabled ? "ask" : undefined);
+              };
+              pi.registerCommand("ask", {
+                description: "Toggle ask mode (read-only Q&A, no edits)",
+                handler: async (_args: string, ctx: any) => {
+                  enabled = !enabled;
+                  ctx.ui.notify(enabled ? "Ask mode on. Edit, write and bash disabled. /ask to exit." : "Ask mode off. Full access restored.", "info");
+                  status(ctx);
+                },
+              });
+              pi.registerFlag("ask", {
+                description: "Start in ask mode (read-only Q&A)",
+                type: "boolean",
+                default: false,
+              });
+              if (typeof pi.on === "function") {
+                pi.on("session_start", async (_event: any, ctx: any) => {
+                  if (pi.getFlag && pi.getFlag("ask") === true) enabled = true;
+                  status(ctx);
+                });
+                pi.on("tool_call", async (event: any) => {
+                  if (!enabled) return undefined;
+                  if (event && (event.toolName === "edit" || event.toolName === "write" || event.toolName === "bash"))
+                    // ponytail: bash fully blocked, read/grep/find/ls cover exploration; allowlist when read-only bash needed
+                    return { block: true, reason: "Ask mode on - read-only. Use read/grep/find/ls, or /ask to exit." };
+                  return undefined;
+                });
+                pi.on("before_agent_start", async () => {
+                  if (!enabled) return undefined;
+                  return {
+                    message: {
+                      customType: "ask-mode-context",
+                      content: "[ASK MODE ACTIVE] Answer questions with words only. Do not edit, write, or run commands. Use read, grep, find, ls to inspect code, then explain. Never call edit, write, or bash.",
+                      display: false,
+                    },
+                  };
+                });
+              }
+            } catch (e) { console.warn("ask-mode init failed:", e); }
+          }
+        '';
+
         # ponytail: same upstream skill dirs as pi above, versioned in flake.lock.
         # Per-dir entries only — never manage ~/.config/opencode/ as a whole,
         # or imperative `plugin` installs in opencode.json get wiped on rebuild.
