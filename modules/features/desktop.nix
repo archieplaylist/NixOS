@@ -1,12 +1,12 @@
 # Desktop slot: shared X/Bluetooth/NetworkManager/Flatpak + PipeWire,
-# GNOME/GDM, Plasma/SDDM, XFCE/LightDM. Sections merged, behavior unchanged.
+# GNOME/GDM, Niri/Ly, XFCE/LightDM. Sections merged, behavior unchanged.
 _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
       (lib.mkIf config.mySystem.enableDesktop {
         services = {
           xserver.enable = true;
-          blueman.enable = config.mySystem.desktop != "plasma";
+          blueman.enable = true;
           flatpak = {
             enable = true;
             packages = config.mySystem.flatpakApps;
@@ -75,28 +75,33 @@ _: {
         ];
       })
 
-      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "plasma") {
-        services = {
-          displayManager.sddm.enable = true;
-          desktopManager.plasma6.enable = true;
-          gnome.gnome-keyring.enable = true; # ponytail: reuse Login keyring from xfce/gnome, no relogin
+      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "niri") {
+        programs.niri = {
+          enable = true;
+          package = pkgs.unstable.niri; # ponytail: unstable tracks niri releases, stable lags
         };
+        # noctalia v5 from nixpkgs-unstable (ponytail: same overlay as discord/vscode, no new flake input)
+        # recommendedServices equiv: NM/BT already on above, upower + power-profiles here
+        services.upower.enable = true;
+        services.power-profiles-daemon.enable = lib.mkIf (!config.services.tuned.enable) true;
+        services.displayManager.ly.enable = true;
+        services.gnome.gnome-keyring.enable = true;
+        security.polkit.enable = true;
+        security.pam.services.ly.enableGnomeKeyring = true;
+
+        # ponytail: satellite on PATH = niri auto-spawns it for X11 clients, no config block needed
+        environment.systemPackages = with pkgs; [
+          unstable.xwayland-satellite
+          unstable.noctalia # ponytail: v5 from unstable, stable 26.05 lacks it
+          foot
+        ];
 
         xdg.portal = {
           enable = true;
-          extraPortals = [ pkgs.kdePackages.xdg-desktop-portal-kde pkgs.xdg-desktop-portal-gtk ];
-          config.common.default = "kde"; # ponytail: was missing → kde fallback to gtk caused 3-5s register wait
+          extraPortals = with pkgs; [ xdg-desktop-portal-gtk xdg-desktop-portal-gnome ];
+          config.niri."org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
+          config.common.default = "gtk";
         };
-
-        security.pam.services.sddm.enableGnomeKeyring = true;
-        security.pam.services.sddm.kwallet.enable = true;
-
-        environment.systemPackages = with pkgs; [
-          kdePackages.dolphin
-          kdePackages.konsole
-          kdePackages.gwenview
-          seahorse
-        ];
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {

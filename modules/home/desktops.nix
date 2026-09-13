@@ -1,4 +1,4 @@
-# mario home desktops: GNOME dconf (gnome), plasma-manager (plasma),
+# mario home desktops: GNOME dconf (gnome), niri+noctalia (niri),
 # XFCE packages (xfce), GTK/icon/cursor theming (themes, GNOME only).
 # Sections merged, behavior unchanged.
 _: {
@@ -34,12 +34,21 @@ _: {
       };
     }
 
-    {
-      programs.plasma = lib.mkIf (osConfig.mySystem.desktop == "plasma") {
-        enable = true;
-        overrideConfig = false; # ponytail: true rewrites kwinrc/plasmarc every login → 3-5s plasmashell restart
-      };
-    }
+    (lib.mkIf (osConfig.mySystem.desktop == "niri") {
+      # ponytail: unstable niri validates, same package that runs the session
+      xdg.configFile."niri/config.kdl".source = pkgs.runCommand "niri-config-checked" {
+        nativeBuildInputs = [ pkgs.unstable.niri ];
+      } ''
+        niri validate --config ${./niri-config.kdl}
+        cp ${./niri-config.kdl} $out
+      '';
+      # ponytail: noctalia merges every *.toml here; GUI settings.toml still wins
+      xdg.configFile."noctalia/wallpaper.toml".text = ''
+        [wallpaper.default]
+        path = "/home/mario/Pictures/Wallpapers/wallpaper.jpg"
+      '';
+      home.file."Pictures/Wallpapers/wallpaper.jpg".source = ./assets/wallpaper.jpg;
+    })
 
     (lib.mkIf (osConfig.mySystem.desktop == "xfce") {
       home.packages = with pkgs; [
@@ -58,7 +67,7 @@ _: {
       ];
     })
 
-    # GTK/icon/cursor/font theming — GNOME only (plasma/xfce stay stock defaults)
+    # GTK/icon/cursor/font theming — GNOME only (niri/xfce stay stock defaults)
     # Orchis-Dark / Tela-circle-dark / Bibata (Orchis https://github.com/vinceliuice/Orchis-theme)
     (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
       gtk = {

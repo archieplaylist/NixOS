@@ -1,4 +1,4 @@
-// Fastfetch config — boxed layout, distro age, verified NixOS/Plasma icons
+// Fastfetch config — boxed layout, distro age, verified NixOS icons
 // Install location: ~/.config/fastfetch/config.jsonc
 {
 "logo": {

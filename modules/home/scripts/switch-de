@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# switch-de <gnome|plasma|xfce>
+# switch-de <gnome|niri|xfce>
 #
 # Switches this machine's desktop environment: flips the mySystem.desktop line
 # in the host module, builds the new system with `nh os boot` (nothing
@@ -7,11 +7,11 @@
 # the home directory doesn't accumulate dead config.
 #
 # Only real files/directories are archived; home-manager-managed entries are
-# symlinks into the nix store and are skipped. ~/.cache, gnome-keyring
-# (keyrings) and KWallet data are never touched — explicit deny-list below
+# symlinks into the nix store and are skipped. ~/.cache and gnome-keyring
+# (keyrings) are never touched — explicit deny-list below
 # keeps secrets across DE switches so no relogin is needed. Login password must
 # match Login keyring / kdewallet password for PAM auto-unlock. Declared
-# settings (GNOME dconf, plasma-manager) survive the switch through Nix itself;
+# settings (GNOME dconf, niri KDL) survive the switch through Nix itself;
 # the archive is a recoverable copy you may delete.
 
 set -euo pipefail
@@ -31,17 +31,13 @@ else
 fi
 ARCHIVE_DIR="$HOME/.local/share/de-archive"
 
-# ponytail: never archive secrets — keyrings/kwallet stay in place across DE switches (deny-list in archive_de)
+# ponytail: never archive secrets — keyrings stay in place across DE switches (deny-list in archive_de)
 # Login password must == keyring password for PAM auto-unlock, else seahorse prompt once.
 
 # Runtime state owned by each DE, relative to $HOME (glob patterns).
-plasma_paths=(
-  ".config/plasma-*" ".config/plasmarc" ".config/kdeglobals"
-  ".config/kwin*" ".config/kglobalshortcutsrc" ".config/khotkeysrc"
-  ".config/krunnerrc" ".config/kscreenlockerrc" ".config/kactivitymanagerdrc"
-  ".config/baloofilerc" ".config/breezerc"
-  ".local/share/plasma*" ".local/share/kactivitymanagerd"
-  ".local/share/klipper" ".local/share/baloo" ".local/share/konsole"
+niri_paths=(
+  ".config/niri" ".config/noctalia"
+  ".local/share/noctalia"
 )
 gnome_paths=(
   ".config/dconf" ".config/mutter"
@@ -79,7 +75,7 @@ archive_de() {
       [ -e "$p" ] || [ -L "$p" ] || continue
       # ponytail: explicit wallet preserve — never archive secrets, no relogin
       case "$p" in
-        */.cache/* | *keyrings* | *kwalletd* | *kwalletrc* | *gnome-keyring* | *kwallet*) continue ;;
+        */.cache/* | *keyrings* | *gnome-keyring*) continue ;;
       esac
       # preserve relative path to avoid basename collision (.config/xfce4 vs .local/share/xfce4)
       rel="${p#"$HOME"/}"
@@ -106,18 +102,18 @@ restore_de() {
 }
 
 usage() {
-  echo "usage: switch-de <gnome|plasma|xfce>" >&2
+  echo "usage: switch-de <gnome|niri|xfce>" >&2
   exit 1
 }
 
 TARGET="${1:-}"
-[ "$TARGET" = "gnome" ] || [ "$TARGET" = "plasma" ] || [ "$TARGET" = "xfce" ] || usage
+[ "$TARGET" = "gnome" ] || [ "$TARGET" = "niri" ] || [ "$TARGET" = "xfce" ] || usage
 
 HOST="$(host_module)"
 HOST_FILE="$REPO/modules/hosts/$HOST.nix"
 [ -f "$HOST_FILE" ] || { echo "error: $HOST_FILE not found" >&2; exit 1; }
 
-CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|plasma|xfce)"' "$HOST_FILE" | grep -Eo '"(gnome|plasma|xfce)"' | tr -d '"')"
+CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|niri|xfce)"' "$HOST_FILE" | grep -Eo '"(gnome|niri|xfce)"' | tr -d '"')"
 if [ -z "$CURRENT" ]; then
   echo "error: no 'mySystem.desktop = ...' line found in $HOST_FILE" >&2
   exit 1
@@ -163,7 +159,7 @@ fi
 # Hand off runtime state: archive what the DE we're leaving wrote, so the home
 # directory only ever holds the active DE's files. Caches and wallets stay put.
 case "$CURRENT" in
-  plasma) archive_de plasma "${plasma_paths[@]}" ;;
+  niri) archive_de niri "${niri_paths[@]}" ;;
   gnome) archive_de gnome "${gnome_paths[@]}" ;;
   xfce) archive_de xfce "${xfce_paths[@]}" ;;
 esac

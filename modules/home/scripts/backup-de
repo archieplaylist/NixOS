@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# backup-de — backup/restore per-DE config (gnome/plasma/xfce)
+# backup-de — backup/restore per-DE config (gnome/niri/xfce)
 # ponytail: dconf dump/load for gnome (native), tar of DE file lists for the rest.
 # No manifests, no live-reload — restore + relogin. Auto-prune keeps newest 3 per DE.
 # Stable *-latest copies (1 per DE) are git-tracked; timestamped ones stay machine-local.
@@ -19,13 +19,9 @@ BASE="${BASE:-${XDG_DATA_HOME:-$HOME/.local/share}/de-backups}"
 
 # File lists mirror switch-de's archive lists (minus dconf DB — the dump covers it).
 # Symlinks stored as-is (never followed into /nix/store); wallets/caches skipped.
-plasma_paths=(
-  ".config/plasma-*" ".config/plasmarc" ".config/kdeglobals"
-  ".config/kwin*" ".config/kglobalshortcutsrc" ".config/khotkeysrc"
-  ".config/krunnerrc" ".config/kscreenlockerrc" ".config/kactivitymanagerdrc"
-  ".config/baloofilerc" ".config/breezerc"
-  ".local/share/plasma*" ".local/share/kactivitymanagerd"
-  ".local/share/klipper" ".local/share/baloo" ".local/share/konsole"
+niri_paths=(
+  ".config/niri" ".config/noctalia"
+  ".local/share/noctalia"
 )
 gnome_files=(
   ".config/mutter"
@@ -37,9 +33,9 @@ xfce_paths=(
 )
 
 usage() { cat <<'USAGE'
-backup-de backup [gnome|plasma|xfce|all]  → backups/<de>/<de>-*.{dconf,tar.gz} (default: current DE)
+backup-de backup [gnome|niri|xfce|all]  → backups/<de>/<de>-*.{dconf,tar.gz} (default: current DE)
 backup-de restore <file>                  → dconf load (.dconf, old bundle tars) or tar -xzf into $HOME
-backup-de list [gnome|plasma|xfce]        → ls backup dirs
+backup-de list [gnome|niri|xfce]        → ls backup dirs
 USAGE
 }
 
@@ -63,7 +59,7 @@ tar_files() {
     # shellcheck disable=SC2086
     for p in $HOME/$pat; do
       [ -e "$p" ] || [ -L "$p" ] || continue
-      case "$p" in */.cache/*|*keyrings*|*kwalletd*|*kwalletrc*|*gnome-keyring*|*kwallet*) continue ;; esac
+      case "$p" in */.cache/*|*keyrings*|*gnome-keyring*) continue ;; esac
       files+=("${p#"$HOME"/}")
     done
   done
@@ -99,7 +95,7 @@ backup_files() {
   mkdir -p "$dir"
   f="$dir/$de-$(date +%Y%m%d-%H%M%S).tar.gz"
   case "$de" in
-    plasma) tar_files "$f" "${plasma_paths[@]}" ;;
+    niri) tar_files "$f" "${niri_paths[@]}" ;;
     xfce) tar_files "$f" "${xfce_paths[@]}" ;;
     *) echo "unknown DE: $de" >&2; return 1 ;;
   esac || { rm -f "$f"; echo "nothing to back up for $de" >&2; return 0; }
@@ -111,7 +107,7 @@ backup_files() {
 current_de() {
   case "${XDG_CURRENT_DESKTOP:-}${DESKTOP_SESSION:-}" in
     *[Gg][Nn][Oo][Mm][Ee]*) echo gnome ;;
-    *[Pp][Ll][Aa][Ss][Mm][Aa]*|*[Kk][Dd][Ee]*) echo plasma ;;
+    *[Nn][Ii][Rr][Ii]*) echo niri ;;
     *[Xx][Ff][Cc][Ee]*) echo xfce ;;
     *) echo all ;;
   esac
@@ -122,8 +118,8 @@ cmd="${1:-}"; case "$cmd" in
     de="${2:-$(current_de)}"
     case "$de" in
       gnome) backup_gnome ;;
-      plasma|xfce) backup_files "$de" ;;
-      all) backup_gnome; backup_files plasma; backup_files xfce ;;
+      niri|xfce) backup_files "$de" ;;
+      all) backup_gnome; backup_files niri; backup_files xfce ;;
       *) usage; echo "unknown DE: $de" >&2; exit 1 ;;
     esac
     ;;
@@ -146,7 +142,7 @@ cmd="${1:-}"; case "$cmd" in
     if [[ -n "$de" ]]; then
       ls -lh "$BASE/$de" 2>/dev/null || echo "no backups in $BASE/$de"
     else
-      for d in gnome plasma xfce; do
+      for d in gnome niri xfce; do
         echo "== $d =="
         ls -lh "$BASE/$d" 2>/dev/null || echo "no backups in $BASE/$d"
       done

@@ -31,10 +31,7 @@ let
           useUserPackages = true;
           backupFileExtension = "hm-backup";
           users.mario = {
-            imports = [
-              config.home.modules.mario
-              inputs.plasma-manager.homeModules.plasma-manager
-            ];
+            imports = [ config.home.modules.mario ];
           };
         };
       }
