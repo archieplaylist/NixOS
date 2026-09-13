@@ -4,7 +4,6 @@
 input {
     keyboard {
         xkb {}
-        numlock
     }
     touchpad {
         tap
@@ -13,7 +12,7 @@ input {
 }
 
 layout {
-    gaps 16
+    gaps 5
     center-focused-column "never"
     preset-column-widths {
         proportion 0.33333
