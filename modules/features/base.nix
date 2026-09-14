@@ -75,6 +75,14 @@ _: {
           autodetect = true;
         };
 
+        # ponytail: openFirewall punches Sunshine TCP/UDP ports; capSysAdmin needed for KMS capture on Wayland
+        services.sunshine = lib.mkIf config.mySystem.enableSunshine {
+          enable = true;
+          autoStart = true;
+          capSysAdmin = true;
+          openFirewall = true;
+        };
+
         virtualisation.docker = lib.mkIf config.mySystem.enableDocker {
           enable = true;
           enableOnBoot = true;
@@ -197,7 +205,8 @@ _: {
             ++ lib.optionals config.mySystem.enableDesktop [ "networkmanager" ]
             ++ lib.optionals config.mySystem.enableDocker [ "docker" ]
             ++ lib.optionals config.mySystem.enableVirtualBox [ "vboxusers" ]
-            ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" "input" ];
+            ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" "input" ]
+            ++ lib.optionals config.mySystem.enableSunshine [ "uinput" ];
           openssh.authorizedKeys.keys = config.mySystem.sshAuthorizedKeys;
           hashedPasswordFile = "/etc/hashed-password";
         };

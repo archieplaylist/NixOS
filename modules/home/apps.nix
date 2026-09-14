@@ -67,6 +67,9 @@ _: {
         remmina
         filezilla
       ]))
+      (lib.mkIf osConfig.mySystem.enableMoonlight (with pkgs; [
+        moonlight-qt
+      ]))
     ];
 
     # MangoHud — only when gaming group enabled

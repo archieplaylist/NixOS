@@ -15,6 +15,8 @@
     mySystem.enableTailscale = false;
     mySystem.enableVirtualBox = true;
     mySystem.enableSmartd = true;
+    mySystem.enableSunshine = true;
+    mySystem.enableMoonlight = true;
 
     mySystem.sshAuthorizedKeys = [
       # "ssh-ed25519 AAAAC3... mario@client" # ponytail: add client pubkey here, then set enableSSH=true

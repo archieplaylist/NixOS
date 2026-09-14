@@ -91,6 +91,16 @@ _: {
         default = false;
         description = "Enable the smartd disk health monitoring service.";
       };
+      enableSunshine = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable the Sunshine game-stream host (Moonlight server).";
+      };
+      enableMoonlight = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Install the Moonlight game-stream client.";
+      };
       enableLuks = lib.mkOption {
         type = lib.types.bool;
         default = false;

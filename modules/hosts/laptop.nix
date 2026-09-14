@@ -18,6 +18,7 @@
     mySystem.enableLaptop = true;
     mySystem.enableTailscale = true;
     mySystem.enableSmartd = true;
+    mySystem.enableMoonlight = true;
 
     mySystem.appGroups.dev.enable = false;
     mySystem.appGroups.work.enable = false;

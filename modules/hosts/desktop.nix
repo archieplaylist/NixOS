@@ -15,6 +15,8 @@
     mySystem.enableDocker = true;
     mySystem.enableTailscale = true;
     mySystem.enableSmartd = true;
+    mySystem.enableSunshine = true;
+    mySystem.enableMoonlight = true;
 
     mySystem.appGroups.comms.enable = false;
     mySystem.appGroups.dev.enable = false;
