@@ -17,9 +17,11 @@ _: {
         btop
         zip
         unrar
-        nautilus # ponytail: GNOME Files everywhere (niri/xfce ship no manager); gvfs+udisks2 in desktop.nix
         file-roller
       ])
+      (lib.mkIf (osConfig.mySystem.desktop == "gnome" || osConfig.mySystem.desktop == "niri") (with pkgs; [
+        nautilus
+      ]))
       # ponytail: no USB disks in vm guest
       (lib.mkIf (!osConfig.mySystem.isVm) (with pkgs; [
         exfatprogs

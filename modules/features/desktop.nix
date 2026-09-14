@@ -100,6 +100,7 @@ _: {
         environment.systemPackages = with pkgs; [
           unstable.xwayland-satellite
           unstable.noctalia # ponytail: v5 from unstable, stable 26.05 lacks it
+          alacritty # ponytail: themed by noctalia builtin template (see desktops.nix)
           foot
           polkit_gnome # ponytail: niri ships no auth agent; keyring/polkit prompts need one
         ];

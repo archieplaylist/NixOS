@@ -36,16 +36,23 @@ _: {
 
     (lib.mkIf (osConfig.mySystem.desktop == "niri") {
       # ponytail: unstable niri validates, same package that runs the session
-      xdg.configFile."niri/config.kdl".source = pkgs.runCommand "niri-config-checked" {
-        nativeBuildInputs = [ pkgs.unstable.niri ];
-      } ''
-        niri validate --config ${./niri-config.kdl}
-        cp ${./niri-config.kdl} $out
+      xdg.configFile."niri/config.kdl".source = pkgs.runCommand "niri-config-checked"
+        {
+          nativeBuildInputs = [ pkgs.unstable.niri ];
+        } ''
+        niri validate --config ${./assets/niri/config.kdl}
+        cp ${./assets/niri/config.kdl} $out
       '';
       # ponytail: noctalia merges every *.toml here; GUI settings.toml still wins
       xdg.configFile."noctalia/wallpaper.toml".text = ''
         [wallpaper.default]
         path = "/home/mario/Pictures/Wallpapers/wallpaper.jpg"
+      '';
+      # ponytail: builtin alacritty colors follow noctalia palette; alacritty.toml stays unmanaged so noctalia can own its include
+      xdg.configFile."noctalia/app-themes.toml".text = ''
+        [theme.templates]
+        enable_builtin_templates = true
+        builtin_ids = ["alacritty"]
       '';
       home.file."Pictures/Wallpapers/wallpaper.jpg".source = ./assets/wallpaper.jpg;
       # ponytail: Bibata everywhere — cursor{} in config.kdl, GTK/XCURSOR here
@@ -57,6 +64,11 @@ _: {
       };
       gtk = {
         enable = true;
+        font = {
+          package = pkgs.noto-fonts;
+          name = "Noto Sans";
+          size = 10;
+        };
         cursorTheme = {
           name = "Bibata-Modern-Classic";
           package = pkgs.bibata-cursors;
@@ -104,7 +116,7 @@ _: {
       ];
     })
 
-    # GTK/icon/cursor/font theming — GNOME only (niri/xfce stay stock defaults)
+    # GTK/icon/cursor/font theming — full set on GNOME, font shared with niri (xfce stock)
     # Orchis-Dark / Tela-circle-dark / Bibata (Orchis https://github.com/vinceliuice/Orchis-theme)
     (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
       gtk = {
