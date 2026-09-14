@@ -3,7 +3,7 @@
 # API: ask [-m prompt tag item ... default | -s prompt | prompt]
 #      confirm "prompt" | tui_backend (echoes backend name)
 # Globals read: TUI_MODE (auto|plain|fzf|gum|whiptail), AN_YES_SET.
-# ponytail: auto mode never installs anything; plain read always works.
+# auto mode never installs anything; plain read always works.
 
 TUI_BACKEND="plain"
 
@@ -26,14 +26,14 @@ init_tui() {
   for b in gum fzf whiptail; do
     if have "$b"; then TUI_BACKEND="$b"; return 0; fi
   done
-  # ponytail: one install attempt so ISO gets styled menus free; plain fallback offline
+  # one install attempt so ISO gets styled menus free; plain fallback offline
   if [[ "${DRY_RUN:-0}" -eq 0 ]]; then ensure_tools gum || true; fi
   have gum && TUI_BACKEND="gum" || TUI_BACKEND="plain"
 }
 
 tui_backend() { printf '%s' "$TUI_BACKEND"; }
 
-# ponytail: fzf unusable for secrets/yes-no (no hidden input) -> plain read there.
+# fzf unusable for secrets/yes-no (no hidden input) -> plain read there.
 ask() {
   # Menu form: -m <prompt> <tag> <item> ... <default>
   if [[ $1 == "-m" ]]; then

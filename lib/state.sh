@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # lib/state.sh — sourced by setup.sh. Crash-resume for non-secret choices.
 # Saves flags + disk + host + step marker. Never passphrases or hashes.
-# ponytail: flat KEY='value' file, sourced back; 600 perms; one trap.
+# flat KEY='value' file, sourced back; 600 perms; one trap.
 
 STATE_FILE="${SETUP_STATE_FILE:-/var/tmp/nixos-setup.state}"
 DONE=0
@@ -25,7 +25,7 @@ save_state() {
 
 load_state() {
   [[ -f "$STATE_FILE" ]] || return 1
-  # ponytail: root-only 600 file written by us; source is the parser.
+  # root-only 600 file written by us; source is the parser.
   # shellcheck disable=SC1090
   source "$STATE_FILE"
 }

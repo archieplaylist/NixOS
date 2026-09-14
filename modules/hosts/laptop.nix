@@ -9,7 +9,7 @@
       config.nixos.modules.laptop
     ];
 
-    # ponytail: latest kernel for newer laptop hardware — drop when stable suffices
+    # latest kernel for newer laptop hardware — drop when stable suffices
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     mySystem.hostname = "nixlappys";

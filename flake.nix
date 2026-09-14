@@ -4,7 +4,7 @@
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    # ponytail: discord needs fresher version than stable — reuse unstable overlay (keep nixpkgs input)
+    # discord needs fresher version than stable — reuse unstable overlay (keep nixpkgs input)
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -39,7 +39,7 @@
           entries = builtins.readDir dir;
           names = builtins.attrNames entries;
           files = builtins.filter (n: entries.${n} == "regular" && lib.hasSuffix ".nix" n) names;
-          # ponytail: assets holds data files, never modules
+          # assets holds data files, never modules
           dirs = builtins.filter (n: entries.${n} == "directory" && n != "assets") names;
         in
         (map (f: dir + "/${f}") files)

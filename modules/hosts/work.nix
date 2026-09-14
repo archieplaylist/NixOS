@@ -19,13 +19,13 @@
     mySystem.enableMoonlight = true;
 
     mySystem.sshAuthorizedKeys = [
-      # "ssh-ed25519 AAAAC3... mario@client" # ponytail: add client pubkey here, then set enableSSH=true
+      # "ssh-ed25519 AAAAC3... mario@client" # add client pubkey here, then set enableSSH=true
     ];
     mySystem.appGroups.work.enable = true;
     mySystem.appGroups.gaming.enable = false;
     mySystem.appGroups.comms.enable = false;
 
-    # ponytail: base firewall already denies incoming; just punch HTTP
+    # base firewall already denies incoming; just punch HTTP
     networking.firewall.allowedTCPPorts = [ 80 ];
 
     mySystem.flatpakApps = lib.mkAfter [
@@ -33,7 +33,7 @@
       "com.mattjakeman.ExtensionManager"
     ];
 
-    # ponytail: declarative mount beats raw /etc/fstab — systemd generates mount unit, no extra file
+    # declarative mount beats raw /etc/fstab — systemd generates mount unit, no extra file
     fileSystems."/mnt/datafile" = {
       device = "/dev/disk/by-uuid/869a1e56-4705-4b2b-a840-2e769b39f962";
       fsType = "ext4";

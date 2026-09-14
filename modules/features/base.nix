@@ -32,7 +32,7 @@ _: {
           };
         };
 
-        # ponytail: no explicit drivers — add gutenprint when a printer needs it
+        # no explicit drivers — add gutenprint when a printer needs it
         services.printing.enable = lib.mkDefault true;
         services.system-config-printer.enable = lib.mkDefault true;
 
@@ -56,7 +56,7 @@ _: {
       }
 
       {
-        # ponytail: password login on purpose (keys optional) — user password comes from /etc/hashed-password
+        # password login on purpose (keys optional) — user password comes from /etc/hashed-password
         services.openssh = lib.mkIf config.mySystem.enableSSH {
           enable = true;
           settings = {
@@ -70,12 +70,21 @@ _: {
           enable = true;
         };
 
+        # tailscale-qs extension manages tailscale as mario — needs operator rights, no-op after first login
+        systemd.services.tailscale-operator = lib.mkIf config.mySystem.enableTailscale {
+          description = "Allow mario to manage Tailscale without sudo";
+          wantedBy = [ "multi-user.target" ];
+          after = [ "tailscaled.service" ];
+          serviceConfig.Type = "oneshot";
+          script = "${config.services.tailscale.package}/bin/tailscale set --operator=mario || true";
+        };
+
         services.smartd = lib.mkIf config.mySystem.enableSmartd {
           enable = true;
           autodetect = true;
         };
 
-        # ponytail: openFirewall punches Sunshine TCP/UDP ports; capSysAdmin needed for KMS capture on Wayland
+        # openFirewall punches Sunshine TCP/UDP ports; capSysAdmin needed for KMS capture on Wayland
         services.sunshine = lib.mkIf config.mySystem.enableSunshine {
           enable = true;
           autoStart = true;
@@ -101,6 +110,7 @@ _: {
           wget
           ripgrep
           unzip
+          jq # tailscale-qs GNOME extension shells out to jq
         ];
       }
 
@@ -128,12 +138,12 @@ _: {
           interval = "weekly";
         };
 
-        services.earlyoom.enable = true; # ponytail: kill hungriest process before full freeze
+        services.earlyoom.enable = true; # kill hungriest process before full freeze
 
         services.ananicy = lib.mkIf (!config.mySystem.isVm) {
           enable = true;
           package = pkgs.ananicy-cpp;
-          rulesProvider = pkgs.ananicy-rules-cachyos; # ponytail: cachyos rules = best perf without custom tuning
+          rulesProvider = pkgs.ananicy-rules-cachyos; # cachyos rules = best perf without custom tuning
         };
 
         services.journald.extraConfig = ''
@@ -145,7 +155,7 @@ _: {
         zramSwap = {
           enable = true;
           algorithm = "zstd";
-          # ponytail: vm guest is tiny — 25% zram, no scheduler tuning
+          # vm guest is tiny — 25% zram, no scheduler tuning
           memoryPercent = if config.mySystem.isVm then 25 else 100;
         };
 
@@ -155,7 +165,7 @@ _: {
           "vm.swappiness" = 180;
           "vm.watermark_boost_factor" = 0;
           "vm.watermark_scale_factor" = 125;
-          "vm.vfs_cache_pressure" = 50; # ponytail: 50 keeps inode cache, faster 2nd open
+          "vm.vfs_cache_pressure" = 50; # 50 keeps inode cache, faster 2nd open
         };
 
         systemd.tmpfiles.rules = [
@@ -170,7 +180,7 @@ _: {
       # nix-ld: dynamic linker for unpatched binaries (AppImages, vendor tarballs).
       # To temporarily disable: unset NIX_LD. To find a missing lib:
       # nix run github:nix-community/nix-index-database -- lib/<name>.so
-      # ponytail: minimal core only — add libs when ldd/nix-index says so, not just in case.
+      # minimal core only — add libs when ldd/nix-index says so, not just in case.
       {
         programs.nix-ld = {
           enable = true;

@@ -9,7 +9,7 @@ _: {
         stateVersion = "26.05";
       };
 
-      # ponytail: all DEs share gnome-keyring now, one Login keyring, no relogin
+      # all DEs share gnome-keyring now, one Login keyring, no relogin
       home.sessionVariables = {
         XDG_CONFIG_HOME = "$HOME/.config";
         XDG_DATA_HOME = "$HOME/.local/share";
@@ -47,7 +47,7 @@ _: {
           grep = "grep --color=auto";
           ff = "fastfetch";
         } // lib.optionalAttrs (osConfig.mySystem.hostname == "central8") {
-          # ponytail: work-only websvr docker recycle — folder exists only on central8
+          # work-only websvr docker recycle — folder exists only on central8
           websvr-restart = "cd ~/Documents/test-folder/websvr && sudo systemctl restart docker && sleep 3 && sudo docker compose down && sleep 3 && sudo docker compose up -d";
         };
       };

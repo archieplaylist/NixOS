@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # backup-de — backup/restore per-DE config (gnome/niri/xfce)
-# ponytail: dconf dump/load for gnome (native), tar of DE file lists for the rest.
+# dconf dump/load for gnome (native), tar of DE file lists for the rest.
 # No manifests, no live-reload — restore + relogin. Auto-prune keeps newest 3 per DE.
 # Stable *-latest copies (1 per DE) are git-tracked; timestamped ones stay machine-local.
 set -euo pipefail
@@ -21,7 +21,8 @@ BASE="${BASE:-${XDG_DATA_HOME:-$HOME/.local/share}/de-backups}"
 # Symlinks stored as-is (never followed into /nix/store); wallets/caches skipped.
 niri_paths=(
   ".config/niri" ".config/noctalia"
-  ".local/share/noctalia"
+  ".config/alacritty"
+  ".local/state/noctalia"
 )
 gnome_files=(
   ".config/mutter"
@@ -129,7 +130,7 @@ cmd="${1:-}"; case "$cmd" in
       command -v dconf >/dev/null || { echo "missing dconf" >&2; exit 1; }
       if head -n5 "$f" | grep -q "^\[org/"; then dconf load / < "$f"; else dconf load /org/gnome/ < "$f"; fi
     elif tar -tzf "$f" >/dev/null 2>&1; then
-      # ponytail: refuse absolute-entry tarballs — restore writes into $HOME
+      # refuse absolute-entry tarballs — restore writes into $HOME
       if tar -tzf "$f" | grep -q "^/"; then echo "refusing tarball with absolute paths" >&2; exit 1; fi
       tar -xzf "$f" -C "$HOME"
     else

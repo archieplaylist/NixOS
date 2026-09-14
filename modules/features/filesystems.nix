@@ -55,7 +55,7 @@ _: {
                   settings = {
                     allowDiscards = true;
                     bypassWorkqueues = true;
-                    # ponytail: always ask the TPM even if no TPM key is enrolled
+                    # always ask the TPM even if no TPM key is enrolled
                     # (systemd-cryptsetup silently falls back to passphrase; setting
                     # this only when enableTpm2 would require threading the option
                     # through disko.settings, which can't see mySystem.* cleanly).

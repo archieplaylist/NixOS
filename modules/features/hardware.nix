@@ -42,7 +42,7 @@ _: {
   };
 
   # VM guest: virtio + qemu-agent + spice + vbox guest
-  # ponytail: qemu/spice/vbox agents coexist harmlessly — only the active hypervisor's agent does work.
+  # qemu/spice/vbox agents coexist harmlessly — only the active hypervisor's agent does work.
   config.nixos.modules.vm-guest =
     let
       # VirtualBox GuestAdditions fix for kernel 6.12+ (drm_fb_helper_alloc_info removed).

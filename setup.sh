@@ -630,7 +630,7 @@ step_partition() {
 # (read at activation by `users.users.mario.hashedPasswordFile`).
 # ---------------------------------------------------------------------------
 pw_strength() {
-  # Echo weak reason, or nothing when ok. ponytail: length + classes, no dep.
+  # Echo weak reason, or nothing when ok. Length + classes, no dep.
   local pw="$1" n=0
   (( ${#pw} >= 12 )) || { echo "shorter than 12 chars"; return 0; }
   [[ "$pw" == *[a-z]* ]] && ((n+=1))
@@ -710,7 +710,7 @@ step_password() {
 # user is running on a host they control and asked for the rebuild.
 append_once() {
   # append_once <file> <match-regex> <line>: insert line once, after the
-  # LAST line matching regex. ponytail: sed `a` hits every match — root
+  # LAST line matching regex. Sed `a` hits every match — root
   # cause of duplicate-option errors on re-runs and flagless host files.
   local file="$1" match="$2" text="$3" last
   last="$(grep -n "$match" "$file" | tail -1 | cut -d: -f1 || true)"
@@ -786,7 +786,7 @@ step_deploy() {
 
   local name="$SELECTED_HOST"
 
-  # ponytail: --luks without a fresh wipe leaves INSTALL_DISK empty (disko defaults
+  # --luks without a fresh wipe leaves INSTALL_DISK empty (disko defaults
   # to /dev/sda) — offer a one-time override so the initrd finds the LUKS partition.
   if [[ $ENABLE_LUKS -eq 1 && -z "$INSTALL_DISK" ]]; then
     if [[ $AN_YES_SET -eq 0 ]]; then

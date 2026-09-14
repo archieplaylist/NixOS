@@ -3,7 +3,7 @@ _: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
       enable = true;
-      # ponytail: Electron cannot pick backend on niri (XDG_CURRENT_DESKTOP=niri) — force libsecret so Login keyring stores tokens
+      # Electron cannot pick backend on niri (XDG_CURRENT_DESKTOP=niri) — force libsecret so Login keyring stores tokens
       package = pkgs.unstable.vscode.override {
         commandLineArgs = "--password-store=gnome-libsecret";
       };
@@ -22,7 +22,7 @@ _: {
       (lib.mkIf (osConfig.mySystem.desktop == "gnome" || osConfig.mySystem.desktop == "niri") (with pkgs; [
         nautilus
       ]))
-      # ponytail: no USB disks in vm guest
+      # no USB disks in vm guest
       (lib.mkIf (!osConfig.mySystem.isVm) (with pkgs; [
         exfatprogs
         ntfs3g
@@ -83,7 +83,7 @@ _: {
       '';
     };
 
-    # ponytail: nixpkgs VirtualBox wrapper clobbers XDG_DATA_DIRS to its own
+    # nixpkgs VirtualBox wrapper clobbers XDG_DATA_DIRS to its own
     # empty share → GSettings can't find org.gtk.Settings.FileChooser → Qt's
     # GTK3 dialog aborts on launch. GSettings reads the user data dir
     # (~/.local/share/glib-2.0/schemas) regardless of XDG_DATA_DIRS, so

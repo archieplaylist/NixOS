@@ -24,11 +24,11 @@
     mySystem.appGroups.editor.enable = false;
     mySystem.appGroups.ai.enable = false;
 
-    # ponytail: vm never prints — save CUPS + Avahi broadcast
+    # vm never prints — save CUPS + Avahi broadcast
     services.printing.enable = false;
     services.system-config-printer.enable = false;
 
-    # ponytail: 8GB vm disk can't hold 10 generations
+    # 8GB vm disk can't hold 10 generations
     boot.loader.systemd-boot.configurationLimit = 5;
 
     virtualisation.vmVariant = {

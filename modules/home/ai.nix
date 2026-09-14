@@ -5,7 +5,7 @@
     {
       config = lib.mkIf osConfig.mySystem.appGroups.ai.enable {
         home.packages = [
-          # ponytail: nodejs overlaps dev group on purpose — ai hosts run with dev off
+          # nodejs overlaps dev group on purpose — ai hosts run with dev off
           pkgs.nodejs
           pkgs.unstable.pi-coding-agent
           pkgs.xdg-utils
@@ -14,14 +14,14 @@
 
         # qmd binary for pi-memory `memory_search` (not in nixpkgs):
         # install once by hand: NPM_CONFIG_PREFIX=~/.local/share/npm-global npm install -g @tobilu/qmd
-        # ponytail: no activation-time npm fetch — keeps switches offline and reproducible.
+        # no activation-time npm fetch — keeps switches offline and reproducible.
         home.sessionPath = [ "$HOME/.local/share/npm-global/bin" ];
-        # ponytail: telemetry off, update checks stay on (never set PI_OFFLINE=1 globally)
+        # telemetry off, update checks stay on (never set PI_OFFLINE=1 globally)
         home.sessionVariables = {
           PI_TELEMETRY = "0";
         };
 
-        # ponytail: per-file entries only — never manage ~/.pi/agent/ as a whole,
+        # per-file entries only — never manage ~/.pi/agent/ as a whole,
         # or imperative `pi install` packages in npm/|git/ get wiped on rebuild.
         # Auth is hybrid: `pi` + `/login` works with zero config; for API keys
         # export them via ~/.bashrc or /run/secrets (see README).
@@ -46,10 +46,10 @@
           - Add or update tests for logic changes; skip tests for trivial renames.
           - Never print secrets to chat or logs.
           - Always apply `ponytail:full` + `caveman:full` for code/write/review/audit/read — read `~/.pi/agent/skills/ponytail/SKILL.md` and `~/.pi/agent/skills/caveman/SKILL.md` if needed. Ponytail = ladder YAGNI→reuse→stdlib→native→dep→one-liner; caveman = terse, no filler/narration.
-          - Minimize code comments: no obvious/redundant comments; comment only non-obvious logic or `ponytail:` ceilings; prefer self-documenting names over commented code.
+          - Minimize code comments: no obvious/redundant comments; comment only non-obvious logic; prefer self-documenting names over commented code.
         '';
 
-        # ponytail: upstream skill dirs, versioned in flake.lock —
+        # upstream skill dirs, versioned in flake.lock —
         # update with `nix flake update ponytail caveman`, no hand-rolled copies to drift.
         home.file.".pi/agent/skills/ponytail".source = "${inputs.ponytail}/skills/ponytail";
         home.file.".pi/agent/skills/caveman".source = "${inputs.caveman}/skills/caveman";
@@ -63,7 +63,7 @@
           Review this code for bugs, security issues, and performance problems.
           Focus on: {{focus}}
 
-          Ponytail: ladder YAGNI → reuse existing → stdlib → native platform → installed dep → one-liner → minimal code; root-cause fix in shared function, not per-caller; no unrequested abstraction/boilerplate; fewest files, shortest working diff; `ponytail:` comment for deliberate ceilings.
+          Ponytail: ladder YAGNI → reuse existing → stdlib → native platform → installed dep → one-liner → minimal code; root-cause fix in shared function, not per-caller; no unrequested abstraction/boilerplate; fewest files, shortest working diff; plain comments, no skill tags.
           Caveman: terse, drop articles/filler/pleasantries/hedging, fragments OK, short synonyms, no tool-call narration, no decorative tables/emoji, code/error strings verbatim, preserve user's language.
 
           Output issues sorted by severity with minimal diffs.
@@ -75,7 +75,7 @@
           `result/`, or `.direnv/`.
         '';
 
-        # ponytail: pi ships no plan mode — this stub adds /plan with a file gate.
+        # pi ships no plan mode — this stub adds /plan with a file gate.
         # Defensive no-op if ExtensionAPI drifts (never break `pi` boot or `/reload`).
         home.file.".pi/agent/extensions/plan-mode.ts".text = ''
           export default function (pi: any) {
@@ -112,7 +112,7 @@
           }
         '';
 
-        # ponytail: pi ships no ask mode — same stub pattern as plan-mode above.
+        # pi ships no ask mode — same stub pattern as plan-mode above.
         # Defensive no-op if ExtensionAPI drifts (never break `pi` boot or `/reload`).
         home.file.".pi/agent/extensions/ask-mode.ts".text = ''
           export default function (pi: any) {
@@ -144,7 +144,7 @@
                 pi.on("tool_call", async (event: any) => {
                   if (!enabled) return undefined;
                   if (event && (event.toolName === "edit" || event.toolName === "write" || event.toolName === "bash"))
-                    // ponytail: bash fully blocked, read/grep/find/ls cover exploration; allowlist when read-only bash needed
+                    // bash fully blocked, read/grep/find/ls cover exploration; allowlist when read-only bash needed
                     return { block: true, reason: "Ask mode on - read-only. Use read/grep/find/ls, or /ask to exit." };
                   return undefined;
                 });
@@ -163,7 +163,7 @@
           }
         '';
 
-        # ponytail: same upstream skill dirs as pi above, versioned in flake.lock.
+        # same upstream skill dirs as pi above, versioned in flake.lock.
         # Per-dir entries only — never manage ~/.config/opencode/ as a whole,
         # or imperative `plugin` installs in opencode.json get wiped on rebuild.
         xdg.configFile."opencode/skills/ponytail".source = "${inputs.ponytail}/skills/ponytail";

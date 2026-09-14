@@ -20,7 +20,7 @@ let
             };
           })
           (_final: prev: {
-            # ponytail: orchis from unstable for latest release (stable lags)
+            # orchis from unstable for latest release (stable lags)
             orchis-theme = prev.unstable.orchis-theme;
           })
         ];

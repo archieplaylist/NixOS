@@ -31,13 +31,14 @@ else
 fi
 ARCHIVE_DIR="$HOME/.local/share/de-archive"
 
-# ponytail: never archive secrets — keyrings stay in place across DE switches (deny-list in archive_de)
+# never archive secrets — keyrings stay in place across DE switches (deny-list in archive_de)
 # Login password must == keyring password for PAM auto-unlock, else seahorse prompt once.
 
 # Runtime state owned by each DE, relative to $HOME (glob patterns).
 niri_paths=(
   ".config/niri" ".config/noctalia"
-  ".local/share/noctalia"
+  ".config/alacritty"
+  ".local/state/noctalia"
 )
 gnome_paths=(
   ".config/dconf" ".config/mutter"
@@ -49,7 +50,7 @@ xfce_paths=(
 )
 
 host_module() {
-  # ponytail: derive from host files first — new hosts need no script edit
+  # derive from host files first — new hosts need no script edit
   local h f
   h="$(hostname)"
   for f in "$REPO/modules/hosts"/*.nix; do
@@ -73,7 +74,7 @@ archive_de() {
   for pat in "$@"; do
     for p in "$HOME"/$pat; do
       [ -e "$p" ] || [ -L "$p" ] || continue
-      # ponytail: explicit wallet preserve — never archive secrets, no relogin
+      # explicit wallet preserve — never archive secrets, no relogin
       case "$p" in
         */.cache/* | *keyrings* | *gnome-keyring*) continue ;;
       esac
@@ -95,7 +96,7 @@ restore_de() {
   local de="$1"
   local src="$ARCHIVE_DIR/$de"
   [ -d "$src" ] || return 0
-  # ponytail: one cp restores runtime tweaks, declarative Nix already recreates declared XMLs/dconf
+  # one cp restores runtime tweaks, declarative Nix already recreates declared XMLs/dconf
   echo "restoring $de config from $src"
   cp -a "$src/." "$HOME/" 2>/dev/null || true
   rm -rf "$src" 2>/dev/null || true
@@ -140,7 +141,7 @@ if ! nh os boot "$REPO" -H "$HOST"; then
 fi
 rm -f "$HOST_FILE.bak"
 
-# ponytail: archive moves state, so ensure a backup exists first (missing-only, no date logic)
+# archive moves state, so ensure a backup exists first (missing-only, no date logic)
 if [ -z "${BACKUP_DIR:-}" ]; then BACKUP_CHECK_DIR="$REPO/backups/$CURRENT"; else BACKUP_CHECK_DIR="$BACKUP_DIR/$CURRENT"; fi
 if [ -z "$(find "$BACKUP_CHECK_DIR" -mindepth 1 -print -quit 2>/dev/null)" ]; then
   echo "no backup found for $CURRENT in $BACKUP_CHECK_DIR" >&2
@@ -163,11 +164,11 @@ case "$CURRENT" in
   gnome) archive_de gnome "${gnome_paths[@]}" ;;
   xfce) archive_de xfce "${xfce_paths[@]}" ;;
 esac
-# ponytail: auto-restore target DE if it was archived before — one cp, no extra DB
+# auto-restore target DE if it was archived before — one cp, no extra DB
 restore_de "$TARGET"
 
 # clean up old DE config after switch and backup — remove empty dirs left behind
-# ponytail: one find, no extra backup (archive already is the backup)
+# one find, no extra backup (archive already is the backup)
 find "$HOME/.config" "$HOME/.local/share" -type d -empty -delete 2>/dev/null || true
 
 echo

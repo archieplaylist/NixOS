@@ -20,7 +20,7 @@ _: {
 
         networking.networkmanager.enable = true;
 
-        # ponytail: nautilus trash + mtp/smb + sidebar mounts outside GNOME need these
+        # nautilus trash + mtp/smb + sidebar mounts outside GNOME need these
         services.gvfs.enable = true;
         services.udisks2.enable = true;
       })
@@ -82,27 +82,27 @@ _: {
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "niri") {
         programs.niri = {
           enable = true;
-          package = pkgs.unstable.niri; # ponytail: unstable tracks niri releases, stable lags
+          package = pkgs.unstable.niri; # unstable tracks niri releases, stable lags
         };
-        # noctalia v5 from nixpkgs-unstable (ponytail: same overlay as discord/vscode, no new flake input)
+        # noctalia v5 from nixpkgs-unstable (same overlay as discord/vscode, no new flake input)
         # recommendedServices equiv: NM/BT already on above, upower + power-profiles here
         services.upower.enable = true;
         services.power-profiles-daemon.enable = lib.mkIf (!config.services.tuned.enable) true;
         services.displayManager.ly.enable = true;
         services.gnome.gnome-keyring.enable = true;
-        # ponytail: gnome-keyring owns ssh here; gcr would run a second ssh agent
+        # gnome-keyring owns ssh here; gcr would run a second ssh agent
         services.gnome.gcr-ssh-agent.enable = false;
-        programs.seahorse.enable = true; # ponytail: Login-keyring GUI + ssh-askpass
+        programs.seahorse.enable = true; # Login-keyring GUI + ssh-askpass
         security.polkit.enable = true;
         security.pam.services.ly.enableGnomeKeyring = true;
 
-        # ponytail: satellite on PATH = niri auto-spawns it for X11 clients, no config block needed
+        # satellite on PATH = niri auto-spawns it for X11 clients, no config block needed
         environment.systemPackages = with pkgs; [
           unstable.xwayland-satellite
-          unstable.noctalia # ponytail: v5 from unstable, stable 26.05 lacks it
-          alacritty # ponytail: themed by noctalia builtin template (see desktops.nix)
+          unstable.noctalia # v5 from unstable, stable 26.05 lacks it
+          alacritty # themed by noctalia builtin template (see desktops.nix)
           foot
-          polkit_gnome # ponytail: niri ships no auth agent; keyring/polkit prompts need one
+          polkit_gnome # niri ships no auth agent; keyring/polkit prompts need one
         ];
 
         xdg.portal = {
