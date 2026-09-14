@@ -1,6 +1,8 @@
 # EasyEffects presets — vendored from JackHack96/EasyEffects-Presets
 _: {
   config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
+    home.packages = lib.mkIf (osConfig.mySystem.enableDesktop && !osConfig.mySystem.isVm) [ pkgs.easyeffects ];
+
     xdg.configFile = lib.mkIf (osConfig.mySystem.enableDesktop && !osConfig.mySystem.isVm) {
       "easyeffects/output".source = ./assets/easyeffects/output;
       "easyeffects/output".recursive = true;
