@@ -50,7 +50,7 @@ ask() {
         ;;
       whiptail)
         local -a wt; while [[ $# -gt 0 ]]; do wt+=("$1" "$2"); shift 2; done
-        whiptail --title "NixOS setup" --backtitle "mario/nixos" --default-item "$default" --menu "$prompt" 22 76 12 "${wt[@]}" 3>&1 1>&2 2>&3 || return 1
+        whiptail --title "NixOS setup" --backtitle "nixos-setup" --default-item "$default" --menu "$prompt" 22 76 12 "${wt[@]}" 3>&1 1>&2 2>&3 || return 1
         return 0
         ;;
     esac
@@ -69,7 +69,7 @@ ask() {
     local ans
     case "$TUI_BACKEND" in
       gum) ans="$(gum input --password --prompt "$2: ")" || return 1 ;;
-      whiptail) ans="$(whiptail --title "NixOS setup" --backtitle "mario/nixos" --passwordbox "$2" 12 76 3>&1 1>&2 2>&3)" || return 1 ;;
+      whiptail) ans="$(whiptail --title "NixOS setup" --backtitle "nixos-setup" --passwordbox "$2" 12 76 3>&1 1>&2 2>&3)" || return 1 ;;
       *) read -r -s -p "$2: " ans || return 1; echo >&2 ;;
     esac
     printf '%s' "$ans"
@@ -92,7 +92,7 @@ confirm() {
   [[ "${1:-}" == "-y" ]] && { def_no=0; shift; }
   [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
   case "$TUI_BACKEND" in
-    whiptail) whiptail --title "NixOS setup" --backtitle "mario/nixos" --yesno "$1" 12 76 && return 0 || return 1 ;;
+    whiptail) whiptail --title "NixOS setup" --backtitle "nixos-setup" --yesno "$1" 12 76 && return 0 || return 1 ;;
     gum) gum confirm "$1" && return 0 || return 1 ;;
   esac
   local answer marker="[y/N]"

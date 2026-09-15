@@ -1,11 +1,11 @@
-# mario home core: identity/XDG (user), bash/direnv/scripts (shell),
+# primary home core: identity/XDG (user), bash/direnv/scripts (shell),
 # git (tooling), fastfetch config. Sections merged, behavior unchanged.
 _: {
-  config.home.modules.mario = { lib, osConfig, ... }: lib.mkMerge [
+  config.home.modules.primary = { lib, osConfig, ... }: lib.mkMerge [
     {
       home = {
-        username = "mario";
-        homeDirectory = "/home/mario";
+        username = osConfig.mySystem.username;
+        homeDirectory = "/home/${osConfig.mySystem.username}";
         stateVersion = "26.05";
       };
 

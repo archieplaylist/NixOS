@@ -1,8 +1,8 @@
 # Base slot: fundamentals for every host — locale/firewall/printing (basics),
 # SSH/Docker/Tailscale/VirtualBox (services), store maintenance (optimisation),
-# nix-ld, user mario. Sections merged, behavior unchanged.
+# nix-ld, primary user. Sections merged, behavior unchanged.
 _: {
-  config.nixos.modules.base = { config, lib, pkgs, ... }: {
+  config.nixos.modules.base = { config, lib, pkgs, homeModules, ... }: {
     config = lib.mkMerge [
       {
         networking.hostName = config.mySystem.hostname;
@@ -70,13 +70,13 @@ _: {
           enable = true;
         };
 
-        # tailscale-qs extension manages tailscale as mario — needs operator rights, no-op after first login
+        # tailscale-qs extension manages tailscale as the primary user — needs operator rights, no-op after first login
         systemd.services.tailscale-operator = lib.mkIf config.mySystem.enableTailscale {
-          description = "Allow mario to manage Tailscale without sudo";
+          description = "Allow the primary user to manage Tailscale without sudo";
           wantedBy = [ "multi-user.target" ];
           after = [ "tailscaled.service" ];
           serviceConfig.Type = "oneshot";
-          script = "${config.services.tailscale.package}/bin/tailscale set --operator=mario || true";
+          script = "${config.services.tailscale.package}/bin/tailscale set --operator=${config.mySystem.username} || true";
         };
 
         services.smartd = lib.mkIf config.mySystem.enableSmartd {
@@ -137,7 +137,7 @@ _: {
         # nh helper — weekly `nh clean all` replaces nix.gc.automatic
         programs.nh = {
           enable = true;
-          flake = "/home/mario/nixos";
+          flake = "/home/${config.mySystem.username}/nixos";
           clean = {
             enable = true;
             dates = "weekly";
@@ -217,11 +217,11 @@ _: {
         };
       }
 
-      # User mario — hash from /etc/hashed-password (written by setup.sh, not stored in flake)
+      # Primary user — hash from /etc/hashed-password (written by setup.sh, not stored in flake)
       {
-        users.users.mario = {
+        users.users.${config.mySystem.username} = {
           isNormalUser = true;
-          description = "Mario";
+          description = config.mySystem.username;
           extraGroups =
             [ "wheel" "video" "audio" ]
             ++ lib.optionals config.mySystem.enableDesktop [ "networkmanager" ]
@@ -231,6 +231,14 @@ _: {
             ++ lib.optionals config.mySystem.enableSunshine [ "uinput" ];
           openssh.authorizedKeys.keys = config.mySystem.sshAuthorizedKeys;
           hashedPasswordFile = "/etc/hashed-password";
+        };
+      }
+
+      # home-manager for the primary user — name resolves here (NixOS level),
+      # content arrives via _module.args.homeModules (flake level, outputs.nix)
+      {
+        home-manager.users.${config.mySystem.username} = {
+          imports = [ homeModules ];
         };
       }
     ];

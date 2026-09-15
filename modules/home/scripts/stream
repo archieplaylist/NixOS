@@ -2,7 +2,7 @@
 # stream [tailscale|sunshine] on|off|status — tailscale + sunshine together.
 # No target = both. Both stay off by default (no autostart); this script
 # wakes/starts them on demand or stops them. Tailscale ops use sudo: with
-# the daemon off at boot the operator oneshot never runs, so mario has no
+# the daemon off at boot the operator oneshot never runs, so the user has no
 # passwordless tailscale.
 set -euo pipefail
 

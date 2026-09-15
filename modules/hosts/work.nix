@@ -19,7 +19,7 @@
     mySystem.enableMoonlight = true;
 
     mySystem.sshAuthorizedKeys = [
-      # "ssh-ed25519 AAAAC3... mario@client" # add client pubkey here, then set enableSSH=true
+      # "ssh-ed25519 AAAAC3... user@client" # add client pubkey here, then set enableSSH=true
     ];
     mySystem.appGroups.work.enable = true;
     mySystem.appGroups.gaming.enable = false;

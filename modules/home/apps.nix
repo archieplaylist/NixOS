@@ -1,6 +1,6 @@
 # User packages — gated on mySystem.appGroups.*
 _: {
-  config.home.modules.mario = { lib, pkgs, osConfig, ... }: {
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
       enable = true;
       # Electron cannot pick backend on niri (XDG_CURRENT_DESKTOP=niri) — force libsecret so Login keyring stores tokens

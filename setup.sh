@@ -29,7 +29,7 @@
 #       nixos-root-luks -> mapper cryptroot); offered interactively if omitted.
 #   5.  user password: SHA-512 hash via openssl, written to
 #       /etc/hashed-password on the target during the deploy step (read at
-#       activation via `users.users.mario.hashedPasswordFile`); the hash is
+#       activation via `users.users.<username>.hashedPasswordFile`); the hash is
 #       never stored in the repo
 #   6.  deploy via nh (fallback nixos-rebuild) or nixos-install on the ISO
 #
@@ -69,6 +69,11 @@ PASSWORD_HASH=""
 # happens — empty on --yes re-runs against an already-formatted disk, in which
 # case patch_host_flags leaves the disko device override alone).
 INSTALL_DISK=""
+# Primary username for the installed system (flag --user / env NIXOS_USER /
+# prompt; patched into the host file as mySystem.username by patch_username).
+TARGET_USER=""
+CLI_USER=0
+CLI_USER_VAL=""
 
 _emit() {
   local c="$1"; shift
@@ -154,6 +159,7 @@ Steps (interactive = archinstall-style guided menu, defaults shown):
 Flags:
   --yes           answer yes to confirms (passphrases still prompt;
                   set LUKS_PASSPHRASE env to skip the LUKS prompt)
+  --user=NAME     primary username (default: mario, env NIXOS_USER)
   --luks          LUKS2-encrypt root (offered interactively if omitted)
   --tpm2          TPM2 auto-unlock (needs --luks + TPM2 hardware)
   --secure-boot   patch mySystem.enableSecureBoot + print sbctl next steps
@@ -236,6 +242,53 @@ step_host() {
     done
   fi
   mark_done "host"
+}
+
+# ---------------------------------------------------------------------------
+# Step 2.5 — primary username (patched into the host file as mySystem.username)
+# ---------------------------------------------------------------------------
+USER_PATTERN='^[a-z_][a-z0-9_-]*$'
+collect_user() {
+  log "Step 2.5/7 — Primary user"
+  if [[ -n "${TARGET_USER:-}" ]]; then
+    TARGET_USER="$(printf '%s' "$TARGET_USER" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$TARGET_USER" =~ $USER_PATTERN ]]; then
+      if confirm -y "Keep user '$TARGET_USER'?"; then mark_done "user"; return 0; fi
+    else
+      warn "saved user '$TARGET_USER' invalid — repicking"
+    fi
+    TARGET_USER=""
+  fi
+  if [[ -z "${TARGET_USER:-}" && -n "${NIXOS_USER:-}" ]]; then
+    TARGET_USER="$(printf '%s' "$NIXOS_USER" | tr '[:upper:]' '[:lower:]')"
+    info "user: $TARGET_USER (NIXOS_USER)"
+  fi
+  if [[ -z "${TARGET_USER:-}" ]]; then
+    if [[ $AN_YES_SET -eq 1 ]]; then
+      TARGET_USER="mario"
+      info "user: $TARGET_USER (--yes default)"
+    else
+      [[ -t 0 ]] || die "no TTY and no user chosen — rerun with --user=<name> or --yes"
+      local pick=""
+      while :; do
+        pick="$(ask "Primary username [mario]")" || die "user selection aborted"
+        TARGET_USER="$(printf '%s' "${pick:-mario}" | tr '[:upper:]' '[:lower:]')"
+        [[ "$TARGET_USER" =~ $USER_PATTERN ]] && break
+        warn "invalid username: $TARGET_USER (lowercase, [a-z0-9_-], not starting with a digit)"
+        TARGET_USER=""
+      done
+    fi
+  fi
+  [[ "$TARGET_USER" =~ $USER_PATTERN ]] || die "invalid username: $TARGET_USER"
+  # fresh-install scope: a target differing from existing /home/* orphans old
+  # data — warn, never migrate automatically
+  local homes="" h found=0
+  homes="$(ls -1 /home 2>/dev/null || true)"
+  if [[ -n "$homes" ]]; then
+    while IFS= read -r h; do [[ "$h" == "$TARGET_USER" ]] && found=1; done <<< "$homes"
+    [[ $found -eq 0 ]] && warn "user '$TARGET_USER' differs from existing /home/* ($(printf '%s' "$homes" | tr '\n' ' ')) — old home data stays orphaned, migrate manually"
+  fi
+  mark_done "user"
 }
 
 # ---------------------------------------------------------------------------
@@ -452,6 +505,7 @@ do_backup() {
 print_plan() {
   log "Review — full plan"
   info "host: $SELECTED_HOST"
+  info "user: ${TARGET_USER:-mario}"
   info "encrypt: luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT"
   if [[ $SKIP_WIPE -eq 1 ]]; then
     info "disk: <keep, no wipe>"
@@ -626,7 +680,7 @@ step_partition() {
 # ---------------------------------------------------------------------------
 # Step 5 — user password (hash only, kept in PASSWORD_HASH)
 # The hash is written on the system at /etc/hashed-password by step_deploy
-# (read at activation by `users.users.mario.hashedPasswordFile`).
+# (read at activation by `users.users.<username>.hashedPasswordFile`).
 # ---------------------------------------------------------------------------
 pw_strength() {
   # Echo weak reason, or nothing when ok. Length + classes, no dep.
@@ -640,14 +694,14 @@ pw_strength() {
   return 0
 }
 step_password() {
-  log "Step 5/7 — User password (mario)"
+  log "Step 5/7 — User password (${TARGET_USER:-mario})"
 
   if [[ $AN_YES_SET -eq 1 && ! -t 0 ]]; then
     info "skipped — password prompt needs a TTY (set later via passwd)"
     return 0
   fi
 
-  if ! confirm "Set/update the password for user 'mario'?"; then
+  if ! confirm "Set/update the password for user '${TARGET_USER:-mario}'?"; then
     info "skipped — no password will be set (provision it manually later)"
     return 0
   fi
@@ -656,11 +710,11 @@ step_password() {
 
   local p1 p2 hash
   while :; do
-    p1="$(ask -s "New password for user 'mario'")" || {
+    p1="$(ask -s "New password for user '${TARGET_USER:-mario}'")" || {
       info "no input — aborting password step"
       return 0
     }
-    p2="$(ask -s "Repeat password for 'mario'")" || {
+    p2="$(ask -s "Repeat password for '${TARGET_USER:-mario}'")" || {
       info "no input — aborting password step"
       return 0
     }
@@ -780,6 +834,36 @@ patch_host_flags() {
   fi
 }
 
+# Patch the selected host's mySystem.username to the collected TARGET_USER.
+# Idempotent like patch_host_flags: exact match is a no-op, existing assignment
+# is flipped, missing assignment is appended once after the last mySystem.* line.
+# CLI --user wins over resumed state (caller restores CLI value after load_state).
+patch_username() {
+  local name="$1"
+  local host_file="$HOSTS_DIR/$name.nix"
+  local want="${TARGET_USER:-mario}"
+  [[ -f "$host_file" ]] || { warn "host file $host_file not found — cannot patch username"; return 0; }
+
+  if grep -Eq "^[[:space:]]*mySystem\\.username[[:space:]]*=[[:space:]]*\"$want\"[[:space:]]*;" "$host_file"; then
+    info "$host_file: mySystem.username already \"$want\" — no change"
+    return 0
+  fi
+  info "pending change in $host_file:"
+  info "  mySystem.username -> \"$want\""
+  confirm "Patch $host_file as above?" || { info "skipped — set username manually"; return 0; }
+
+  if grep -Eq "^[[:space:]]*mySystem\\.username[[:space:]]*=" "$host_file"; then
+    sed -i -E "s|^[[:space:]]*mySystem\\.username[[:space:]]*=.*|    mySystem.username = \"$want\";|" "$host_file"
+    info "patched $host_file: mySystem.username = \"$want\""
+  else
+    if append_once "$host_file" "^[[:space:]]*mySystem\\." "    mySystem.username = \"$want\";"; then
+      info "appended to $host_file: mySystem.username = \"$want\""
+    else
+      warn "no mySystem.* assignment found in $host_file — set mySystem.username = \"$want\" manually"
+    fi
+  fi
+}
+
 step_deploy() {
   log "Deploy ($SELECTED_HOST) — execute phase"
 
@@ -806,6 +890,9 @@ step_deploy() {
   # BEFORE copying the source or running nixos-rebuild. Both branches
   # below consume the (now-patched) flake.
   patch_host_flags "$name"
+
+  # Sync the selected host's mySystem.username with the collected user.
+  patch_username "$name"
 
   if is_installer_env; then
     # libgit2 refuses repos not owned by the current user (root on installer).
@@ -876,7 +963,8 @@ guided_menu() {
       "4" "Target disk     [$disk_txt]" \
       "5" "User password   [$pw_txt]" \
       "6" "USB backup      [${BACKUP_DEV:-none}]" \
-      "7" ">>> Review + Execute" \
+      "7" "User            [${TARGET_USER:-mario}]" \
+      "8" ">>> Review + Execute" \
       "1")" || return 1
     case "$choice" in
       1) SELECTED_HOST=""; step_host ;;
@@ -897,7 +985,8 @@ guided_menu() {
       4) INSTALL_DISK=""; SKIP_WIPE=0; collect_disk ;;
       5) PASSWORD_HASH=""; step_password; mark_done "password" ;;
       6) BACKUP_DEV=""; collect_usb ;;
-      7) return 0 ;;
+      7) collect_user ;;
+      8) return 0 ;;
       *) warn "invalid pick: $choice" ;;
     esac
   done
@@ -910,6 +999,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -y|--yes) AN_YES_SET=1 ;;
+    --user=*) TARGET_USER="${1#--user=}"; CLI_USER=1; CLI_USER_VAL="$TARGET_USER" ;;
+    --user) if [[ $# -ge 2 ]]; then TARGET_USER="$2"; CLI_USER=1; CLI_USER_VAL="$TARGET_USER"; shift; else die "--user needs a name"; fi ;;
     --luks) ENABLE_LUKS=1; CLI_LUKS=1 ;;
     --tpm2) ENABLE_TPM2=1; CLI_TPM2=1 ;;
     --secure-boot) ENABLE_SECURE_BOOT=1; CLI_SB=1 ;;
@@ -948,8 +1039,10 @@ if [[ $RESUME -eq 1 ]]; then
     [[ $CLI_LUKS -ne -1 ]] && ENABLE_LUKS=$CLI_LUKS
     [[ $CLI_TPM2 -ne -1 ]] && ENABLE_TPM2=$CLI_TPM2
     [[ $CLI_SB -ne -1 ]] && ENABLE_SECURE_BOOT=$CLI_SB
+    # CLI --user wins over resumed state (value saved before load_state)
+    [[ $CLI_USER -eq 1 ]] && TARGET_USER="$CLI_USER_VAL"
     [[ $SKIP_WIPE =~ ^[01]$ ]] || SKIP_WIPE=0
-    info "restored: host='${SELECTED_HOST:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT (after: $COMPLETED_STEP)"
+    info "restored: host='${SELECTED_HOST:-?}' user='${TARGET_USER:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT (after: $COMPLETED_STEP)"
     if ! confirm -y "Continue with restored choices?"; then
       clear_state; SELECTED_HOST=""; INSTALL_DISK=""; info "starting fresh"
     fi
@@ -964,6 +1057,7 @@ if [[ $AN_YES_SET -eq 0 && $DRY_RUN -eq 0 && -t 0 ]]; then
   guided_menu || { info "aborted — nothing was changed"; exit 0; }
 else
   step_host
+  collect_user
   collect_flags
   collect_disk
   collect_luks_pw

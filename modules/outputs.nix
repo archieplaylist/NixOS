@@ -11,6 +11,9 @@ let
       inputs.nix-flatpak.nixosModules.nix-flatpak
       inputs.disko.nixosModules.disko
       inputs.lanzaboote.nixosModules.lanzaboote
+      # home content resolved here (flake level); wired to
+      # home-manager.users.<mySystem.username> in base.nix (NixOS level)
+      { _module.args.homeModules = config.home.modules.primary; }
       {
         nixpkgs.overlays = [
           (_final: _prev: {
@@ -30,9 +33,6 @@ let
           useGlobalPkgs = true;
           useUserPackages = true;
           backupFileExtension = "hm-backup";
-          users.mario = {
-            imports = [ config.home.modules.mario ];
-          };
         };
       }
     ];

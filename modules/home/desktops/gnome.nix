@@ -1,7 +1,7 @@
-# mario home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark),
+# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark),
 # alacritty basics (noctalia owns alacritty.toml on niri, so niri excluded).
 _: {
-  config.home.modules.mario = { lib, pkgs, osConfig, ... }: lib.mkMerge [
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
       dconf = {
         enable = osConfig.mySystem.desktop == "gnome";

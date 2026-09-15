@@ -21,7 +21,7 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── desktop.nix      # GNOME/Niri/XFCE + PipeWire + flatpak
 │   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers + low-latency audio
 │   │   └── hardware.nix     # intel, uefi, laptop, vm-guest slots
-│   ├── home/            # home-manager modules (all merge into home.modules.mario)
+│   ├── home/            # home-manager modules (all merge into home.modules.primary)
 │   │   ├── core.nix / apps.nix / ai.nix (pi + opencode)
 │   │   ├── desktops.nix (gnome/niri/xfce/themes) / easyeffects.nix
 │   │   └── scripts/     # yt, tomp3, switch-de, backup-de -> ~/.local/bin
@@ -74,7 +74,7 @@ Does: preflight → optional destructive partitioning (installer ISO only, type 
 
 Filesystems are by label (`nixos-root` / `nixos-boot`); LUKS2 is `cryptroot` via disko. With `--luks`, `setup.sh` patches `mySystem.enableLuks` (+ disko device when non-`/dev/sda`) into the host file. Secure Boot needs one-time `sbctl create-keys && sbctl enroll-keys --microsoft` after first boot.
 
-Password later: `printf '%s\n' "$(openssl passwd -6)" | sudo tee /etc/hashed-password` + rebuild, or `sudo passwd mario`.
+Password later: `printf '%s\n' "$(openssl passwd -6)" | sudo tee /etc/hashed-password` + rebuild, or `sudo passwd $USER`.
 
 ## Day-to-day
 

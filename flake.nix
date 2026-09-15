@@ -1,5 +1,5 @@
 {
-  description = "NixOS desktop configuration for mario";
+  description = "NixOS desktop configuration";
 
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";

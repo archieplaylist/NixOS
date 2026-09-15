@@ -18,6 +18,7 @@ save_state() {
     printf "ENABLE_SECURE_BOOT=%q\n" "${ENABLE_SECURE_BOOT:-0}"
     printf "SKIP_WIPE=%q\n" "${SKIP_WIPE:-0}"
     printf "BACKUP_DEV=%q\n" "${BACKUP_DEV:-}"
+    printf "TARGET_USER=%q\n" "${TARGET_USER:-}"
     printf "COMPLETED_STEP=%q\n" "$COMPLETED_STEP"
   } > "$STATE_FILE" 2>/dev/null || return 0
   chmod 600 "$STATE_FILE" 2>/dev/null || true
