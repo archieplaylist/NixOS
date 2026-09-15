@@ -97,6 +97,11 @@ _: {
         services.udev.extraRules = lib.mkIf config.mySystem.enableSunshine
           ''KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess"'';
 
+        # sunshine runs only over tailscale and both stay off by default —
+        # the `stream` script wakes/starts or stops them on demand
+        systemd.services.tailscaled.wantedBy =
+          lib.mkIf config.mySystem.enableSunshine (lib.mkForce [ ]);
+
         virtualisation.docker = lib.mkIf config.mySystem.enableDocker {
           enable = true;
           enableOnBoot = true;

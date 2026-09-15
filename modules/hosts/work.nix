@@ -12,11 +12,14 @@
     mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
     mySystem.enableDocker = true;
-    mySystem.enableTailscale = false;
+    mySystem.enableTailscale = true; # daemon on for `stream` toggle; `tailscale down` persists across reboots
     mySystem.enableVirtualBox = true;
     mySystem.enableSmartd = true;
-    mySystem.enableSunshine = true;
+    mySystem.enableSunshine = true; # unit installed but not autostarted — `stream on` starts it
     mySystem.enableMoonlight = true;
+
+    # sunshine streams only over tailscale: no autostart, `stream` script controls it
+    systemd.user.services.sunshine.wantedBy = lib.mkForce [ ];
 
     mySystem.sshAuthorizedKeys = [
       # "ssh-ed25519 AAAAC3... mario@client" # add client pubkey here, then set enableSSH=true

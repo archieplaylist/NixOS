@@ -76,6 +76,14 @@ _: {
       };
     }
 
+    # sunshine/tailscale toggle — only where the sunshine host is enabled
+    (lib.mkIf osConfig.mySystem.enableSunshine {
+      home.file.".local/bin/stream" = {
+        source = ./scripts/stream;
+        executable = true;
+      };
+    })
+
     {
       programs.git = {
         enable = true;
