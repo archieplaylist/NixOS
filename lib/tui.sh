@@ -78,11 +78,11 @@ ask() {
   # Plain input: ask <prompt>
   local ans
   local prompt="${!#}"
-  if [[ "$TUI_BACKEND" == "gum" ]]; then
-    ans="$(gum input --prompt "$prompt: ")" || return 1
-  else
-    read -r -p "$prompt: " ans || return 1
-  fi
+  case "$TUI_BACKEND" in
+    gum) ans="$(gum input --prompt "$prompt: ")" || return 1 ;;
+    whiptail) ans="$(whiptail --title "NixOS setup" --backtitle "nixos-setup" --inputbox "$prompt" 12 76 3>&1 1>&2 2>&3)" || return 1 ;;
+    *) read -r -p "$prompt: " ans || return 1 ;;
+  esac
   printf '%s' "$ans"
 }
 
