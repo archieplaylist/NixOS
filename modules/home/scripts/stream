@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# stream on|off|status — tailscale + sunshine together (sunshine hosts only).
+# Both stay off by default (no autostart); this script wakes/starts them on
+# demand or stops them. Tailscale ops use sudo: with the daemon off at boot
+# the operator oneshot never runs, so mario has no passwordless tailscale.
+set -euo pipefail
+
+daemon_on() { systemctl is-active --quiet tailscaled; }
+ts_up() { tailscale status >/dev/null 2>&1; }
+stream_on() { systemctl --user is-active --quiet sunshine; }
+
+case "${1:-status}" in
+  on)
+    if daemon_on; then echo "tailscaled: already running"; else sudo systemctl start tailscaled; echo "tailscaled: started"; fi
+    if ts_up; then echo "tailscale: already up"; else sudo tailscale up; echo "tailscale: up"; fi
+    if stream_on; then echo "sunshine: already running"; else systemctl --user start sunshine; echo "sunshine: started"; fi
+    ;;
+  off)
+    if stream_on; then systemctl --user stop sunshine; echo "sunshine: stopped"; else echo "sunshine: already stopped"; fi
+    if ts_up; then sudo tailscale down; echo "tailscale: down"; else echo "tailscale: already down"; fi
+    if daemon_on; then sudo systemctl stop tailscaled; echo "tailscaled: stopped"; else echo "tailscaled: already stopped"; fi
+    ;;
+  status)
+    echo -n "tailscaled: "; systemctl is-active tailscaled || true
+    tailscale status || true
+    echo -n "sunshine: "; systemctl --user is-active sunshine || true
+    ;;
+  *)
+    echo "usage: stream on|off|status" >&2
+    exit 1
+    ;;
+esac
