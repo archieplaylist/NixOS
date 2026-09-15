@@ -11,10 +11,10 @@
 #   --resume (restore choices after interrupt), --fresh (discard saved state),
 #   --dry-run (print plan, change nothing), --list-hosts.
 #
-# Required tools are assumed present (run from the NixOS installer ISO, or under
-# `nix shell nixpkgs#openssl nixpkgs#cryptsetup
-# nixpkgs#systemd nixpkgs#gptfdisk nixpkgs#dosfstools
-# nixpkgs#xfsprogs` on any other NixOS).
+# Required tools auto-install via nix at preflight (Step 1) when missing —
+# just run from the NixOS installer ISO, or under `nix shell
+# nixpkgs#openssl nixpkgs#cryptsetup nixpkgs#systemd nixpkgs#gptfdisk
+# nixpkgs#dosfstools nixpkgs#xfsprogs` on any other NixOS to skip downloads.
 #
 # Steps: collect (1-6, prompts only, nothing destructive) -> review + one
 # confirm -> execute (7: zram, USB backup, wipe+format with typed WIPE,
@@ -108,6 +108,7 @@ ensure_tools() {
         mkfs.xfs|xfs_db) pkgs+=(nixpkgs#xfsprogs) ;;
         partprobe)      pkgs+=(nixpkgs#parted) ;;
         udevadm)        pkgs+=(nixpkgs#systemd) ;;
+        lsblk)          pkgs+=(nixpkgs#util-linux) ;;
         gum)            pkgs+=(nixpkgs#gum) ;;
         whiptail)       pkgs+=(nixpkgs#newt) ;;
         *)              warn "don't know how to install '$tool' via nix"; continue ;;
@@ -190,6 +191,14 @@ preflight() {
 
   [[ -f "$REPO_ROOT/flake.nix" ]] \
     || die "flake.nix not found — run setup.sh from the repo root"
+
+  # All external tools up front so later steps never stall mid-flow.
+  # Dry-run plans only and changes nothing, so it skips installs too.
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "dry run — skipping tool install"
+  else
+    ensure_tools lsblk openssl cryptsetup systemd-cryptenroll sgdisk mkfs.vfat mkfs.xfs partprobe udevadm
+  fi
 
   have lsblk || die "lsblk not found in PATH"
 
@@ -400,8 +409,7 @@ collect_disk() {
   fi
   SKIP_WIPE=0
 
-  ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
-
+  # tools already installed at preflight (Step 1)
   mapfile -t DISKS < <(lsblk -dno NAME,SIZE,MODEL | awk '{print "/dev/"$1"  "$2"  "$3}')
   [[ ${#DISKS[@]} -gt 0 ]] || die "no disks found via lsblk"
   local -a dmenu
@@ -554,9 +562,7 @@ step_partition() {
     die "disk $disk has mounted partitions — refusing to wipe it"
   fi
 
-  ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
-
-  echo
+  # tools already installed at preflight (Step 1)
   warn "ABOUT TO ERASE ALL DATA ON: $disk"
   info "current content of $disk:"
   lsblk -f "$disk" || true
@@ -698,8 +704,7 @@ step_password() {
     return 0
   fi
 
-  ensure_tools openssl
-
+  # openssl already installed at preflight (Step 1)
   local p1 p2 hash
   while :; do
     p1="$(ask -s "New password for user '${TARGET_USER:-mario}'")" || {
