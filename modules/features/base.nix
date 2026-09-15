@@ -92,6 +92,11 @@ _: {
           openFirewall = true;
         };
 
+        # logind ACLs grant the active session instant uinput access —
+        # group membership alone needs a full relog to take effect
+        services.udev.extraRules = lib.mkIf config.mySystem.enableSunshine
+          ''KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess"'';
+
         virtualisation.docker = lib.mkIf config.mySystem.enableDocker {
           enable = true;
           enableOnBoot = true;
