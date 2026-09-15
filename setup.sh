@@ -720,8 +720,9 @@ step_password() {
     local weak
     weak="$(pw_strength "$p1" || true)"
     if [[ -n "$weak" ]]; then
-      warn "weak password ($weak)"
-      confirm "Use it anyway?" || continue
+      # reason embedded in the dialog — a separate warn would print to plain
+      # stderr and be wiped by the whiptail redraw (invisible, see screenshot)
+      confirm "Weak password ($weak). Use it anyway?" || continue
     fi
     break
   done
