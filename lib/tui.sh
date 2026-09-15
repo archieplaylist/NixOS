@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # lib/tui.sh — sourced by setup.sh. Prompt backend with TUI ladder.
 # API: ask [-m prompt tag item ... default | -s prompt | prompt]
-#      confirm "prompt" | tui_backend (echoes backend name)
+#      confirm "prompt" | note "text" | tui_backend (echoes backend name)
 # Globals read: TUI_MODE (auto|plain|gum|whiptail), AN_YES_SET.
 # auto mode installs whiptail when missing; plain read always works.
 
@@ -110,4 +110,15 @@ confirm() {
       *) echo "please answer yes or no" ;;
     esac
   done
+}
+
+note() {
+  # note "text": info the user cannot miss. whiptail owns the fullscreen and
+  # wipes plain stdout/stderr on every dialog, so route through --msgbox there.
+  # Plain/gum backends (and dry-run / no TTY) print inline — always visible.
+  if [[ "$TUI_BACKEND" == "whiptail" && "${DRY_RUN:-0}" -eq 0 ]] && [[ -t 0 ]]; then
+    whiptail --title "NixOS setup" --backtitle "nixos-setup" --msgbox "$1" 20 76 3>&1 1>&2 2>&3 || true
+    return 0
+  fi
+  info "$1"
 }

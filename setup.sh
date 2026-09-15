@@ -205,17 +205,19 @@ preflight() {
   mapfile -t HOSTS < <(find "$HOSTS_DIR" -maxdepth 1 -name '*.nix' ! -name '.*' -printf '%f\n' 2>/dev/null | sort)
   [[ ${#HOSTS[@]} -gt 0 ]] || die "no host configs (*.nix) found in modules/hosts/"
 
-  info "repo: $REPO_ROOT"
-  info "hosts: ${HOSTS[*]}"
-  if is_installer_env; then
-    info "mode: installer ISO (fresh path: partition + nixos-install)"
-  else
-    info "mode: live system (in-place path: rebuild switch)"
-  fi
-  info "prompts: $(tui_backend) (override: --tui= / --no-tui)"
-  [[ $DRY_RUN -eq 1 ]] && info "dry run — nothing will change"
+  local mode_txt orient
+  mode_txt="live system (in-place path: rebuild switch)"
+  is_installer_env && mode_txt="installer ISO (fresh path: partition + nixos-install)"
+  # note(): echoes inline on plain/gum/dry-run, --msgbox on whiptail whose
+  # fullscreen would otherwise wipe these lines before the first dialog
+  orient="repo: $REPO_ROOT
+  hosts: ${HOSTS[*]}
+  mode: $mode_txt
+  prompts: $(tui_backend) (override: --tui= / --no-tui)"
+  [[ $DRY_RUN -eq 1 ]] && orient+=$'\ndry run — nothing will change'
+  note "$orient"
 
-  have nixos-rebuild || have nh || warn "neither 'nixos-rebuild' nor 'nh' in PATH (normal on the installer ISO)"
+  have nixos-rebuild || have nh || note "neither 'nixos-rebuild' nor 'nh' in PATH (normal on the installer ISO)"
 }
 
 # ---------------------------------------------------------------------------
@@ -229,7 +231,7 @@ step_host() {
       if confirm -y "Keep host '$SELECTED_HOST'?"; then mark_done "host"; return 0; fi
       SELECTED_HOST=""
     else
-      warn "saved host '$SELECTED_HOST' not in modules/hosts — repicking"
+      note "saved host '$SELECTED_HOST' not in modules/hosts — repicking"
       SELECTED_HOST=""
     fi
   fi
@@ -247,7 +249,7 @@ step_host() {
         SELECTED_HOST="${HOSTS[$((choice-1))]%.nix}"
         break
       fi
-      warn "invalid host number: $choice — try again"
+      note "invalid host number: $choice — try again"
     done
   fi
   mark_done "host"
@@ -263,7 +265,7 @@ collect_user() {
     if [[ "$TARGET_USER" =~ $USER_PATTERN ]]; then
       if confirm -y "Keep user '$TARGET_USER'?"; then mark_done "user"; return 0; fi
     else
-      warn "saved user '$TARGET_USER' invalid — repicking"
+      note "saved user '$TARGET_USER' invalid — repicking"
     fi
     TARGET_USER=""
   fi
@@ -282,7 +284,7 @@ collect_user() {
         pick="$(ask "Primary username [mario]")" || die "user selection aborted"
         TARGET_USER="$(printf '%s' "${pick:-mario}" | tr '[:upper:]' '[:lower:]')"
         [[ "$TARGET_USER" =~ $USER_PATTERN ]] && break
-        warn "invalid username: $TARGET_USER (lowercase, [a-z0-9_-], not starting with a digit)"
+        note "invalid username: $TARGET_USER (lowercase, [a-z0-9_-], not starting with a digit)"
         TARGET_USER=""
       done
     fi
@@ -294,7 +296,7 @@ collect_user() {
   homes="$(ls -1 /home 2>/dev/null || true)"
   if [[ -n "$homes" ]]; then
     while IFS= read -r h; do [[ "$h" == "$TARGET_USER" ]] && found=1; done <<< "$homes"
-    [[ $found -eq 0 ]] && warn "user '$TARGET_USER' differs from existing /home/* ($(printf '%s' "$homes" | tr '\n' ' ')) — old home data stays orphaned, migrate manually"
+    [[ $found -eq 0 ]] && note "user '$TARGET_USER' differs from existing /home/* ($(printf '%s' "$homes" | tr '\n' ' ')) — old home data stays orphaned, migrate manually"
   fi
   mark_done "user"
 }
@@ -402,7 +404,7 @@ collect_disk() {
   fi
   if [[ $AN_YES_SET -eq 0 ]]; then
     if ! confirm "Partition and format a disk? This ERASES all data on it"; then
-      info "skipped — make sure modules/hosts/*.nix point at real disks before deploying"
+      note "skipped — make sure modules/hosts/*.nix point at real disks before deploying"
       SKIP_WIPE=1
       return 0
     fi
@@ -433,19 +435,19 @@ collect_disk() {
     elif [[ "$pick" =~ ^[0-9]+$ ]] && ((pick >= 1 && pick <= ${#DISKS[@]})); then
       disk="${DISKS[$((pick-1))]%% *}"
     else
-      warn "invalid pick: $pick — try again"
+      note "invalid pick: $pick — try again"
       continue
     fi
     [[ -n "$disk" ]] || continue
-    [[ "$disk" =~ $DISK_PATTERN ]] || { warn "invalid device path: $disk"; continue; }
-    [[ -b "$disk" ]] || { warn "not a block device: $disk"; continue; }
+    [[ "$disk" =~ $DISK_PATTERN ]] || { note "invalid device path: $disk"; continue; }
+    [[ -b "$disk" ]] || { note "not a block device: $disk"; continue; }
     if disk_is_mounted "$disk"; then
-      warn "disk $disk has mounted partitions — refusing to wipe it"
+      note "disk $disk has mounted partitions — refusing to wipe it"
       continue
     fi
     local size_b
     size_b="$(lsblk -dnbo SIZE "$disk" 2>/dev/null || echo 0)"
-    (( size_b < 8*1024*1024*1024 )) && warn "disk smaller than 8 GiB — install may fail"
+    (( size_b < 8*1024*1024*1024 )) && note "disk smaller than 8 GiB — install may fail"
     break
   done
 
@@ -462,8 +464,8 @@ collect_luks_pw() {
     local pw1 pw2
     pw1="$(ask -s "LUKS passphrase (used at execute time, never saved)")" || die "aborted"
     pw2="$(ask -s "Repeat LUKS passphrase")" || die "aborted"
-    [[ -n "$pw1" ]] || { warn "empty passphrase not allowed — try again"; continue; }
-    [[ "$pw1" == "$pw2" ]] || { warn "passphrases do not match — try again"; continue; }
+    [[ -n "$pw1" ]] || { note "empty passphrase not allowed — try again"; continue; }
+    [[ "$pw1" == "$pw2" ]] || { note "passphrases do not match — try again"; continue; }
     LUKS_PW_MEM="$pw1"
     unset pw1 pw2
     break
@@ -506,21 +508,22 @@ do_backup() {
       return 0
     fi
   done
-  warn "could not mount $BACKUP_DEV — backup skipped"
+  note "could not mount $BACKUP_DEV — backup skipped"
 }
 
 print_plan() {
   log "Review — full plan"
-  info "host: $SELECTED_HOST"
-  info "user: ${TARGET_USER:-mario}"
-  info "encrypt: luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT"
-  if [[ $SKIP_WIPE -eq 1 ]]; then
-    info "disk: <keep, no wipe>"
-  else
-    info "disk to WIPE: ${INSTALL_DISK:-<unset>}"
-  fi
-  if [[ -n "$PASSWORD_HASH" ]]; then info "password: set"; else warn "password: MISSING — required, user cannot log in until provisioned via passwd"; fi
-  info "usb backup: ${BACKUP_DEV:-none}"
+  local disk_txt="<keep, no wipe>"
+  [[ $SKIP_WIPE -eq 0 ]] && disk_txt="WIPE: ${INSTALL_DISK:-<unset>}"
+  local pw_txt="set"
+  [[ -n "$PASSWORD_HASH" ]] || pw_txt="MISSING — required, user cannot log in until provisioned via passwd"
+  # note(): the confirm below would wipe these plain lines off the whiptail screen
+  note "host: $SELECTED_HOST
+user: ${TARGET_USER:-mario}
+encrypt: luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT
+disk: $disk_txt
+password: $pw_txt
+usb backup: ${BACKUP_DEV:-none}"
 }
 
 # ---------------------------------------------------------------------------
@@ -563,15 +566,21 @@ step_partition() {
   fi
 
   # tools already installed at preflight (Step 1)
-  warn "ABOUT TO ERASE ALL DATA ON: $disk"
-  info "current content of $disk:"
-  lsblk -f "$disk" || true
-  echo "  partition 1: ESP   1 GiB  vfat label 'nixos-boot'"
+  # note(): the WIPE inputbox below would wipe this preview off the screen —
+  # destructive context must stay visible, so show it first
+  local lsblk_out layout
+  lsblk_out="$(lsblk -f "$disk" 2>/dev/null || echo "<lsblk unavailable>")"
+  layout="partition 1: ESP   1 GiB  vfat label 'nixos-boot'"
   if [[ $ENABLE_LUKS -eq 1 ]]; then
-    echo "  partition 2: root  rest  LUKS2 label 'nixos-root' (LUKS container label 'nixos-root-luks') -> XFS inside (label 'nixos-root')"
+    layout+=$'\n'"partition 2: root  rest  LUKS2 label 'nixos-root' (container 'nixos-root-luks') -> XFS inside (label 'nixos-root')"
   else
-    echo "  partition 2: root  rest  xfs  label 'nixos-root'"
+    layout+=$'\n'"partition 2: root  rest  xfs  label 'nixos-root'"
   fi
+  note "ABOUT TO ERASE ALL DATA ON: $disk
+
+$lsblk_out
+
+$layout"
   ans="SKIP"
   if [[ $FORCE_WIPE -eq 1 ]]; then
     info "WIPE typing skipped (--force-wipe) — erasing $disk"
@@ -611,8 +620,8 @@ step_partition() {
           info "aborted"
           return 0
         }
-        [[ -n "$pw1" ]] || { warn "empty passphrase not allowed — try again"; continue; }
-        [[ "$pw1" == "$pw2" ]] || { warn "passphrases do not match — try again"; continue; }
+        [[ -n "$pw1" ]] || { note "empty passphrase not allowed — try again"; continue; }
+        [[ "$pw1" == "$pw2" ]] || { note "passphrases do not match — try again"; continue; }
         luks_pw="$pw1"
         unset pw1 pw2
         break
@@ -715,8 +724,8 @@ step_password() {
       warn "no input — password REQUIRED, user '${TARGET_USER:-mario}' will be locked until provisioned via passwd"
       return 0
     }
-    [[ -n "$p1" ]] || { warn "empty password not allowed — try again"; continue; }
-    [[ "$p1" == "$p2" ]] || { warn "passwords do not match — try again"; continue; }
+    [[ -n "$p1" ]] || { note "empty password not allowed — try again"; continue; }
+    [[ "$p1" == "$p2" ]] || { note "passwords do not match — try again"; continue; }
     local weak
     weak="$(pw_strength "$p1" || true)"
     if [[ -n "$weak" ]]; then
@@ -790,16 +799,18 @@ patch_host_flags() {
   [[ $ENABLE_SECURE_BOOT -eq 1 ]] && flips+=(enableSecureBoot)
   [[ ${#flips[@]} -eq 0 ]] && return 0
 
-  info "pending change(s) in $host_file:"
+  local pending="pending change(s) in $host_file:"
   local key
   for key in "${flips[@]}"; do
     if grep -q "mySystem.${key}[[:space:]]*=[[:space:]]*true" "$host_file"; then
-      info "  mySystem.$key already true — no change needed"
+      pending+=$'\n'"  mySystem.$key already true — no change needed"
     else
-      info "  mySystem.$key -> true"
+      pending+=$'\n'"  mySystem.$key -> true"
     fi
   done
-  confirm "Patch $host_file as above?" || { info "skipped — set flags manually"; return 0; }
+  # pending text embedded: a bare confirm would wipe the plain lines above
+  confirm "$pending
+Patch $host_file as above?" || { info "skipped — set flags manually"; return 0; }
 
   for key in "${flips[@]}"; do
     # Match "mySystem.<key> = false;" with optional trailing whitespace;
@@ -815,7 +826,7 @@ patch_host_flags() {
       if append_once "$host_file" "^[[:space:]]*mySystem\\." "    mySystem.$key = true;"; then
         info "appended to $host_file: mySystem.$key = true"
       else
-        warn "no mySystem.* assignment found in $host_file — set mySystem.$key = true manually"
+        note "no mySystem.* assignment found in $host_file — set mySystem.$key = true manually"
       fi
     fi
   done
@@ -835,7 +846,7 @@ patch_host_flags() {
       if append_once "$host_file" "^[[:space:]]*mySystem\\." "    disko.devices.disk.nixos.device = \"$INSTALL_DISK\";"; then
         info "appended to $host_file: disko.devices.disk.nixos.device = \"$INSTALL_DISK\""
       else
-        warn "no mySystem.* assignment in $host_file — set disko.devices.disk.nixos.device = \"$INSTALL_DISK\" manually"
+        note "no mySystem.* assignment in $host_file — set disko.devices.disk.nixos.device = \"$INSTALL_DISK\" manually"
       fi
     fi
   fi
@@ -855,9 +866,10 @@ patch_username() {
     info "$host_file: mySystem.username already \"$want\" — no change"
     return 0
   fi
-  info "pending change in $host_file:"
-  info "  mySystem.username -> \"$want\""
-  confirm "Patch $host_file as above?" || { info "skipped — set username manually"; return 0; }
+  # pending text embedded: a bare confirm would wipe the plain lines above
+  confirm "pending change in $host_file:
+  mySystem.username -> \"$want\"
+Patch $host_file as above?" || { info "skipped — set username manually"; return 0; }
 
   if grep -Eq "^[[:space:]]*mySystem\\.username[[:space:]]*=" "$host_file"; then
     sed -i -E "s|^[[:space:]]*mySystem\\.username[[:space:]]*=.*|    mySystem.username = \"$want\";|" "$host_file"
@@ -866,7 +878,7 @@ patch_username() {
     if append_once "$host_file" "^[[:space:]]*mySystem\\." "    mySystem.username = \"$want\";"; then
       info "appended to $host_file: mySystem.username = \"$want\""
     else
-      warn "no mySystem.* assignment found in $host_file — set mySystem.username = \"$want\" manually"
+      note "no mySystem.* assignment found in $host_file — set mySystem.username = \"$want\" manually"
     fi
   fi
 }
@@ -887,7 +899,7 @@ step_deploy() {
         if [[ "$disk_ans" =~ $DISK_PATTERN ]] && [[ -b "$disk_ans" ]]; then
           INSTALL_DISK="$disk_ans"
         else
-          warn "not a valid disk ($disk_ans) — disko device left as declared"
+          note "not a valid disk ($disk_ans) — disko device left as declared"
         fi
       else
         info "disko device left as declared (default /dev/sda)"
@@ -994,7 +1006,7 @@ guided_menu() {
       5) TARGET_USER=""; PASSWORD_HASH=""; step_user ;;
       6) BACKUP_DEV=""; collect_usb ;;
       7) return 0 ;;
-      *) warn "invalid pick: $choice" ;;
+      *) note "invalid pick: $choice" ;;
     esac
   done
 }
@@ -1049,12 +1061,12 @@ if [[ $RESUME -eq 1 ]]; then
     # CLI --user wins over resumed state (value saved before load_state)
     [[ $CLI_USER -eq 1 ]] && TARGET_USER="$CLI_USER_VAL"
     [[ $SKIP_WIPE =~ ^[01]$ ]] || SKIP_WIPE=0
-    info "restored: host='${SELECTED_HOST:-?}' user='${TARGET_USER:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT (after: $COMPLETED_STEP)"
-    if ! confirm -y "Continue with restored choices?"; then
+    # summary embedded: the confirm below would wipe a plain line above
+    if ! confirm -y "Restored host='${SELECTED_HOST:-?}' user='${TARGET_USER:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT. Continue?"; then
       clear_state; SELECTED_HOST=""; INSTALL_DISK=""; info "starting fresh"
     fi
   else
-    warn "no saved state at $STATE_FILE — starting fresh"
+    note "no saved state at $STATE_FILE — starting fresh"
   fi
 fi
 trap save_state INT TERM EXIT
