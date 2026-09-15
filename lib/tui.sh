@@ -11,7 +11,11 @@ init_tui() {
   local mode="${TUI_MODE:-auto}"
   # ayu dark approximation (newt named colors only, no hex):
   # bg #0D1017 = black, fg #BFBDB6 = lightgray, accent #E6B450 = yellow.
-  export NEWT_COLORS='root=lightgray,black border=yellow,black window=lightgray,black shadow=black,black title=yellow,black button=lightgray,black actbutton=black,yellow checkbox=lightgray,black actcheckbox=lightgray,blue entry=lightgray,black label=lightgray,black listbox=lightgray,black actlistbox=white,blue textbox=lightgray,black acttextbox=lightgray,black'
+  # button=black,yellow: whiptail compact buttons (<Yes>/<No>) draw the FOCUSED
+  # one with BUTTON on ANSI terminals, so the highlight must live here.
+  # compactbutton=lightgray,black: UNfocused buttons stay calm plain text.
+  # (left at default black,white it glares like a selection — looks inverted.)
+  export NEWT_COLORS='root=lightgray,black border=yellow,black window=lightgray,black shadow=black,black title=yellow,black button=black,yellow actbutton=black,yellow compactbutton=lightgray,black checkbox=lightgray,black actcheckbox=lightgray,blue entry=lightgray,black label=lightgray,black listbox=lightgray,black actlistbox=white,blue textbox=lightgray,black acttextbox=lightgray,black'
   # No TTY on stdin (piped/cron) -> plain reads fail closed, callers guard.
   if [[ "$mode" == "plain" || "$mode" == "no-tui" ]] || [[ ! -t 0 ]]; then
     TUI_BACKEND="plain"
