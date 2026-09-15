@@ -101,6 +101,8 @@ _: {
         # the `stream` script wakes/starts or stops them on demand
         systemd.services.tailscaled.wantedBy =
           lib.mkIf config.mySystem.enableSunshine (lib.mkForce [ ]);
+        systemd.user.services.sunshine.wantedBy =
+          lib.mkIf config.mySystem.enableSunshine (lib.mkForce [ ]);
 
         virtualisation.docker = lib.mkIf config.mySystem.enableDocker {
           enable = true;

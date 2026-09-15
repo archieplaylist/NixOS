@@ -1,32 +1,71 @@
 #!/usr/bin/env bash
-# stream on|off|status — tailscale + sunshine together (sunshine hosts only).
-# Both stay off by default (no autostart); this script wakes/starts them on
-# demand or stops them. Tailscale ops use sudo: with the daemon off at boot
-# the operator oneshot never runs, so mario has no passwordless tailscale.
+# stream [tailscale|sunshine] on|off|status — tailscale + sunshine together.
+# No target = both. Both stay off by default (no autostart); this script
+# wakes/starts them on demand or stops them. Tailscale ops use sudo: with
+# the daemon off at boot the operator oneshot never runs, so mario has no
+# passwordless tailscale.
 set -euo pipefail
 
 daemon_on() { systemctl is-active --quiet tailscaled; }
 ts_up() { tailscale status >/dev/null 2>&1; }
 stream_on() { systemctl --user is-active --quiet sunshine; }
 
+ts_on() {
+  if daemon_on; then echo "tailscaled: already running"; else sudo systemctl start tailscaled; echo "tailscaled: started"; fi
+  if ts_up; then echo "tailscale: already up"; else sudo tailscale up; echo "tailscale: up"; fi
+}
+ts_off() {
+  if ts_up; then sudo tailscale down; echo "tailscale: down"; else echo "tailscale: already down"; fi
+  if daemon_on; then sudo systemctl stop tailscaled; echo "tailscaled: stopped"; else echo "tailscaled: already stopped"; fi
+}
+ts_status() {
+  echo -n "tailscaled: "; systemctl is-active tailscaled || true
+  tailscale status || true
+}
+
+sun_on() {
+  if stream_on; then echo "sunshine: already running"; else systemctl --user start sunshine; echo "sunshine: started"; fi
+}
+sun_off() {
+  if stream_on; then systemctl --user stop sunshine; echo "sunshine: stopped"; else echo "sunshine: already stopped"; fi
+}
+sun_status() {
+  echo -n "sunshine: "; systemctl --user is-active sunshine || true
+}
+
+usage() {
+  cat >&2 <<EOF
+usage: stream [tailscale|sunshine] on|off|status|help
+
+  stream on              start tailscale (daemon + up) and sunshine
+  stream off             stop sunshine, take tailscale down, stop daemon
+  stream status          show both states (default, no args)
+  stream tailscale on    start daemon + tailscale up (no sunshine)
+  stream sunshine off    stop sunshine only (tailnet stays up)
+  stream help            show this help
+EOF
+  return 1
+}
+
+target="all"
+action="status"
 case "${1:-status}" in
-  on)
-    if daemon_on; then echo "tailscaled: already running"; else sudo systemctl start tailscaled; echo "tailscaled: started"; fi
-    if ts_up; then echo "tailscale: already up"; else sudo tailscale up; echo "tailscale: up"; fi
-    if stream_on; then echo "sunshine: already running"; else systemctl --user start sunshine; echo "sunshine: started"; fi
-    ;;
-  off)
-    if stream_on; then systemctl --user stop sunshine; echo "sunshine: stopped"; else echo "sunshine: already stopped"; fi
-    if ts_up; then sudo tailscale down; echo "tailscale: down"; else echo "tailscale: already down"; fi
-    if daemon_on; then sudo systemctl stop tailscaled; echo "tailscaled: stopped"; else echo "tailscaled: already stopped"; fi
-    ;;
-  status)
-    echo -n "tailscaled: "; systemctl is-active tailscaled || true
-    tailscale status || true
-    echo -n "sunshine: "; systemctl --user is-active sunshine || true
-    ;;
-  *)
-    echo "usage: stream on|off|status" >&2
-    exit 1
-    ;;
+  on | off | status) action="$1" ;;
+  tailscale | sunshine) target="$1"; action="${2:-status}" ;;
+  help | -h | --help) usage 2>&1 || true; exit 0 ;;
+  *) usage ;;
 esac
+case "$action" in on | off | status) ;; *) usage ;; esac
+
+run() {
+  case "$1" in
+    tailscale) "ts_$action" ;;
+    sunshine) "sun_$action" ;;
+  esac
+}
+
+if [ "$target" = "all" ]; then
+  if [ "$action" = "on" ]; then ts_on; sun_on; elif [ "$action" = "off" ]; then sun_off; ts_off; else ts_status; sun_status; fi
+else
+  run "$target"
+fi
