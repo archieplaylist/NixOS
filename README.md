@@ -64,7 +64,7 @@ Declared via nix-flatpak (`desktop.nix` + `mySystem.flatpakApps`). Shared: Local
 
 ```bash
 ./setup.sh --list-hosts        # no root needed: see installable hosts
-sudo ./setup.sh              # interactive (fzf menu when available, plain fallback)
+sudo ./setup.sh              # interactive (whiptail menu, plain fallback)
 sudo ./setup.sh --yes        # non-interactive
 sudo ./setup.sh --luks --tpm2
 sudo ./setup.sh --resume       # restore choices after Ctrl-C / disconnect

@@ -7,7 +7,7 @@
 #   ./setup.sh --help | --list-hosts | --dry-run   work without root
 #
 # Flags: --yes (noninteractive; secrets still prompt, LUKS_PASSPHRASE skips),
-#   --tui=auto|plain|fzf|gum|whiptail, --no-tui, --no-color ($NO_COLOR too),
+#   --tui=auto|plain|gum|whiptail, --no-tui, --no-color ($NO_COLOR too),
 #   --resume (restore choices after interrupt), --fresh (discard saved state),
 #   --dry-run (print plan, change nothing), --list-hosts.
 #
@@ -103,7 +103,6 @@ ensure_tools() {
         mkfs.xfs|xfs_db) pkgs+=(nixpkgs#xfsprogs) ;;
         partprobe)      pkgs+=(nixpkgs#parted) ;;
         udevadm)        pkgs+=(nixpkgs#systemd) ;;
-        fzf)            pkgs+=(nixpkgs#fzf) ;;
         gum)            pkgs+=(nixpkgs#gum) ;;
         whiptail)       pkgs+=(nixpkgs#newt) ;;
         *)              warn "don't know how to install '$tool' via nix"; continue ;;
@@ -158,7 +157,7 @@ Flags:
   --luks          LUKS2-encrypt root (offered interactively if omitted)
   --tpm2          TPM2 auto-unlock (needs --luks + TPM2 hardware)
   --secure-boot   patch mySystem.enableSecureBoot + print sbctl next steps
-  --tui=BACKEND   auto (default) | plain | fzf | gum | whiptail
+  --tui=BACKEND   auto (default) | plain | gum | whiptail
   --no-tui        force plain prompts. --no-color  plain output ($NO_COLOR too)
   --resume        restore choices saved before an interrupt
   --fresh         discard saved state. --force-wipe  skip WIPE typing

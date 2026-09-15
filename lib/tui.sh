@@ -2,13 +2,16 @@
 # lib/tui.sh — sourced by setup.sh. Prompt backend with TUI ladder.
 # API: ask [-m prompt tag item ... default | -s prompt | prompt]
 #      confirm "prompt" | tui_backend (echoes backend name)
-# Globals read: TUI_MODE (auto|plain|fzf|gum|whiptail), AN_YES_SET.
-# auto mode never installs anything; plain read always works.
+# Globals read: TUI_MODE (auto|plain|gum|whiptail), AN_YES_SET.
+# auto mode installs whiptail when missing; plain read always works.
 
 TUI_BACKEND="plain"
 
 init_tui() {
   local mode="${TUI_MODE:-auto}"
+  # ayu dark approximation (newt named colors only, no hex):
+  # bg #0D1017 = black, fg #BFBDB6 = lightgray, accent #E6B450 = yellow.
+  export NEWT_COLORS='root=lightgray,black border=yellow,black window=lightgray,black shadow=black,black title=yellow,black button=lightgray,black actbutton=black,yellow checkbox=lightgray,black actcheckbox=lightgray,blue entry=lightgray,black label=lightgray,black listbox=lightgray,black actlistbox=white,blue textbox=lightgray,black acttextbox=lightgray,black'
   # No TTY on stdin (piped/cron) -> plain reads fail closed, callers guard.
   if [[ "$mode" == "plain" || "$mode" == "no-tui" ]] || [[ ! -t 0 ]]; then
     TUI_BACKEND="plain"
@@ -23,30 +26,22 @@ init_tui() {
     fi
     return 0
   fi
-  for b in gum fzf whiptail; do
+  for b in whiptail gum; do
     if have "$b"; then TUI_BACKEND="$b"; return 0; fi
   done
   # one install attempt so ISO gets styled menus free; plain fallback offline
-  if [[ "${DRY_RUN:-0}" -eq 0 ]]; then ensure_tools gum || true; fi
-  have gum && TUI_BACKEND="gum" || TUI_BACKEND="plain"
+  if [[ "${DRY_RUN:-0}" -eq 0 ]]; then ensure_tools whiptail || true; fi
+  have whiptail && TUI_BACKEND="whiptail" || TUI_BACKEND="plain"
 }
 
 tui_backend() { printf '%s' "$TUI_BACKEND"; }
 
-# fzf unusable for secrets/yes-no (no hidden input) -> plain read there.
 ask() {
   # Menu form: -m <prompt> <tag> <item> ... <default>
   if [[ $1 == "-m" ]]; then
     local prompt="$2"; shift 2
     local default="${!#}"; set -- "${@:1:$#-1}"
     case "$TUI_BACKEND" in
-      fzf)
-        local line ans taglist=""
-        while [[ $# -gt 0 ]]; do taglist+="$1) $2"$'\n'; shift 2; done
-        ans="$(printf '%s' "$taglist" | fzf --height=40% --prompt="$prompt " --select-1 --exit-0 | awk '{print $1}' | tr -d ')')" || return 1
-        printf '%s' "${ans:-$default}"
-        return 0
-        ;;
       gum)
         local -a items; while [[ $# -gt 0 ]]; do items+=("$1) $2"); shift 2; done
         line="$(printf '%s\n' "${items[@]}" | gum choose --header="$prompt")" || return 1
@@ -55,7 +50,7 @@ ask() {
         ;;
       whiptail)
         local -a wt; while [[ $# -gt 0 ]]; do wt+=("$1" "$2"); shift 2; done
-        whiptail --default-item "$default" --menu "$prompt" 20 70 10 "${wt[@]}" 3>&1 1>&2 2>&3 || return 1
+        whiptail --title "NixOS setup" --backtitle "mario/nixos" --default-item "$default" --menu "$prompt" 22 76 12 "${wt[@]}" 3>&1 1>&2 2>&3 || return 1
         return 0
         ;;
     esac
@@ -74,7 +69,7 @@ ask() {
     local ans
     case "$TUI_BACKEND" in
       gum) ans="$(gum input --password --prompt "$2: ")" || return 1 ;;
-      whiptail) ans="$(whiptail --passwordbox "$2" 10 70 3>&1 1>&2 2>&3)" || return 1 ;;
+      whiptail) ans="$(whiptail --title "NixOS setup" --backtitle "mario/nixos" --passwordbox "$2" 12 76 3>&1 1>&2 2>&3)" || return 1 ;;
       *) read -r -s -p "$2: " ans || return 1; echo >&2 ;;
     esac
     printf '%s' "$ans"
@@ -97,7 +92,7 @@ confirm() {
   [[ "${1:-}" == "-y" ]] && { def_no=0; shift; }
   [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
   case "$TUI_BACKEND" in
-    whiptail) whiptail --yesno "$1" 10 70 && return 0 || return 1 ;;
+    whiptail) whiptail --title "NixOS setup" --backtitle "mario/nixos" --yesno "$1" 12 76 && return 0 || return 1 ;;
     gum) gum confirm "$1" && return 0 || return 1 ;;
   esac
   local answer marker="[y/N]"

@@ -26,6 +26,8 @@
     mySystem.appGroups.editor.enable = false;
     mySystem.appGroups.ai.enable = false;
 
+    mySystem.enableLuks= true;
+
     # vm never prints — save CUPS + Avahi broadcast
     services.printing.enable = false;
     services.system-config-printer.enable = false;
