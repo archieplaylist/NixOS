@@ -27,7 +27,7 @@
 #       from a numbered menu, preview with lsblk -f, type WIPE to confirm).
 #       --luks wraps root in LUKS2 (label nixos-root, container
 #       nixos-root-luks -> mapper cryptroot); offered interactively if omitted.
-#   5.  user password: SHA-512 hash via openssl, written to
+#   5.  user + password: SHA-512 hash via openssl, written to
 #       /etc/hashed-password on the target during the deploy step (read at
 #       activation via `users.users.<username>.hashedPasswordFile`); the hash is
 #       never stored in the repo
@@ -149,10 +149,10 @@ Usage:
   ./setup.sh --help | --list-hosts | --dry-run     (no root needed)
 
 Steps (interactive = archinstall-style guided menu, defaults shown):
-  pick entries to configure (host, encryption, disk, password, USB),
+  pick entries to configure (host, encryption, disk, user+password, USB),
   then Review + Execute once. --yes/--dry-run/no-TTY use linear flow.
   1. preflight + orientation   2. pick host   3. options (luks/tpm2/secure-boot)
-  4. target disk menu          5. user password (hashed now, memory only)
+  4. target disk menu          5. user + password (hash now, memory only)
   6. USB backup (optional)     7. review plan, confirm once, execute
      execute: zram, USB backup, wipe+format (typed WIPE), deploy (nh or nixos-*)
 
@@ -249,7 +249,6 @@ step_host() {
 # ---------------------------------------------------------------------------
 USER_PATTERN='^[a-z_][a-z0-9_-]*$'
 collect_user() {
-  log "Step 2.5/7 — Primary user"
   if [[ -n "${TARGET_USER:-}" ]]; then
     TARGET_USER="$(printf '%s' "$TARGET_USER" | tr '[:upper:]' '[:lower:]')"
     if [[ "$TARGET_USER" =~ $USER_PATTERN ]]; then
@@ -512,7 +511,7 @@ print_plan() {
   else
     info "disk to WIPE: ${INSTALL_DISK:-<unset>}"
   fi
-  if [[ -n "$PASSWORD_HASH" ]]; then info "password: set"; else info "password: skipped"; fi
+  if [[ -n "$PASSWORD_HASH" ]]; then info "password: set"; else warn "password: MISSING — required, user cannot log in until provisioned via passwd"; fi
   info "usb backup: ${BACKUP_DEV:-none}"
 }
 
@@ -694,15 +693,8 @@ pw_strength() {
   return 0
 }
 step_password() {
-  log "Step 5/7 — User password (${TARGET_USER:-mario})"
-
   if [[ $AN_YES_SET -eq 1 && ! -t 0 ]]; then
-    info "skipped — password prompt needs a TTY (set later via passwd)"
-    return 0
-  fi
-
-  if ! confirm "Set/update the password for user '${TARGET_USER:-mario}'?"; then
-    info "skipped — no password will be set (provision it manually later)"
+    warn "no password set (no TTY) — REQUIRED: provision later via passwd or the user cannot log in"
     return 0
   fi
 
@@ -711,11 +703,11 @@ step_password() {
   local p1 p2 hash
   while :; do
     p1="$(ask -s "New password for user '${TARGET_USER:-mario}'")" || {
-      info "no input — aborting password step"
+      warn "no input — password REQUIRED, user '${TARGET_USER:-mario}' will be locked until provisioned via passwd"
       return 0
     }
     p2="$(ask -s "Repeat password for '${TARGET_USER:-mario}'")" || {
-      info "no input — aborting password step"
+      warn "no input — password REQUIRED, user '${TARGET_USER:-mario}' will be locked until provisioned via passwd"
       return 0
     }
     [[ -n "$p1" ]] || { warn "empty password not allowed — try again"; continue; }
@@ -746,6 +738,15 @@ step_password() {
   # It never touches git-tracked files.
   PASSWORD_HASH="$hash"
   info "password hash ready — it will be written to /etc/hashed-password during deploy"
+}
+
+# Merged user step: username + password in one go (one guided-menu row).
+# Password is required — every skip path warns loudly instead of staying silent.
+step_user() {
+  collect_user
+  log "Step 5/7 — User + password ($TARGET_USER)"
+  step_password
+  mark_done "password"
 }
 
 # ---------------------------------------------------------------------------
@@ -869,6 +870,8 @@ step_deploy() {
 
   local name="$SELECTED_HOST"
 
+  [[ -n "$PASSWORD_HASH" ]] || warn "no password hash — user '${TARGET_USER:-mario}' will be locked until you set one (passwd)"
+
   # --luks without a fresh wipe leaves INSTALL_DISK empty (disko defaults
   # to /dev/sda) — offer a one-time override so the initrd finds the LUKS partition.
   if [[ $ENABLE_LUKS -eq 1 && -z "$INSTALL_DISK" ]]; then
@@ -946,7 +949,7 @@ step_deploy() {
 # ---------------------------------------------------------------------------
 guided_menu() {
   [[ -z "$SELECTED_HOST" && ${#HOSTS[@]} -gt 0 ]] && SELECTED_HOST="${HOSTS[0]%.nix}"
-  local choice enc_txt sb_txt disk_txt pw_txt
+  local choice enc_txt sb_txt disk_txt user_txt
   while :; do
     enc_txt="off"
     [[ $ENABLE_LUKS -eq 1 ]] && enc_txt="LUKS2"
@@ -955,16 +958,15 @@ guided_menu() {
     if [[ $SKIP_WIPE -eq 1 ]]; then disk_txt="<keep, no wipe>"
     elif [[ -n "$INSTALL_DISK" ]]; then disk_txt="$INSTALL_DISK (WIPE)"
     else disk_txt="<choose>"; fi
-    pw_txt="<skipped>"; [[ -n "$PASSWORD_HASH" ]] && pw_txt="set"
+    user_txt="${TARGET_USER:-mario}, pw: set"; [[ -n "$PASSWORD_HASH" ]] || user_txt="${TARGET_USER:-mario}, pw: MISSING"
     choice="$(ask -m "Guided setup — configure, then Execute:" \
       "1" "Host            [$SELECTED_HOST]" \
       "2" "Encryption      [$enc_txt]" \
       "3" "Secure Boot     [$sb_txt]" \
       "4" "Target disk     [$disk_txt]" \
-      "5" "User password   [$pw_txt]" \
+      "5" "User            [$user_txt]" \
       "6" "USB backup      [${BACKUP_DEV:-none}]" \
-      "7" "User            [${TARGET_USER:-mario}]" \
-      "8" ">>> Review + Execute" \
+      "7" ">>> Review + Execute" \
       "1")" || return 1
     case "$choice" in
       1) SELECTED_HOST=""; step_host ;;
@@ -983,10 +985,9 @@ guided_menu() {
            ENABLE_SECURE_BOOT=1; mark_done "flags"
          fi ;;
       4) INSTALL_DISK=""; SKIP_WIPE=0; collect_disk ;;
-      5) PASSWORD_HASH=""; step_password; mark_done "password" ;;
+      5) TARGET_USER=""; PASSWORD_HASH=""; step_user ;;
       6) BACKUP_DEV=""; collect_usb ;;
-      7) collect_user ;;
-      8) return 0 ;;
+      7) return 0 ;;
       *) warn "invalid pick: $choice" ;;
     esac
   done
@@ -1057,11 +1058,10 @@ if [[ $AN_YES_SET -eq 0 && $DRY_RUN -eq 0 && -t 0 ]]; then
   guided_menu || { info "aborted — nothing was changed"; exit 0; }
 else
   step_host
-  collect_user
   collect_flags
   collect_disk
   collect_luks_pw
-  step_password; mark_done "password"
+  step_user
   collect_usb
 fi
 print_plan
