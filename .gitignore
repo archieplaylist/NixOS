@@ -12,3 +12,4 @@ backups/**/*.dconf
 !backups/gnome/gnome-files-latest.tar.gz
 !backups/niri/niri-latest.tar.gz
 !backups/xfce/xfce-latest.tar.gz
+!backups/plasma/plasma-latest.tar.gz

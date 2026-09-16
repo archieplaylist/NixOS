@@ -6,7 +6,7 @@ _: {
       (lib.mkIf config.mySystem.enableDesktop {
         services = {
           xserver.enable = true;
-          blueman.enable = true;
+          blueman.enable = config.mySystem.desktop != "plasma";
           flatpak = {
             enable = true;
             packages = config.mySystem.flatpakApps;
