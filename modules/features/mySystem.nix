@@ -7,6 +7,11 @@ _: {
         default = "nixos";
         description = "Network hostname for the host.";
       };
+      username = lib.mkOption {
+        type = lib.types.strMatching "^[a-z_][a-z0-9_-]*$";
+        default = "mario";
+        description = "Primary user for this host.";
+      };
       sshAuthorizedKeys = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];

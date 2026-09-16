@@ -15,6 +15,6 @@
   options.home.modules = lib.mkOption {
     type = lib.types.attrsOf (lib.types.nullOr lib.types.deferredModule);
     default = { };
-    description = "home-manager feature modules, merged by user name (e.g. mario).";
+    description = "home-manager feature modules, merged by slot name (e.g. primary).";
   };
 }

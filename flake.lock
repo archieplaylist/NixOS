@@ -3,11 +3,11 @@
     "caveman": {
       "flake": false,
       "locked": {
-        "lastModified": 1789433897,
-        "narHash": "sha256-88nbRu30Pb4LcyO22bQ1h6S2zsrZG/DEck9uqjnxxkk=",
+        "lastModified": 1789491774,
+        "narHash": "sha256-oL/BVGPo5ZsXkZB9/HxE2ss5IdE8s76GvDTZ/hNCW2M=",
         "owner": "juliusbrussee",
         "repo": "caveman",
-        "rev": "6b42a31e10ee4c1b8549ccde30b451ddd060023d",
+        "rev": "ed37ab132393899c129bbeef2b9743ff3af19c68",
         "type": "github"
       },
       "original": {
@@ -177,11 +177,11 @@
     },
     "nix-flatpak": {
       "locked": {
-        "lastModified": 1789296110,
-        "narHash": "sha256-8wVBx1J5hR1DzUyzlrm2DkMXx7RJbATh3+R+qBBILlI=",
+        "lastModified": 1789496567,
+        "narHash": "sha256-f9ze1ph2u0lk/Hm7/w/OvC0ESL1z0LbQ5UDgcOwQzLM=",
         "owner": "gmodena",
         "repo": "nix-flatpak",
-        "rev": "0f392e302963bce69787c495aa95ef1d50dda889",
+        "rev": "07e8980c2fe421c93c0749f6246db34422827f67",
         "type": "github"
       },
       "original": {

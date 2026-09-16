@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # lib/tui.sh — sourced by setup.sh. Prompt backend with TUI ladder.
 # API: ask [-m prompt tag item ... default | -s prompt | prompt]
-#      confirm "prompt" | tui_backend (echoes backend name)
+#      confirm "prompt" | note "text" | tui_backend (echoes backend name)
 # Globals read: TUI_MODE (auto|plain|gum|whiptail), AN_YES_SET.
 # auto mode installs whiptail when missing; plain read always works.
 
@@ -11,7 +11,11 @@ init_tui() {
   local mode="${TUI_MODE:-auto}"
   # ayu dark approximation (newt named colors only, no hex):
   # bg #0D1017 = black, fg #BFBDB6 = lightgray, accent #E6B450 = yellow.
-  export NEWT_COLORS='root=lightgray,black border=yellow,black window=lightgray,black shadow=black,black title=yellow,black button=lightgray,black actbutton=black,yellow checkbox=lightgray,black actcheckbox=lightgray,blue entry=lightgray,black label=lightgray,black listbox=lightgray,black actlistbox=white,blue textbox=lightgray,black acttextbox=lightgray,black'
+  # button=black,yellow: whiptail compact buttons (<Yes>/<No>) draw the FOCUSED
+  # one with BUTTON on ANSI terminals, so the highlight must live here.
+  # compactbutton=lightgray,black: UNfocused buttons stay calm plain text.
+  # (left at default black,white it glares like a selection — looks inverted.)
+  export NEWT_COLORS='root=lightgray,black border=yellow,black window=lightgray,black shadow=black,black title=yellow,black button=black,yellow actbutton=black,yellow compactbutton=lightgray,black checkbox=lightgray,black actcheckbox=lightgray,blue entry=lightgray,black label=lightgray,black listbox=lightgray,black actlistbox=white,blue textbox=lightgray,black acttextbox=lightgray,black'
   # No TTY on stdin (piped/cron) -> plain reads fail closed, callers guard.
   if [[ "$mode" == "plain" || "$mode" == "no-tui" ]] || [[ ! -t 0 ]]; then
     TUI_BACKEND="plain"
@@ -50,7 +54,7 @@ ask() {
         ;;
       whiptail)
         local -a wt; while [[ $# -gt 0 ]]; do wt+=("$1" "$2"); shift 2; done
-        whiptail --title "NixOS setup" --backtitle "mario/nixos" --default-item "$default" --menu "$prompt" 22 76 12 "${wt[@]}" 3>&1 1>&2 2>&3 || return 1
+        whiptail --title "NixOS setup" --backtitle "nixos-setup" --default-item "$default" --menu "$prompt" 22 76 12 "${wt[@]}" 3>&1 1>&2 2>&3 || return 1
         return 0
         ;;
     esac
@@ -69,7 +73,7 @@ ask() {
     local ans
     case "$TUI_BACKEND" in
       gum) ans="$(gum input --password --prompt "$2: ")" || return 1 ;;
-      whiptail) ans="$(whiptail --title "NixOS setup" --backtitle "mario/nixos" --passwordbox "$2" 12 76 3>&1 1>&2 2>&3)" || return 1 ;;
+      whiptail) ans="$(whiptail --title "NixOS setup" --backtitle "nixos-setup" --passwordbox "$2" 12 76 3>&1 1>&2 2>&3)" || return 1 ;;
       *) read -r -s -p "$2: " ans || return 1; echo >&2 ;;
     esac
     printf '%s' "$ans"
@@ -78,11 +82,11 @@ ask() {
   # Plain input: ask <prompt>
   local ans
   local prompt="${!#}"
-  if [[ "$TUI_BACKEND" == "gum" ]]; then
-    ans="$(gum input --prompt "$prompt: ")" || return 1
-  else
-    read -r -p "$prompt: " ans || return 1
-  fi
+  case "$TUI_BACKEND" in
+    gum) ans="$(gum input --prompt "$prompt: ")" || return 1 ;;
+    whiptail) ans="$(whiptail --title "NixOS setup" --backtitle "nixos-setup" --inputbox "$prompt" 12 76 3>&1 1>&2 2>&3)" || return 1 ;;
+    *) read -r -p "$prompt: " ans || return 1 ;;
+  esac
   printf '%s' "$ans"
 }
 
@@ -92,7 +96,7 @@ confirm() {
   [[ "${1:-}" == "-y" ]] && { def_no=0; shift; }
   [[ $AN_YES_SET -eq 1 ]] && { echo "[yes] $1" >&2; return 0; }
   case "$TUI_BACKEND" in
-    whiptail) whiptail --title "NixOS setup" --backtitle "mario/nixos" --yesno "$1" 12 76 && return 0 || return 1 ;;
+    whiptail) whiptail --title "NixOS setup" --backtitle "nixos-setup" --yesno "$1" 12 76 && return 0 || return 1 ;;
     gum) gum confirm "$1" && return 0 || return 1 ;;
   esac
   local answer marker="[y/N]"
@@ -106,4 +110,15 @@ confirm() {
       *) echo "please answer yes or no" ;;
     esac
   done
+}
+
+note() {
+  # note "text": info the user cannot miss. whiptail owns the fullscreen and
+  # wipes plain stdout/stderr on every dialog, so route through --msgbox there.
+  # Plain/gum backends (and dry-run / no TTY) print inline — always visible.
+  if [[ "$TUI_BACKEND" == "whiptail" && "${DRY_RUN:-0}" -eq 0 ]] && [[ -t 0 ]]; then
+    whiptail --title "NixOS setup" --backtitle "nixos-setup" --msgbox "$1" 20 76 3>&1 1>&2 2>&3 || true
+    return 0
+  fi
+  info "$1"
 }

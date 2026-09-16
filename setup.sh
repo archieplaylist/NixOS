@@ -11,10 +11,10 @@
 #   --resume (restore choices after interrupt), --fresh (discard saved state),
 #   --dry-run (print plan, change nothing), --list-hosts.
 #
-# Required tools are assumed present (run from the NixOS installer ISO, or under
-# `nix shell nixpkgs#openssl nixpkgs#cryptsetup
-# nixpkgs#systemd nixpkgs#gptfdisk nixpkgs#dosfstools
-# nixpkgs#xfsprogs` on any other NixOS).
+# Required tools auto-install via nix at preflight (Step 1) when missing —
+# just run from the NixOS installer ISO, or under `nix shell
+# nixpkgs#openssl nixpkgs#cryptsetup nixpkgs#systemd nixpkgs#gptfdisk
+# nixpkgs#dosfstools nixpkgs#xfsprogs` on any other NixOS to skip downloads.
 #
 # Steps: collect (1-6, prompts only, nothing destructive) -> review + one
 # confirm -> execute (7: zram, USB backup, wipe+format with typed WIPE,
@@ -27,9 +27,9 @@
 #       from a numbered menu, preview with lsblk -f, type WIPE to confirm).
 #       --luks wraps root in LUKS2 (label nixos-root, container
 #       nixos-root-luks -> mapper cryptroot); offered interactively if omitted.
-#   5.  user password: SHA-512 hash via openssl, written to
+#   5.  user + password: SHA-512 hash via openssl, written to
 #       /etc/hashed-password on the target during the deploy step (read at
-#       activation via `users.users.mario.hashedPasswordFile`); the hash is
+#       activation via `users.users.<username>.hashedPasswordFile`); the hash is
 #       never stored in the repo
 #   6.  deploy via nh (fallback nixos-rebuild) or nixos-install on the ISO
 #
@@ -69,6 +69,11 @@ PASSWORD_HASH=""
 # happens — empty on --yes re-runs against an already-formatted disk, in which
 # case patch_host_flags leaves the disko device override alone).
 INSTALL_DISK=""
+# Primary username for the installed system (flag --user / env NIXOS_USER /
+# prompt; patched into the host file as mySystem.username by patch_username).
+TARGET_USER=""
+CLI_USER=0
+CLI_USER_VAL=""
 
 _emit() {
   local c="$1"; shift
@@ -103,6 +108,7 @@ ensure_tools() {
         mkfs.xfs|xfs_db) pkgs+=(nixpkgs#xfsprogs) ;;
         partprobe)      pkgs+=(nixpkgs#parted) ;;
         udevadm)        pkgs+=(nixpkgs#systemd) ;;
+        lsblk)          pkgs+=(nixpkgs#util-linux) ;;
         gum)            pkgs+=(nixpkgs#gum) ;;
         whiptail)       pkgs+=(nixpkgs#newt) ;;
         *)              warn "don't know how to install '$tool' via nix"; continue ;;
@@ -144,16 +150,17 @@ Usage:
   ./setup.sh --help | --list-hosts | --dry-run     (no root needed)
 
 Steps (interactive = archinstall-style guided menu, defaults shown):
-  pick entries to configure (host, encryption, disk, password, USB),
+  pick entries to configure (host, encryption, disk, user+password, USB),
   then Review + Execute once. --yes/--dry-run/no-TTY use linear flow.
   1. preflight + orientation   2. pick host   3. options (luks/tpm2/secure-boot)
-  4. target disk menu          5. user password (hashed now, memory only)
+  4. target disk menu          5. user + password (hash now, memory only)
   6. USB backup (optional)     7. review plan, confirm once, execute
      execute: zram, USB backup, wipe+format (typed WIPE), deploy (nh or nixos-*)
 
 Flags:
   --yes           answer yes to confirms (passphrases still prompt;
                   set LUKS_PASSPHRASE env to skip the LUKS prompt)
+  --user=NAME     primary username (default: mario, env NIXOS_USER)
   --luks          LUKS2-encrypt root (offered interactively if omitted)
   --tpm2          TPM2 auto-unlock (needs --luks + TPM2 hardware)
   --secure-boot   patch mySystem.enableSecureBoot + print sbctl next steps
@@ -185,22 +192,32 @@ preflight() {
   [[ -f "$REPO_ROOT/flake.nix" ]] \
     || die "flake.nix not found — run setup.sh from the repo root"
 
+  # All external tools up front so later steps never stall mid-flow.
+  # Dry-run plans only and changes nothing, so it skips installs too.
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "dry run — skipping tool install"
+  else
+    ensure_tools lsblk openssl cryptsetup systemd-cryptenroll sgdisk mkfs.vfat mkfs.xfs partprobe udevadm
+  fi
+
   have lsblk || die "lsblk not found in PATH"
 
   mapfile -t HOSTS < <(find "$HOSTS_DIR" -maxdepth 1 -name '*.nix' ! -name '.*' -printf '%f\n' 2>/dev/null | sort)
   [[ ${#HOSTS[@]} -gt 0 ]] || die "no host configs (*.nix) found in modules/hosts/"
 
-  info "repo: $REPO_ROOT"
-  info "hosts: ${HOSTS[*]}"
-  if is_installer_env; then
-    info "mode: installer ISO (fresh path: partition + nixos-install)"
-  else
-    info "mode: live system (in-place path: rebuild switch)"
-  fi
-  info "prompts: $(tui_backend) (override: --tui= / --no-tui)"
-  [[ $DRY_RUN -eq 1 ]] && info "dry run — nothing will change"
+  local mode_txt orient
+  mode_txt="live system (in-place path: rebuild switch)"
+  is_installer_env && mode_txt="installer ISO (fresh path: partition + nixos-install)"
+  # note(): echoes inline on plain/gum/dry-run, --msgbox on whiptail whose
+  # fullscreen would otherwise wipe these lines before the first dialog
+  orient="repo: $REPO_ROOT
+  hosts: ${HOSTS[*]}
+  mode: $mode_txt
+  prompts: $(tui_backend) (override: --tui= / --no-tui)"
+  [[ $DRY_RUN -eq 1 ]] && orient+=$'\ndry run — nothing will change'
+  note "$orient"
 
-  have nixos-rebuild || have nh || warn "neither 'nixos-rebuild' nor 'nh' in PATH (normal on the installer ISO)"
+  have nixos-rebuild || have nh || note "neither 'nixos-rebuild' nor 'nh' in PATH (normal on the installer ISO)"
 }
 
 # ---------------------------------------------------------------------------
@@ -214,7 +231,7 @@ step_host() {
       if confirm -y "Keep host '$SELECTED_HOST'?"; then mark_done "host"; return 0; fi
       SELECTED_HOST=""
     else
-      warn "saved host '$SELECTED_HOST' not in modules/hosts — repicking"
+      note "saved host '$SELECTED_HOST' not in modules/hosts — repicking"
       SELECTED_HOST=""
     fi
   fi
@@ -232,10 +249,56 @@ step_host() {
         SELECTED_HOST="${HOSTS[$((choice-1))]%.nix}"
         break
       fi
-      warn "invalid host number: $choice — try again"
+      note "invalid host number: $choice — try again"
     done
   fi
   mark_done "host"
+}
+
+# ---------------------------------------------------------------------------
+# Step 2.5 — primary username (patched into the host file as mySystem.username)
+# ---------------------------------------------------------------------------
+USER_PATTERN='^[a-z_][a-z0-9_-]*$'
+collect_user() {
+  if [[ -n "${TARGET_USER:-}" ]]; then
+    TARGET_USER="$(printf '%s' "$TARGET_USER" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$TARGET_USER" =~ $USER_PATTERN ]]; then
+      if confirm -y "Keep user '$TARGET_USER'?"; then mark_done "user"; return 0; fi
+    else
+      note "saved user '$TARGET_USER' invalid — repicking"
+    fi
+    TARGET_USER=""
+  fi
+  if [[ -z "${TARGET_USER:-}" && -n "${NIXOS_USER:-}" ]]; then
+    TARGET_USER="$(printf '%s' "$NIXOS_USER" | tr '[:upper:]' '[:lower:]')"
+    info "user: $TARGET_USER (NIXOS_USER)"
+  fi
+  if [[ -z "${TARGET_USER:-}" ]]; then
+    if [[ $AN_YES_SET -eq 1 ]]; then
+      TARGET_USER="mario"
+      info "user: $TARGET_USER (--yes default)"
+    else
+      [[ -t 0 ]] || die "no TTY and no user chosen — rerun with --user=<name> or --yes"
+      local pick=""
+      while :; do
+        pick="$(ask "Primary username [mario]")" || die "user selection aborted"
+        TARGET_USER="$(printf '%s' "${pick:-mario}" | tr '[:upper:]' '[:lower:]')"
+        [[ "$TARGET_USER" =~ $USER_PATTERN ]] && break
+        note "invalid username: $TARGET_USER (lowercase, [a-z0-9_-], not starting with a digit)"
+        TARGET_USER=""
+      done
+    fi
+  fi
+  [[ "$TARGET_USER" =~ $USER_PATTERN ]] || die "invalid username: $TARGET_USER"
+  # fresh-install scope: a target differing from existing /home/* orphans old
+  # data — warn, never migrate automatically
+  local homes="" h found=0
+  homes="$(ls -1 /home 2>/dev/null || true)"
+  if [[ -n "$homes" ]]; then
+    while IFS= read -r h; do [[ "$h" == "$TARGET_USER" ]] && found=1; done <<< "$homes"
+    [[ $found -eq 0 ]] && note "user '$TARGET_USER' differs from existing /home/* ($(printf '%s' "$homes" | tr '\n' ' ')) — old home data stays orphaned, migrate manually"
+  fi
+  mark_done "user"
 }
 
 # ---------------------------------------------------------------------------
@@ -341,15 +404,14 @@ collect_disk() {
   fi
   if [[ $AN_YES_SET -eq 0 ]]; then
     if ! confirm "Partition and format a disk? This ERASES all data on it"; then
-      info "skipped — make sure modules/hosts/*.nix point at real disks before deploying"
+      note "skipped — make sure modules/hosts/*.nix point at real disks before deploying"
       SKIP_WIPE=1
       return 0
     fi
   fi
   SKIP_WIPE=0
 
-  ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
-
+  # tools already installed at preflight (Step 1)
   mapfile -t DISKS < <(lsblk -dno NAME,SIZE,MODEL | awk '{print "/dev/"$1"  "$2"  "$3}')
   [[ ${#DISKS[@]} -gt 0 ]] || die "no disks found via lsblk"
   local -a dmenu
@@ -373,19 +435,19 @@ collect_disk() {
     elif [[ "$pick" =~ ^[0-9]+$ ]] && ((pick >= 1 && pick <= ${#DISKS[@]})); then
       disk="${DISKS[$((pick-1))]%% *}"
     else
-      warn "invalid pick: $pick — try again"
+      note "invalid pick: $pick — try again"
       continue
     fi
     [[ -n "$disk" ]] || continue
-    [[ "$disk" =~ $DISK_PATTERN ]] || { warn "invalid device path: $disk"; continue; }
-    [[ -b "$disk" ]] || { warn "not a block device: $disk"; continue; }
+    [[ "$disk" =~ $DISK_PATTERN ]] || { note "invalid device path: $disk"; continue; }
+    [[ -b "$disk" ]] || { note "not a block device: $disk"; continue; }
     if disk_is_mounted "$disk"; then
-      warn "disk $disk has mounted partitions — refusing to wipe it"
+      note "disk $disk has mounted partitions — refusing to wipe it"
       continue
     fi
     local size_b
     size_b="$(lsblk -dnbo SIZE "$disk" 2>/dev/null || echo 0)"
-    (( size_b < 8*1024*1024*1024 )) && warn "disk smaller than 8 GiB — install may fail"
+    (( size_b < 8*1024*1024*1024 )) && note "disk smaller than 8 GiB — install may fail"
     break
   done
 
@@ -402,8 +464,8 @@ collect_luks_pw() {
     local pw1 pw2
     pw1="$(ask -s "LUKS passphrase (used at execute time, never saved)")" || die "aborted"
     pw2="$(ask -s "Repeat LUKS passphrase")" || die "aborted"
-    [[ -n "$pw1" ]] || { warn "empty passphrase not allowed — try again"; continue; }
-    [[ "$pw1" == "$pw2" ]] || { warn "passphrases do not match — try again"; continue; }
+    [[ -n "$pw1" ]] || { note "empty passphrase not allowed — try again"; continue; }
+    [[ "$pw1" == "$pw2" ]] || { note "passphrases do not match — try again"; continue; }
     LUKS_PW_MEM="$pw1"
     unset pw1 pw2
     break
@@ -446,20 +508,22 @@ do_backup() {
       return 0
     fi
   done
-  warn "could not mount $BACKUP_DEV — backup skipped"
+  note "could not mount $BACKUP_DEV — backup skipped"
 }
 
 print_plan() {
   log "Review — full plan"
-  info "host: $SELECTED_HOST"
-  info "encrypt: luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT"
-  if [[ $SKIP_WIPE -eq 1 ]]; then
-    info "disk: <keep, no wipe>"
-  else
-    info "disk to WIPE: ${INSTALL_DISK:-<unset>}"
-  fi
-  if [[ -n "$PASSWORD_HASH" ]]; then info "password: set"; else info "password: skipped"; fi
-  info "usb backup: ${BACKUP_DEV:-none}"
+  local disk_txt="<keep, no wipe>"
+  [[ $SKIP_WIPE -eq 0 ]] && disk_txt="WIPE: ${INSTALL_DISK:-<unset>}"
+  local pw_txt="set"
+  [[ -n "$PASSWORD_HASH" ]] || pw_txt="MISSING — required, user cannot log in until provisioned via passwd"
+  # note(): the confirm below would wipe these plain lines off the whiptail screen
+  note "host: $SELECTED_HOST
+user: ${TARGET_USER:-mario}
+encrypt: luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT
+disk: $disk_txt
+password: $pw_txt
+usb backup: ${BACKUP_DEV:-none}"
 }
 
 # ---------------------------------------------------------------------------
@@ -501,18 +565,22 @@ step_partition() {
     die "disk $disk has mounted partitions — refusing to wipe it"
   fi
 
-  ensure_tools sgdisk mkfs.vfat mkfs.xfs cryptsetup systemd-cryptenroll partprobe udevadm lsblk
-
-  echo
-  warn "ABOUT TO ERASE ALL DATA ON: $disk"
-  info "current content of $disk:"
-  lsblk -f "$disk" || true
-  echo "  partition 1: ESP   1 GiB  vfat label 'nixos-boot'"
+  # tools already installed at preflight (Step 1)
+  # note(): the WIPE inputbox below would wipe this preview off the screen —
+  # destructive context must stay visible, so show it first
+  local lsblk_out layout
+  lsblk_out="$(lsblk -f "$disk" 2>/dev/null || echo "<lsblk unavailable>")"
+  layout="partition 1: ESP   1 GiB  vfat label 'nixos-boot'"
   if [[ $ENABLE_LUKS -eq 1 ]]; then
-    echo "  partition 2: root  rest  LUKS2 label 'nixos-root' (LUKS container label 'nixos-root-luks') -> XFS inside (label 'nixos-root')"
+    layout+=$'\n'"partition 2: root  rest  LUKS2 label 'nixos-root' (container 'nixos-root-luks') -> XFS inside (label 'nixos-root')"
   else
-    echo "  partition 2: root  rest  xfs  label 'nixos-root'"
+    layout+=$'\n'"partition 2: root  rest  xfs  label 'nixos-root'"
   fi
+  note "ABOUT TO ERASE ALL DATA ON: $disk
+
+$lsblk_out
+
+$layout"
   ans="SKIP"
   if [[ $FORCE_WIPE -eq 1 ]]; then
     info "WIPE typing skipped (--force-wipe) — erasing $disk"
@@ -552,8 +620,8 @@ step_partition() {
           info "aborted"
           return 0
         }
-        [[ -n "$pw1" ]] || { warn "empty passphrase not allowed — try again"; continue; }
-        [[ "$pw1" == "$pw2" ]] || { warn "passphrases do not match — try again"; continue; }
+        [[ -n "$pw1" ]] || { note "empty passphrase not allowed — try again"; continue; }
+        [[ "$pw1" == "$pw2" ]] || { note "passphrases do not match — try again"; continue; }
         luks_pw="$pw1"
         unset pw1 pw2
         break
@@ -626,7 +694,7 @@ step_partition() {
 # ---------------------------------------------------------------------------
 # Step 5 — user password (hash only, kept in PASSWORD_HASH)
 # The hash is written on the system at /etc/hashed-password by step_deploy
-# (read at activation by `users.users.mario.hashedPasswordFile`).
+# (read at activation by `users.users.<username>.hashedPasswordFile`).
 # ---------------------------------------------------------------------------
 pw_strength() {
   # Echo weak reason, or nothing when ok. Length + classes, no dep.
@@ -640,37 +708,30 @@ pw_strength() {
   return 0
 }
 step_password() {
-  log "Step 5/7 — User password (mario)"
-
   if [[ $AN_YES_SET -eq 1 && ! -t 0 ]]; then
-    info "skipped — password prompt needs a TTY (set later via passwd)"
+    warn "no password set (no TTY) — REQUIRED: provision later via passwd or the user cannot log in"
     return 0
   fi
 
-  if ! confirm "Set/update the password for user 'mario'?"; then
-    info "skipped — no password will be set (provision it manually later)"
-    return 0
-  fi
-
-  ensure_tools openssl
-
+  # openssl already installed at preflight (Step 1)
   local p1 p2 hash
   while :; do
-    p1="$(ask -s "New password for user 'mario'")" || {
-      info "no input — aborting password step"
+    p1="$(ask -s "New password for user '${TARGET_USER:-mario}'")" || {
+      warn "no input — password REQUIRED, user '${TARGET_USER:-mario}' will be locked until provisioned via passwd"
       return 0
     }
-    p2="$(ask -s "Repeat password for 'mario'")" || {
-      info "no input — aborting password step"
+    p2="$(ask -s "Repeat password for '${TARGET_USER:-mario}'")" || {
+      warn "no input — password REQUIRED, user '${TARGET_USER:-mario}' will be locked until provisioned via passwd"
       return 0
     }
-    [[ -n "$p1" ]] || { warn "empty password not allowed — try again"; continue; }
-    [[ "$p1" == "$p2" ]] || { warn "passwords do not match — try again"; continue; }
+    [[ -n "$p1" ]] || { note "empty password not allowed — try again"; continue; }
+    [[ "$p1" == "$p2" ]] || { note "passwords do not match — try again"; continue; }
     local weak
     weak="$(pw_strength "$p1" || true)"
     if [[ -n "$weak" ]]; then
-      warn "weak password ($weak)"
-      confirm "Use it anyway?" || continue
+      # reason embedded in the dialog — a separate warn would print to plain
+      # stderr and be wiped by the whiptail redraw (invisible, see screenshot)
+      confirm "Weak password ($weak). Use it anyway?" || continue
     fi
     break
   done
@@ -692,6 +753,15 @@ step_password() {
   # It never touches git-tracked files.
   PASSWORD_HASH="$hash"
   info "password hash ready — it will be written to /etc/hashed-password during deploy"
+}
+
+# Merged user step: username + password in one go (one guided-menu row).
+# Password is required — every skip path warns loudly instead of staying silent.
+step_user() {
+  collect_user
+  log "Step 5/7 — User + password ($TARGET_USER)"
+  step_password
+  mark_done "password"
 }
 
 # ---------------------------------------------------------------------------
@@ -729,16 +799,18 @@ patch_host_flags() {
   [[ $ENABLE_SECURE_BOOT -eq 1 ]] && flips+=(enableSecureBoot)
   [[ ${#flips[@]} -eq 0 ]] && return 0
 
-  info "pending change(s) in $host_file:"
+  local pending="pending change(s) in $host_file:"
   local key
   for key in "${flips[@]}"; do
     if grep -q "mySystem.${key}[[:space:]]*=[[:space:]]*true" "$host_file"; then
-      info "  mySystem.$key already true — no change needed"
+      pending+=$'\n'"  mySystem.$key already true — no change needed"
     else
-      info "  mySystem.$key -> true"
+      pending+=$'\n'"  mySystem.$key -> true"
     fi
   done
-  confirm "Patch $host_file as above?" || { info "skipped — set flags manually"; return 0; }
+  # pending text embedded: a bare confirm would wipe the plain lines above
+  confirm "$pending
+Patch $host_file as above?" || { info "skipped — set flags manually"; return 0; }
 
   for key in "${flips[@]}"; do
     # Match "mySystem.<key> = false;" with optional trailing whitespace;
@@ -754,7 +826,7 @@ patch_host_flags() {
       if append_once "$host_file" "^[[:space:]]*mySystem\\." "    mySystem.$key = true;"; then
         info "appended to $host_file: mySystem.$key = true"
       else
-        warn "no mySystem.* assignment found in $host_file — set mySystem.$key = true manually"
+        note "no mySystem.* assignment found in $host_file — set mySystem.$key = true manually"
       fi
     fi
   done
@@ -774,8 +846,39 @@ patch_host_flags() {
       if append_once "$host_file" "^[[:space:]]*mySystem\\." "    disko.devices.disk.nixos.device = \"$INSTALL_DISK\";"; then
         info "appended to $host_file: disko.devices.disk.nixos.device = \"$INSTALL_DISK\""
       else
-        warn "no mySystem.* assignment in $host_file — set disko.devices.disk.nixos.device = \"$INSTALL_DISK\" manually"
+        note "no mySystem.* assignment in $host_file — set disko.devices.disk.nixos.device = \"$INSTALL_DISK\" manually"
       fi
+    fi
+  fi
+}
+
+# Patch the selected host's mySystem.username to the collected TARGET_USER.
+# Idempotent like patch_host_flags: exact match is a no-op, existing assignment
+# is flipped, missing assignment is appended once after the last mySystem.* line.
+# CLI --user wins over resumed state (caller restores CLI value after load_state).
+patch_username() {
+  local name="$1"
+  local host_file="$HOSTS_DIR/$name.nix"
+  local want="${TARGET_USER:-mario}"
+  [[ -f "$host_file" ]] || { warn "host file $host_file not found — cannot patch username"; return 0; }
+
+  if grep -Eq "^[[:space:]]*mySystem\\.username[[:space:]]*=[[:space:]]*\"$want\"[[:space:]]*;" "$host_file"; then
+    info "$host_file: mySystem.username already \"$want\" — no change"
+    return 0
+  fi
+  # pending text embedded: a bare confirm would wipe the plain lines above
+  confirm "pending change in $host_file:
+  mySystem.username -> \"$want\"
+Patch $host_file as above?" || { info "skipped — set username manually"; return 0; }
+
+  if grep -Eq "^[[:space:]]*mySystem\\.username[[:space:]]*=" "$host_file"; then
+    sed -i -E "s|^[[:space:]]*mySystem\\.username[[:space:]]*=.*|    mySystem.username = \"$want\";|" "$host_file"
+    info "patched $host_file: mySystem.username = \"$want\""
+  else
+    if append_once "$host_file" "^[[:space:]]*mySystem\\." "    mySystem.username = \"$want\";"; then
+      info "appended to $host_file: mySystem.username = \"$want\""
+    else
+      note "no mySystem.* assignment found in $host_file — set mySystem.username = \"$want\" manually"
     fi
   fi
 }
@@ -784,6 +887,8 @@ step_deploy() {
   log "Deploy ($SELECTED_HOST) — execute phase"
 
   local name="$SELECTED_HOST"
+
+  [[ -n "$PASSWORD_HASH" ]] || warn "no password hash — user '${TARGET_USER:-mario}' will be locked until you set one (passwd)"
 
   # --luks without a fresh wipe leaves INSTALL_DISK empty (disko defaults
   # to /dev/sda) — offer a one-time override so the initrd finds the LUKS partition.
@@ -794,7 +899,7 @@ step_deploy() {
         if [[ "$disk_ans" =~ $DISK_PATTERN ]] && [[ -b "$disk_ans" ]]; then
           INSTALL_DISK="$disk_ans"
         else
-          warn "not a valid disk ($disk_ans) — disko device left as declared"
+          note "not a valid disk ($disk_ans) — disko device left as declared"
         fi
       else
         info "disko device left as declared (default /dev/sda)"
@@ -806,6 +911,9 @@ step_deploy() {
   # BEFORE copying the source or running nixos-rebuild. Both branches
   # below consume the (now-patched) flake.
   patch_host_flags "$name"
+
+  # Sync the selected host's mySystem.username with the collected user.
+  patch_username "$name"
 
   if is_installer_env; then
     # libgit2 refuses repos not owned by the current user (root on installer).
@@ -859,7 +967,7 @@ step_deploy() {
 # ---------------------------------------------------------------------------
 guided_menu() {
   [[ -z "$SELECTED_HOST" && ${#HOSTS[@]} -gt 0 ]] && SELECTED_HOST="${HOSTS[0]%.nix}"
-  local choice enc_txt sb_txt disk_txt pw_txt
+  local choice enc_txt sb_txt disk_txt user_txt
   while :; do
     enc_txt="off"
     [[ $ENABLE_LUKS -eq 1 ]] && enc_txt="LUKS2"
@@ -868,13 +976,13 @@ guided_menu() {
     if [[ $SKIP_WIPE -eq 1 ]]; then disk_txt="<keep, no wipe>"
     elif [[ -n "$INSTALL_DISK" ]]; then disk_txt="$INSTALL_DISK (WIPE)"
     else disk_txt="<choose>"; fi
-    pw_txt="<skipped>"; [[ -n "$PASSWORD_HASH" ]] && pw_txt="set"
+    user_txt="${TARGET_USER:-mario}, pw: set"; [[ -n "$PASSWORD_HASH" ]] || user_txt="${TARGET_USER:-mario}, pw: MISSING"
     choice="$(ask -m "Guided setup — configure, then Execute:" \
       "1" "Host            [$SELECTED_HOST]" \
       "2" "Encryption      [$enc_txt]" \
       "3" "Secure Boot     [$sb_txt]" \
       "4" "Target disk     [$disk_txt]" \
-      "5" "User password   [$pw_txt]" \
+      "5" "User            [$user_txt]" \
       "6" "USB backup      [${BACKUP_DEV:-none}]" \
       "7" ">>> Review + Execute" \
       "1")" || return 1
@@ -895,10 +1003,10 @@ guided_menu() {
            ENABLE_SECURE_BOOT=1; mark_done "flags"
          fi ;;
       4) INSTALL_DISK=""; SKIP_WIPE=0; collect_disk ;;
-      5) PASSWORD_HASH=""; step_password; mark_done "password" ;;
+      5) TARGET_USER=""; PASSWORD_HASH=""; step_user ;;
       6) BACKUP_DEV=""; collect_usb ;;
       7) return 0 ;;
-      *) warn "invalid pick: $choice" ;;
+      *) note "invalid pick: $choice" ;;
     esac
   done
 }
@@ -910,6 +1018,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -y|--yes) AN_YES_SET=1 ;;
+    --user=*) TARGET_USER="${1#--user=}"; CLI_USER=1; CLI_USER_VAL="$TARGET_USER" ;;
+    --user) if [[ $# -ge 2 ]]; then TARGET_USER="$2"; CLI_USER=1; CLI_USER_VAL="$TARGET_USER"; shift; else die "--user needs a name"; fi ;;
     --luks) ENABLE_LUKS=1; CLI_LUKS=1 ;;
     --tpm2) ENABLE_TPM2=1; CLI_TPM2=1 ;;
     --secure-boot) ENABLE_SECURE_BOOT=1; CLI_SB=1 ;;
@@ -948,13 +1058,15 @@ if [[ $RESUME -eq 1 ]]; then
     [[ $CLI_LUKS -ne -1 ]] && ENABLE_LUKS=$CLI_LUKS
     [[ $CLI_TPM2 -ne -1 ]] && ENABLE_TPM2=$CLI_TPM2
     [[ $CLI_SB -ne -1 ]] && ENABLE_SECURE_BOOT=$CLI_SB
+    # CLI --user wins over resumed state (value saved before load_state)
+    [[ $CLI_USER -eq 1 ]] && TARGET_USER="$CLI_USER_VAL"
     [[ $SKIP_WIPE =~ ^[01]$ ]] || SKIP_WIPE=0
-    info "restored: host='${SELECTED_HOST:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT (after: $COMPLETED_STEP)"
-    if ! confirm -y "Continue with restored choices?"; then
+    # summary embedded: the confirm below would wipe a plain line above
+    if ! confirm -y "Restored host='${SELECTED_HOST:-?}' user='${TARGET_USER:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT. Continue?"; then
       clear_state; SELECTED_HOST=""; INSTALL_DISK=""; info "starting fresh"
     fi
   else
-    warn "no saved state at $STATE_FILE — starting fresh"
+    note "no saved state at $STATE_FILE — starting fresh"
   fi
 fi
 trap save_state INT TERM EXIT
@@ -967,7 +1079,7 @@ else
   collect_flags
   collect_disk
   collect_luks_pw
-  step_password; mark_done "password"
+  step_user
   collect_usb
 fi
 print_plan

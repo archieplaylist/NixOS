@@ -1,8 +1,8 @@
-# mario home niri: validated config.kdl, noctalia wallpaper/app-themes,
+# primary home niri: validated config.kdl, noctalia wallpaper/app-themes,
 # shared wallpaper, Bibata cursor + GTK font/icon theming, keyring, polkit agent.
 # Alacritty unmanaged here — noctalia owns alacritty.toml (its hook can't write through a store symlink).
 _: {
-  config.home.modules.mario = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "niri") {
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "niri") {
     # unstable niri validates, same package that runs the session
     xdg.configFile."niri/config.kdl".source = pkgs.runCommand "niri-config-checked"
       {
@@ -14,7 +14,7 @@ _: {
     # noctalia merges every *.toml here; GUI settings.toml still wins
     xdg.configFile."noctalia/wallpaper.toml".text = ''
       [wallpaper.default]
-      path = "/home/mario/Pictures/Wallpapers/wallpaper.jpg"
+      path = "/home/${osConfig.mySystem.username}/Pictures/Wallpapers/wallpaper.jpg"
     '';
     # builtin alacritty colors follow noctalia palette; alacritty.toml stays unmanaged so noctalia can own its include
     xdg.configFile."noctalia/app-themes.toml".text = ''

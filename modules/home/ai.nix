@@ -1,7 +1,7 @@
 # AI agents — pi-coding-agent (pi) + opencode, gated on appGroups.ai.enable.
 # Sections merged into one condition, behavior unchanged.
 { inputs, ... }: {
-  config.home.modules.mario = { lib, pkgs, osConfig, ... }:
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }:
     {
       config = lib.mkIf osConfig.mySystem.appGroups.ai.enable {
         home.packages = [

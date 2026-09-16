@@ -1,7 +1,7 @@
-# mario home xfce: packages only (no declarative config — set manually in
+# primary home xfce: packages only (no declarative config — set manually in
 # Appearance), plus alacritty basics (niri excluded, noctalia owns it there).
 _: {
-  config.home.modules.mario = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "xfce") {
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "xfce") {
     home.packages = with pkgs; [
       xfce4-terminal
       xfce4-screenshooter
