@@ -181,11 +181,11 @@ _: {
         };
 
         systemd.tmpfiles.rules = [
-          "d /home/*/.cache/mozilla/firefox/*/cache2 - - - 7d"
-          "d /home/*/.cache/chromium/*/Cache - - - 7d"
-          "d /home/*/.cache/thumbnails - - - 30d"
-          "d /tmp/nix-build-* - - - 3d"
-          "d /var/tmp/nix-build-* - - - 3d"
+          "e /home/*/.cache/mozilla/firefox/*/cache2 - - - 7d"
+          "e /home/*/.cache/chromium/*/Cache - - - 7d"
+          "e /home/*/.cache/thumbnails - - - 30d"
+          "e /tmp/nix-build-* - - - 3d"
+          "e /var/tmp/nix-build-* - - - 3d"
         ];
       }
 
