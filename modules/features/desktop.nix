@@ -1,5 +1,5 @@
 # Desktop slot: shared X/Bluetooth/NetworkManager/Flatpak + PipeWire,
-# GNOME/GDM, Niri/Ly, XFCE/LightDM. Sections merged, behavior unchanged.
+# GNOME/GDM, Niri/Ly, XFCE/LightDM, Plasma/SDDM. Sections merged, behavior unchanged.
 _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
@@ -111,6 +111,20 @@ _: {
           config.niri."org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
           config.common.default = "gtk";
         };
+      })
+
+      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "plasma") {
+        services = {
+          displayManager.sddm = {
+            enable = true;
+            wayland.enable = true;
+          };
+          desktopManager.plasma6.enable = true;
+          gnome.gnome-keyring.enable = true;
+        };
+
+        # shared Login keyring unlocks at SDDM login, same as the other DEs
+        security.pam.services.sddm.enableGnomeKeyring = true;
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {

@@ -18,12 +18,12 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── mySystem.nix     # mySystem.* options + GNOME extension source of truth
 │   │   ├── base.nix         # locale/firewall/printing, ssh/docker/tailscale, store upkeep, nix-ld, user
 │   │   ├── filesystems.nix  # XFS by label, or LUKS2 via disko
-│   │   ├── desktop.nix      # GNOME/Niri/XFCE + PipeWire + flatpak
+│   │   ├── desktop.nix      # GNOME/Niri/XFCE/Plasma + PipeWire + flatpak
 │   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers + low-latency audio
 │   │   └── hardware.nix     # intel, uefi, laptop, vm-guest slots
 │   ├── home/            # home-manager modules (all merge into home.modules.primary)
 │   │   ├── core.nix / apps.nix / ai.nix (pi + opencode)
-│   │   ├── desktops.nix (gnome/niri/xfce/themes) / easyeffects.nix
+│   │   ├── desktops/ (gnome/niri/xfce/plasma/themes) / easyeffects.nix
 │   │   └── scripts/     # yt, tomp3, switch-de, backup-de -> ~/.local/bin
 │   └── hosts/           # one file per machine -> nixos.hosts.<name>
 └── secrets/             # local secret templates only (never commit real values)
@@ -34,7 +34,7 @@ No wiring in `flake.nix`.
 
 ## Host flags (`mySystem.*`)
 
-- `enableDesktop` + `desktop = "gnome" | "niri" | "xfce"` — DE + GDM/Ly/LightDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
+- `enableDesktop` + `desktop = "gnome" | "niri" | "xfce" | "plasma"` — DE + GDM/Ly/LightDM/SDDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
 - `enableLaptop` / `enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSmartd`.
 - `enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install only (repartition required).
 - `flatpakApps`, `gnomeExtensions`, `sshAuthorizedKeys`.
@@ -49,12 +49,12 @@ No wiring in `flake.nix`.
 
 - `yt <url>` / `yt -a <url>` — video / audio-only to `~/Downloads`.
 - `tomp3 file...` — to 192k MP3 in place.
-- `switch-de <gnome|niri|xfce>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
-- `backup-de backup [gnome|niri|xfce|all]|restore <file>|list` — dconf dump/load (gnome) + file tars, newest 3 kept per DE. `switch-de` prompts for a backup when none exists.
+- `switch-de <gnome|niri|xfce|plasma>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
+- `backup-de backup [gnome|niri|xfce|plasma|all]|restore <file>|list` — dconf dump/load (gnome) + file tars, newest 3 kept per DE. `switch-de` prompts for a backup when none exists.
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), Niri (Ly/Wayland, Noctalia v5 shell, unstable), XFCE (LightDM/X11). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (GNOME only, unstable `pkgs.orchis-theme`): Orchis-Dark + Tela-circle-dark + Bibata — Niri/XFCE stay stock defaults.
+GNOME (GDM/Wayland), Niri (Ly/Wayland, Noctalia v5 shell, unstable), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (GNOME only, unstable `pkgs.orchis-theme`): Orchis-Dark + Tela-circle-dark + Bibata — Niri/XFCE/Plasma stay stock defaults.
 
 ## Flatpak
 
