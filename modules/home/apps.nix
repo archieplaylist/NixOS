@@ -35,10 +35,11 @@ _: {
         python3
         gnumake
       ]))
-      (lib.mkIf osConfig.mySystem.appGroups.browsers.enable (with pkgs; [
-        firefox
-        vivaldi
-      ]))
+      (lib.mkIf osConfig.mySystem.appGroups.browsers.enable [
+        pkgs.firefox
+        # Chromium picks backend from XDG_CURRENT_DESKTOP (kwallet on plasma, basic store on niri) — force libsecret so Login keyring stores tokens, same as vscode above
+        (pkgs.vivaldi.override { commandLineArgs = "--password-store=gnome-libsecret"; })
+      ])
       (lib.mkIf osConfig.mySystem.appGroups.media.enable (with pkgs; [
         vlc
         mpv
