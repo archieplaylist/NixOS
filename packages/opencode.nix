@@ -1,40 +1,31 @@
-# OpenCode 2 CLI package (beta)
-# Simple wrapper that runs npm install on first use
+# OpenCode v2 CLI — prebuilt single-file binary from the npm platform package.
+# No npm at build or runtime; nodejs is not needed.
+# Bump: `make update-opencode` (nix-update --flake opencode, follows npm dist-tag latest).
 { lib, pkgs }:
 
-pkgs.stdenv.mkDerivation {
+pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "opencode";
-  version = "2.0.6";
-  
-  nativeBuildInputs = [ pkgs.makeWrapper ];
-  
-  buildCommand = ''
-    mkdir -p $out/bin
-    
-    cat > $out/bin/opencode <<'EOF'
-    #!/usr/bin/env bash
-    set -e
-    
-    # Install @opencode/cli@beta via npm global
-    # This runs on first use and caches in npm global directory
-    if ! npm list -g @opencode/cli@beta &> /dev/null; then
-      echo "Installing @opencode/cli@beta via npm..."
-      npm install -g @opencode/cli@beta
-    fi
-    
-    # Run opencode (v2 binary)
-    exec opencode "$@"
-    EOF
-    
-    chmod +x $out/bin/opencode
-    wrapProgram $out/bin/opencode --prefix PATH : ${lib.makeBinPath [ pkgs.nodejs ]}
+  version = "2.0.7";
+
+  src = pkgs.fetchurl {
+    url = "https://registry.npmjs.org/@opencode/cli-linux-x64/-/cli-linux-x64-${finalAttrs.version}.tgz";
+    hash = "sha256-tvLryZvjh/OyYih2qHVeDj+HVJfWiVYrvfJdV7pzTss=";
+  };
+
+  sourceRoot = "package";
+  dontBuild = true;
+
+  installPhase = ''
+    runHook preInstall
+    install -Dm755 bin/opencode $out/bin/opencode
+    runHook postInstall
   '';
-  
+
   meta = with lib; {
-    description = "OpenCode 2 CLI - open source AI coding agent (beta)";
+    description = "OpenCode 2 CLI - open source AI coding agent";
     homepage = "https://opencode.ai/v2";
     license = licenses.mit;
-    platforms = platforms.unix;
+    platforms = [ "x86_64-linux" ];
     mainProgram = "opencode";
   };
-}
+})

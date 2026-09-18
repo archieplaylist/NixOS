@@ -4,7 +4,7 @@
 #   make switch HOST=<host>  rebuild + activate (default: desktop)
 HOST ?= desktop
 
-.PHONY: help check fmt fmt-check hooks build boot switch clean update develop
+.PHONY: help check fmt fmt-check hooks build boot switch clean update develop update-opencode
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' Makefile | sed 's/:.*##/:/' | sort
@@ -35,6 +35,9 @@ clean: ## Garbage collect (nh clean all)
 
 update: ## Refresh flake inputs
 	nix flake update
+
+update-opencode: ## Bump opencode to the latest 2.x npm release (version + hash)
+	nix develop --command nix-update --flake opencode
 
 develop: ## Enter a shell with the formatter and Nix linters
 	nix develop
