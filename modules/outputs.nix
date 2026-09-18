@@ -25,8 +25,8 @@ let
           (_final: prev: {
             # orchis from unstable for latest release (stable lags)
             orchis-theme = prev.unstable.orchis-theme;
-            # opencode2 - custom package for v2 beta
-            opencode2 = prev.callPackage ../packages/opencode2.nix { };
+            # opencode - custom package for v2 beta
+            opencode = prev.callPackage ../packages/opencode.nix { };
           })
         ];
       }

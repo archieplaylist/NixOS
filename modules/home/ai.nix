@@ -1,4 +1,4 @@
-# AI agents — pi-coding-agent (pi) + opencode2, gated on appGroups.ai.enable.
+# AI agents — pi-coding-agent (pi) + opencode, gated on appGroups.ai.enable.
 # Sections merged into one condition, behavior unchanged.
 { inputs, ... }: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }:
@@ -9,7 +9,7 @@
           pkgs.nodejs
           pkgs.unstable.pi-coding-agent
           pkgs.xdg-utils
-          pkgs.opencode2
+          pkgs.opencode
         ];
 
         # qmd binary for pi-memory `memory_search` (not in nixpkgs):
@@ -168,7 +168,6 @@
         # same upstream skill dirs as pi above, versioned in flake.lock.
         # Per-dir entries only — never manage ~/.config/opencode/ as a whole,
         # or imperative `plugin` installs in opencode.json get wiped on rebuild.
-        # V2 uses ~/.config/opencode/ structure similar to V1
         xdg.configFile."opencode/skills/ponytail".source = "${inputs.ponytail}/skills/ponytail";
         xdg.configFile."opencode/skills/caveman".source = "${inputs.caveman}/skills/caveman";
       };

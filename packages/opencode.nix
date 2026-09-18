@@ -3,7 +3,7 @@
 { lib, pkgs }:
 
 pkgs.stdenv.mkDerivation {
-  pname = "opencode2";
+  pname = "opencode";
   version = "2.0.6";
   
   nativeBuildInputs = [ pkgs.makeWrapper ];
@@ -11,11 +11,12 @@ pkgs.stdenv.mkDerivation {
   buildCommand = ''
     mkdir -p $out/bin
     
-    cat > $out/bin/opencode2 <<'EOF'
+    cat > $out/bin/opencode <<'EOF'
     #!/usr/bin/env bash
     set -e
     
     # Install @opencode/cli@beta via npm global
+    # This runs on first use and caches in npm global directory
     if ! npm list -g @opencode/cli@beta &> /dev/null; then
       echo "Installing @opencode/cli@beta via npm..."
       npm install -g @opencode/cli@beta
@@ -25,8 +26,8 @@ pkgs.stdenv.mkDerivation {
     exec opencode "$@"
     EOF
     
-    chmod +x $out/bin/opencode2
-    wrapProgram $out/bin/opencode2 --prefix PATH : ${lib.makeBinPath [ pkgs.nodejs ]}
+    chmod +x $out/bin/opencode
+    wrapProgram $out/bin/opencode --prefix PATH : ${lib.makeBinPath [ pkgs.nodejs ]}
   '';
   
   meta = with lib; {
@@ -34,6 +35,6 @@ pkgs.stdenv.mkDerivation {
     homepage = "https://opencode.ai/v2";
     license = licenses.mit;
     platforms = platforms.unix;
-    mainProgram = "opencode2";
+    mainProgram = "opencode";
   };
 }
