@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091,SC2154  # de-paths arrays are sourced at runtime
 # backup-de — backup/restore per-DE config (gnome/niri/xfce/plasma)
 # dconf dump/load for gnome (native), tar of DE file lists for the rest.
 # No manifests, no live-reload — restore + relogin. Auto-prune keeps newest 3 per DE.
@@ -17,28 +18,10 @@ REPO="$(detect_repo)"
 BASE="${BACKUP_DIR:-${REPO:+$REPO/backups}}"
 BASE="${BASE:-${XDG_DATA_HOME:-$HOME/.local/share}/de-backups}"
 
-# File lists mirror switch-de's archive lists (minus dconf DB — the dump covers it).
+# Per-DE path lists live in de-paths (shared with switch-de).
 # Symlinks stored as-is (never followed into /nix/store); wallets/caches skipped.
-niri_paths=(
-  ".config/niri" ".config/noctalia"
-  ".config/alacritty"
-  ".local/state/noctalia"
-)
-gnome_files=(
-  ".config/mutter"
-  ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
-)
-xfce_paths=(
-  ".config/xfce4" ".config/xfconf" ".config/xfce4-session"
-  ".config/Thunar" ".local/share/xfce4"
-)
-plasma_paths=(
-  ".config/plasma*" ".config/kde*" ".config/KDE"
-  ".config/kwin*" ".config/kglobal*" ".config/kwallet*"
-  ".config/katerc" ".config/kate" ".config/konsolerc"
-  ".local/share/plasma" ".local/share/kwalletd" ".local/share/kscreen"
-  ".local/share/konsole" ".local/share/kate"
-)
+# shellcheck source=./de-paths
+. "$(dirname "${BASH_SOURCE[0]}")/de-paths"
 
 usage() { cat <<'USAGE'
 backup-de backup [gnome|niri|xfce|plasma|all]  → backups/<de>/<de>-*.{dconf,tar.gz} (default: current DE)
@@ -51,6 +34,7 @@ USAGE
 prune() {
   local dir="$1" pat="$2" n=0 f
   [ -d "$dir" ] || return 0
+  # shellcheck disable=SC2010  # names are dates + DE names, no whitespace
   # shellcheck disable=SC2086
   while IFS= read -r f; do
     n=$((n + 1))

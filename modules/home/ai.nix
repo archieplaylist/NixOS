@@ -77,6 +77,8 @@
 
         # pi ships no plan mode — this stub adds /plan with a file gate.
         # Defensive no-op if ExtensionAPI drifts (never break `pi` boot or `/reload`).
+        # Re-check on each `nix flake update`: drop these stubs once pi ships
+        # native plan/ask modes, and smoke-test `/plan` + `/ask` after upgrades.
         home.file.".pi/agent/extensions/plan-mode.ts".text = ''
           export default function (pi: any) {
             try {

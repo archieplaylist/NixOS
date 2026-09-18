@@ -5,8 +5,9 @@ _: {
     config = lib.mkMerge [
       (lib.mkIf config.mySystem.enableDesktop {
         services = {
-          xserver.enable = true;
           blueman.enable = config.mySystem.desktop != "plasma";
+          # ppd owns the CPU governor on desktop hosts; vm left to its host defaults
+          power-profiles-daemon.enable = !config.mySystem.isVm;
           flatpak = {
             enable = true;
             packages = config.mySystem.flatpakApps;
@@ -39,10 +40,13 @@ _: {
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "gnome") {
         services = {
+          xserver.enable = true;
           displayManager.gdm.enable = true;
           gnome.gnome-keyring.enable = true;
           desktopManager.gnome = {
             enable = true;
+            # system-wide override so the GDM login shell can load extensions
+            # pre-login; the user session list is set in home/desktops/gnome.nix
             extraGSettingsOverrides = ''
               [org.gnome.shell]
               enabled-extensions=[${lib.concatMapStringsSep ", " (e: "'" + e.uuid + "'") config.mySystem.gnomeExtensions}]
@@ -87,7 +91,6 @@ _: {
         # noctalia v5 from nixpkgs-unstable (same overlay as discord/vscode, no new flake input)
         # recommendedServices equiv: NM/BT already on above, upower + power-profiles here
         services.upower.enable = true;
-        services.power-profiles-daemon.enable = lib.mkIf (!config.services.tuned.enable) true;
         services.displayManager.ly.enable = true;
         services.gnome.gnome-keyring.enable = true;
         # gnome-keyring owns ssh here; gcr would run a second ssh agent
@@ -129,6 +132,7 @@ _: {
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {
         services = {
+          xserver.enable = true;
           xserver.displayManager.lightdm.enable = true;
 
           # Greeter stock defaults (no custom theme)

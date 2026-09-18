@@ -18,11 +18,12 @@
     mySystem.enableSunshine = true;
     mySystem.enableMoonlight = true;
 
-    mySystem.appGroups.comms.enable = false;
-    mySystem.appGroups.dev.enable = false;
-    mySystem.appGroups.work.enable = false;
-
-    powerManagement.cpuFreqGovernor = "performance";
+    mySystem.appGroups.browsers.enable = true;
+    mySystem.appGroups.media.enable = true;
+    mySystem.appGroups.office.enable = true;
+    mySystem.appGroups.editor.enable = true;
+    mySystem.appGroups.gaming.enable = true;
+    mySystem.appGroups.ai.enable = true;
 
     mySystem.flatpakApps = lib.mkAfter [ "com.mattjakeman.ExtensionManager" ];
   };

@@ -1,0 +1,5 @@
+# statix config — keep the lint gate focused on real issues.
+# manual_inherit_from / repeated_keys are style preferences this repo opts out of
+# (mkMerge + dotted attrsets are intentional); everything else stays on.
+disabled = [ "manual_inherit_from", "repeated_keys" ]
+ignore = [ ".direnv" ]

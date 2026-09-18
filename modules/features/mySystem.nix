@@ -12,6 +12,16 @@ _: {
         default = "mario";
         description = "Primary user for this host.";
       };
+      gitName = lib.mkOption {
+        type = lib.types.str;
+        default = "archieplaylist";
+        description = "Git user.name for the primary user.";
+      };
+      gitEmail = lib.mkOption {
+        type = lib.types.str;
+        default = "archieplaylist@users.noreply.github.com";
+        description = "Git user.email for the primary user.";
+      };
       sshAuthorizedKeys = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
@@ -36,6 +46,11 @@ _: {
         type = lib.types.bool;
         default = false;
         description = "Enable the OpenSSH server.";
+      };
+      sshPasswordAuth = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Allow SSH password login. Prefer keys; enable only for bootstrap or legacy clients.";
       };
       enableDocker = lib.mkOption {
         type = lib.types.bool;
@@ -69,10 +84,10 @@ _: {
               };
             in
             lib.mapAttrs
-              (name: description: {
+              (_name: description: {
                 enable = lib.mkOption {
                   type = lib.types.bool;
-                  default = name != "work";
+                  default = false;
                   inherit description;
                 };
               })

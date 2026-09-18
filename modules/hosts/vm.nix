@@ -18,15 +18,10 @@
     mySystem.enableSunshine = true;
     mySystem.enableMoonlight = true;
 
-    mySystem.appGroups.gaming.enable = false;
-    mySystem.appGroups.dev.enable = false;
-    mySystem.appGroups.work.enable = false;
-    mySystem.appGroups.comms.enable = false;
-    mySystem.appGroups.office.enable = false;
-    mySystem.appGroups.editor.enable = false;
-    mySystem.appGroups.ai.enable = false;
+    mySystem.appGroups.browsers.enable = true;
+    mySystem.appGroups.media.enable = true;
 
-    mySystem.enableLuks= true;
+    mySystem.enableLuks = true;
 
     # vm never prints — save CUPS + Avahi broadcast
     services.printing.enable = false;

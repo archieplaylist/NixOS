@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034  # arrays are consumed by the scripts that source this file
+# Shared per-DE config path lists, sourced by switch-de and backup-de.
+# Patterns are relative to $HOME. Keep both scripts in sync through this file —
+# never re-declare these arrays in the scripts.
+# Wallets/keyrings/caches are intentionally absent: never archived or backed up.
+
+niri_paths=(
+  ".config/niri" ".config/noctalia"
+  ".config/alacritty"
+  ".local/state/noctalia"
+)
+
+# switch-de archives the dconf DB; backup-de dumps it instead (gnome_files below)
+gnome_paths=(
+  ".config/dconf" ".config/mutter"
+  ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
+)
+gnome_files=(
+  ".config/mutter"
+  ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
+)
+
+xfce_paths=(
+  ".config/xfce4" ".config/xfconf" ".config/xfce4-session"
+  ".config/Thunar" ".local/share/xfce4"
+)
+
+plasma_paths=(
+  ".config/plasma*" ".config/kde*" ".config/KDE"
+  ".config/kwin*" ".config/kglobal*" ".config/kwallet*"
+  ".config/katerc" ".config/kate" ".config/konsolerc"
+  ".local/share/plasma" ".local/share/kwalletd" ".local/share/kscreen"
+  ".local/share/konsole" ".local/share/kate"
+)

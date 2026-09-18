@@ -56,11 +56,11 @@ _: {
       }
 
       {
-        # password login on purpose (keys optional) — user password comes from /etc/hashed-password
+        # key-only by default; set mySystem.sshPasswordAuth = true for legacy/bootstrap clients
         services.openssh = lib.mkIf config.mySystem.enableSSH {
           enable = true;
           settings = {
-            PasswordAuthentication = true;
+            PasswordAuthentication = config.mySystem.sshPasswordAuth;
             PermitRootLogin = "no";
             KbdInteractiveAuthentication = false;
           };

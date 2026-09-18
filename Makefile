@@ -15,8 +15,8 @@ check: ## Build every host config (`nix flake check`)
 fmt: ## Reformat all Nix files (`nix fmt`)
 	nix fmt
 
-fmt-check: ## Fail if `nix fmt` would change anything (no mutation)
-	nix develop --command bash -c "nixpkgs-fmt --check ." 
+fmt-check: ## Fail if fmt/lint drifts or dead code is found (no mutation)
+	nix develop --command bash -c "nixpkgs-fmt --check . && deadnix --fail . && statix check ."
 
 hooks: ## Install the repo's git hooks (core.hooksPath -> .githooks, once per clone)
 	git config core.hooksPath .githooks

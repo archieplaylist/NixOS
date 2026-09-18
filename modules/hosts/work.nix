@@ -21,9 +21,13 @@
     mySystem.sshAuthorizedKeys = [
       # "ssh-ed25519 AAAAC3... user@client" # add client pubkey here, then set enableSSH=true
     ];
+    mySystem.appGroups.browsers.enable = true;
+    mySystem.appGroups.media.enable = true;
+    mySystem.appGroups.office.enable = true;
+    mySystem.appGroups.editor.enable = true;
+    mySystem.appGroups.dev.enable = true;
+    mySystem.appGroups.ai.enable = true;
     mySystem.appGroups.work.enable = true;
-    mySystem.appGroups.gaming.enable = false;
-    mySystem.appGroups.comms.enable = false;
 
     # base firewall already denies incoming; just punch HTTP
     networking.firewall.allowedTCPPorts = [ 80 ];

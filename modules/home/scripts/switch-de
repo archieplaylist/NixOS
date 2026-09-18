@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091,SC2154  # de-paths arrays are sourced at runtime
 # switch-de <gnome|niri|xfce|plasma>
 #
 # Switches this machine's desktop environment: flips the mySystem.desktop line
@@ -35,26 +36,8 @@ ARCHIVE_DIR="$HOME/.local/share/de-archive"
 # Login password must == keyring password for PAM auto-unlock, else seahorse prompt once.
 
 # Runtime state owned by each DE, relative to $HOME (glob patterns).
-niri_paths=(
-  ".config/niri" ".config/noctalia"
-  ".config/alacritty"
-  ".local/state/noctalia"
-)
-gnome_paths=(
-  ".config/dconf" ".config/mutter"
-  ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
-)
-xfce_paths=(
-  ".config/xfce4" ".config/xfconf" ".config/xfce4-session"
-  ".config/Thunar" ".local/share/xfce4"
-)
-plasma_paths=(
-  ".config/plasma*" ".config/kde*" ".config/KDE"
-  ".config/kwin*" ".config/kglobal*" ".config/kwallet*"
-  ".config/katerc" ".config/kate" ".config/konsolerc"
-  ".local/share/plasma" ".local/share/kwalletd" ".local/share/kscreen"
-  ".local/share/konsole" ".local/share/kate"
-)
+# shellcheck source=./de-paths
+. "$(dirname "${BASH_SOURCE[0]}")/de-paths"
 
 host_module() {
   # derive from host files first — new hosts need no script edit

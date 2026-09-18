@@ -24,7 +24,7 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   ├── home/            # home-manager modules (all merge into home.modules.primary)
 │   │   ├── core.nix / apps.nix / ai.nix (pi + opencode)
 │   │   ├── desktops/ (gnome/niri/xfce/plasma/themes) / easyeffects.nix
-│   │   └── scripts/     # yt, tomp3, switch-de, backup-de -> ~/.local/bin
+│   │   └── scripts/     # yt, tomp3, switch-de, backup-de (+ de-paths shared lists) -> ~/.local/bin
 │   └── hosts/           # one file per machine -> nixos.hosts.<name>
 └── secrets/             # local secret templates only (never commit real values)
 ```
@@ -35,10 +35,10 @@ No wiring in `flake.nix`.
 ## Host flags (`mySystem.*`)
 
 - `enableDesktop` + `desktop = "gnome" | "niri" | "xfce" | "plasma"` — DE + GDM/Ly/LightDM/SDDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
-- `enableLaptop` / `enableSSH` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSmartd`.
+- `enableLaptop` / `enableSSH` / `sshPasswordAuth` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSmartd`. SSH is key-only by default (`sshAuthorizedKeys`); set `sshPasswordAuth = true` only for bootstrap/legacy clients.
 - `enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install only (repartition required).
 - `flatpakApps`, `gnomeExtensions`, `sshAuthorizedKeys`.
-- `appGroups.{browsers,media,office,comms,editor,gaming,dev,work,ai}.enable` — package toggles shared by system + home (`apps.nix` via `osConfig`).
+- `appGroups.{browsers,media,office,comms,editor,gaming,dev,work,ai}.enable` — package toggles shared by system + home (`apps.nix` via `osConfig`). Off by default: each host opts in explicitly.
 
 ## Application groups (`modules/home/apps.nix`)
 
@@ -93,6 +93,6 @@ nh clean all            # GC (weekly timer does this automatically)
 
 - Boot menu lists generations (systemd-boot, limit 10); `nh os rollback` reverts the last switch.
 - `nixpkgs-unstable` + stable both in `flake.lock`; most packages are stable, only fresher apps use `pkgs.unstable`.
-- SSH allows password login; `mySystem.sshAuthorizedKeys` is optional extra. `work` template: paste pubkey, set `enableSSH = true`, `make check && nh os switch -H work`.
+- SSH is key-only by default; `mySystem.sshAuthorizedKeys` provides access, `mySystem.sshPasswordAuth = true` re-enables password login (e.g. `work` template: paste pubkey, set `enableSSH = true`, `make check && nh os switch -H work`).
 - `programs.nix-ld` ships a minimal lib set; when an unpatched binary misses a lib: `nix run github:nix-community/nix-index-database -- lib/<name>.so`, then add it to `modules/features/base.nix` (nix-ld section).
 - OOM handling is `earlyoom` only (no `systemd.oomd`).

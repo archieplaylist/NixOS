@@ -12,6 +12,7 @@ _: {
       enable = true;
       components = [ "secrets" "ssh" ];
     };
+    home.sessionVariables.SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
 
     xdg.configFile."alacritty/alacritty.toml".text = ''
       [window]

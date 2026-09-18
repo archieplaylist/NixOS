@@ -23,35 +23,19 @@ _: {
       builtin_ids = ["alacritty"]
     '';
     home.file."Pictures/Wallpapers/wallpaper.jpg".source = ../assets/wallpaper.jpg;
-    # Bibata everywhere — cursor{} in config.kdl, GTK/XCURSOR here
+    # Bibata everywhere — cursor{} in config.kdl, GTK/XCURSOR shared via theming.nix
     home.pointerCursor = {
       package = pkgs.bibata-cursors;
       name = "Bibata-Modern-Classic";
       size = 24;
       gtk.enable = true;
     };
-    gtk = {
-      enable = true;
-      font = {
-        package = pkgs.noto-fonts;
-        name = "Noto Sans";
-        size = 10;
-      };
-      cursorTheme = {
-        name = "Bibata-Modern-Classic";
-        package = pkgs.bibata-cursors;
-        size = 24;
-      };
-      iconTheme = {
-        name = "Tela-circle-dark";
-        package = pkgs.tela-circle-icon-theme;
-      };
-    };
     # ly PAM unlock is flaky — user daemon guarantees secrets+ssh socket
     services.gnome-keyring = {
       enable = true;
       components = [ "secrets" "ssh" ];
     };
+    home.sessionVariables.SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
     # niri has no auth agent; without this keyring/polkit prompts hang
     systemd.user.services.polkit-gnome-authentication-agent-1 = {
       Unit = {

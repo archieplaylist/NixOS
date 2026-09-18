@@ -3,6 +3,7 @@ result
 .direnv
 *.swp
 .kilo
+*.bak
 PLAN.md
 
 # DE backups are machine-local (large binaries) — except 1 git-tracked *-latest per DE
