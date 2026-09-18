@@ -76,6 +76,82 @@ Filesystems are by label (`nixos-root` / `nixos-boot`); LUKS2 is `cryptroot` via
 
 Password later: `printf '%s\n' "$(openssl passwd -6)" | sudo tee /etc/hashed-password` + rebuild, or `sudo passwd $USER`.
 
+## Username Flexibility
+
+The configuration supports flexible usernames via `mySystem.username` (default: `mario`).
+
+### Fresh Install with Custom Username
+
+Use the `--user` flag during installation:
+
+```bash
+sudo ./setup.sh --user=alice
+# Or answer the username prompt interactively
+```
+
+The installer will:
+1. Validate the username format (lowercase, alphanumeric, underscores/hyphens)
+2. Patch the selected host file with `mySystem.username = "alice"`
+3. Configure the system for the specified username
+4. Set up home-manager for the new user
+
+### Existing System Username Change
+
+To change the username on an existing system:
+
+1. **Edit the host configuration:**
+   ```nix
+   # modules/hosts/<host>.nix
+   mySystem.username = "newname";
+   ```
+
+2. **Rebuild the system:**
+   ```bash
+   nh os switch -H <host>
+   ```
+
+3. **Manual migration steps required:**
+   ```bash
+   # Create the new user
+   sudo useradd -m newname
+
+   # Set password for the new user
+   sudo passwd newname
+
+   # Migrate data from old home directory
+   sudo rsync -a /home/oldname/ /home/newname/
+
+   # Fix permissions
+   sudo chown -R newname:newname /home/newname
+
+   # Remove old user (after verifying everything works)
+   sudo userdel oldname
+   ```
+
+### Per-Host Usernames
+
+Each host file can specify different usernames:
+
+```nix
+# modules/hosts/desktop.nix
+mySystem.username = "mario";
+
+# modules/hosts/laptop.nix  
+mySystem.username = "alice";
+```
+
+To share the repo across machines with different users:
+1. Copy the repo to the new machine
+2. Change `mySystem.username` in the appropriate host file
+3. Run `nh os switch -H <host>`
+
+### Important Notes
+
+- **Live migration not supported:** Changing usernames requires manual data migration
+- **Git identity separate:** `mySystem.gitName` and `mySystem.gitEmail` are independent of username
+- **State persistence:** The setup script saves username choice in `/var/tmp/nixos-setup.state` for crash recovery
+- **Validation:** Usernames must match regex `^[a-z_][a-z0-9_-]*$` (lowercase, no leading digits)
+
 ## Day-to-day
 
 ```bash
