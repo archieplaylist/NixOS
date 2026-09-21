@@ -63,6 +63,7 @@ _: {
         environment.systemPackages = with pkgs; [
           gnome-tweaks
           dconf-editor
+          networkmanagerapplet # nm-connection-editor: GNOME Settings has no add-ethernet UI
         ] ++ (map (e: pkgs.gnomeExtensions.${e.package}) config.mySystem.gnomeExtensions);
 
         environment.gnome.excludePackages = with pkgs; [

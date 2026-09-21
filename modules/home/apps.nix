@@ -18,6 +18,7 @@ _: {
         zip
         unrar
         file-roller
+        pkgs.unstable.rpi-imager
       ])
       (lib.mkIf (osConfig.mySystem.desktop == "gnome" || osConfig.mySystem.desktop == "niri") (with pkgs; [
         nautilus
