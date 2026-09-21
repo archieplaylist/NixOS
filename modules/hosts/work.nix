@@ -29,8 +29,8 @@
     mySystem.appGroups.ai.enable = true;
     mySystem.appGroups.work.enable = true;
 
-    # base firewall already denies incoming; just punch HTTP
-    networking.firewall.allowedTCPPorts = [ 80 ];
+    # base firewall already denies incoming; just punch HTTP + HL7 MLLP
+    networking.firewall.allowedTCPPorts = [ 80 2575 ];
 
     mySystem.flatpakApps = lib.mkAfter [
       "rest.insomnia.Insomnia"
