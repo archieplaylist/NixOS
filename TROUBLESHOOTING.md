@@ -295,22 +295,41 @@ systemctl status sddm
 journalctl -xe
 ```
 
-### XFCE: Applications look wrong
+### XFCE: settings reset to defaults after rebuild/switch
 
-**Cause:** Missing GTK themes or icon themes  
-**Symptoms:** Applications have wrong appearance or missing icons  
-**Solution:**
+**Cause:** Xfce settings live in two layers, and only one of them is Nix-owned.
+User values in `~/.config/xfce4/xfconf/xfce-perchannel-xml/` override the
+declarative system defaults in `/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/`
+(sources: `modules/home/assets/xfce/`) plus the copy-if-missing seed from
+`home.activation.seedXfceDefaults`. A plain `nh os switch` never deletes the
+user layer — if settings vanished, something else moved or replaced the files.
+**Diagnostics (in order):**
 ```bash
-# Check installed themes
-ls /usr/share/themes/
-ls /usr/share/icons/
+# 1. switch-de archives the DE you leave into ~/.local/share/de-archive/<de>/
+#    and only restores the target if the archive still exists
+ls ~/.local/share/de-archive/
 
-# Install missing themes if needed
-# This config uses stock themes for XFCE
+# 2. home-manager renames files it newly owns instead of overwriting them
+find ~/.config -name '*.hm-backup'   # e.g. user-dirs.dirs, easyeffects presets
 
-# Check GTK settings
-gtk-query-settings
+# 3. build-vm guests keep their disk (nixos.qcow2) in the launch directory —
+#    a different CWD (or a reverted VirtualBox snapshot) boots a fresh home
+ls *.qcow2; VBoxManage snapshot "NixOS" list
+
+# 4. check what the system layer actually provides right now
+ls /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/ /etc/xdg/xfce4/panel/
 ```
+**Notes:**
+- Per-monitor wallpaper keys can't be predetermined (RandR names differ between
+  qemu/VirtualBox), so the wallpaper is intentionally NOT in the system defaults:
+  set it once in the GUI; it persists in the user file, which `backup-de backup xfce`
+  covers going forward.
+- To re-adopt a changed Nix default, delete the corresponding user channel file
+  (user values always shadow system ones), then rebuild + relogin:
+  `rm ~/.config/xfce4/xfconf/xfce-perchannel-xml/<channel>.xml`
+- GTK theme packages (`orchis-theme`, `tela-circle-icon-theme`, `bibata-cursors`)
+  are installed by `desktops/xfce.nix`; the theme *selection* is the `xsettings.xml`
+  default, overridable in Appearance.
 
 ### Screen tearing in games
 

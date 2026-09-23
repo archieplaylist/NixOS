@@ -54,7 +54,7 @@ No wiring in `flake.nix`.
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), Niri (Ly/Wayland, Noctalia v5 shell, unstable), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (GNOME only, unstable `pkgs.orchis-theme`): Orchis-Dark + Tela-circle-dark + Bibata — Niri/XFCE/Plasma stay stock defaults.
+GNOME (GDM/Wayland), Niri (Ly/Wayland, Noctalia v5 shell, unstable), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (Orchis-Dark + Tela-circle-dark + Bibata, unstable `pkgs.orchis-theme`): GNOME via dconf + home-manager gtk, XFCE via declarative xfconf system defaults (`/etc/xdg/xfce4/...`, sources in `modules/home/assets/xfce/`) plus a copy-if-missing seed into `~/.config/xfce4/xfconf/` — user GUI edits always win. Niri/Plasma stay stock defaults.
 
 ## Flatpak
 
