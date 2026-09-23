@@ -149,6 +149,24 @@ _: {
 
         security.pam.services.lightdm.enableGnomeKeyring = true;
 
+        # Declarative Xfce defaults: xfconfd merges these system channel files
+        # with the user's ~/.config/xfce4/xfconf/xfce-perchannel-xml/ (user wins),
+        # so a wiped home dir still boots into our theme/layout instead of stock.
+        # The home-manager seed in desktops/xfce.nix copies the same files into
+        # the user dir when missing (belt & braces); user GUI edits always win.
+        environment.etc = {
+          "xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml".source = ../home/assets/xfce/xsettings.xml;
+          "xdg/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml".source = ../home/assets/xfce/xfwm4.xml;
+          "xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml".source = ../home/assets/xfce/xfce4-desktop.xml;
+          "xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml".source = ../home/assets/xfce/xfce4-session.xml;
+          "xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-power-manager.xml".source = ../home/assets/xfce/xfce4-power-manager.xml;
+          "xdg/xfce4/xfconf/xfce-perchannel-xml/keyboards.xml".source = ../home/assets/xfce/keyboards.xml;
+          "xdg/xfce4/xfconf/xfce-perchannel-xml/thunar.xml".source = ../home/assets/xfce/thunar.xml;
+          # first-run panel layout (migrate helper reads the first match;
+          # /etc/xdg precedes the panel package's own store fallback)
+          "xdg/xfce4/panel/default.xml".source = ../home/assets/xfce/panel-default.xml;
+        };
+
         xdg.portal = {
           enable = true;
           extraPortals = with pkgs; [ xdg-desktop-portal-gtk xdg-desktop-portal-gnome ];
