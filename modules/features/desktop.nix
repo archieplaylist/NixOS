@@ -114,6 +114,14 @@ _: {
 
         # shared Login keyring unlocks at SDDM login, same as the other DEs
         security.pam.services.sddm.enableGnomeKeyring = true;
+
+        environment.systemPackages = with pkgs.kdePackages; [
+          plasma-browser-integration
+        ];
+
+        environment.plasma6.excludePackages = with pkgs.kdePackages; [
+          discover
+        ];
       })
 
     ];
