@@ -1,4 +1,4 @@
-# vm — xfce guest (qemu/virtualbox), no gaming/dev
+# vm — cinnamon guest (qemu/virtualbox), no gaming/dev
 { config, ... }: {
   config.nixos.hosts.vm = {
     imports = [
@@ -10,7 +10,7 @@
 
     mySystem.hostname = "nixvms";
     mySystem.isVm = true;
-    mySystem.desktop = "xfce";
+    mySystem.desktop = "cinnamon";
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;
     mySystem.enableDocker = false;

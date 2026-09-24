@@ -3,7 +3,7 @@ _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: {
     programs.vscode = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
       enable = true;
-      # Electron cannot pick backend on niri (XDG_CURRENT_DESKTOP=niri) — force libsecret so Login keyring stores tokens
+      # Force libsecret so VSCode stores tokens in the Login keyring regardless of DE backend detection
       package = pkgs.unstable.vscode.override {
         commandLineArgs = "--password-store=gnome-libsecret";
       };
@@ -20,7 +20,7 @@ _: {
         file-roller
         pkgs.unstable.rpi-imager
       ])
-      (lib.mkIf (osConfig.mySystem.desktop == "gnome" || osConfig.mySystem.desktop == "niri") (with pkgs; [
+      (lib.mkIf (osConfig.mySystem.desktop == "gnome") (with pkgs; [
         nautilus
       ]))
       # no USB disks in vm guest
@@ -38,7 +38,7 @@ _: {
       ]))
       (lib.mkIf osConfig.mySystem.appGroups.browsers.enable [
         pkgs.firefox
-        # Chromium picks backend from XDG_CURRENT_DESKTOP (kwallet on plasma, basic store on niri) — force libsecret so Login keyring stores tokens, same as vscode above
+        # Chromium picks backend from XDG_CURRENT_DESKTOP (kwallet on plasma) — force libsecret so Login keyring stores tokens, same as vscode above
         (pkgs.vivaldi.override { commandLineArgs = "--password-store=gnome-libsecret"; })
       ])
       (lib.mkIf osConfig.mySystem.appGroups.media.enable (with pkgs; [

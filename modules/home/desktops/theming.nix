@@ -1,8 +1,8 @@
-# Shared GTK font/icon/cursor for gnome + niri (Orchis/Tela/Bibata set).
-# DE-specific bits (gnome theme + dconf, niri pointer cursor) stay in desktops/.
+# Shared GTK font/icon/cursor for gnome (Orchis/Tela/Bibata set).
+# DE-specific bits (gnome theme + dconf) stay in desktops/.
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }:
-    lib.mkIf (osConfig.mySystem.desktop == "gnome" || osConfig.mySystem.desktop == "niri") {
+    lib.mkIf (osConfig.mySystem.desktop == "gnome") {
       gtk = {
         enable = true;
         font = {
@@ -17,7 +17,7 @@ _: {
         cursorTheme = {
           name = "Bibata-Modern-Classic";
           package = pkgs.bibata-cursors;
-          size = if osConfig.mySystem.desktop == "niri" then 24 else 20;
+          size = 20;
         };
       };
     };

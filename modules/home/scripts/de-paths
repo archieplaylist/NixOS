@@ -5,10 +5,9 @@
 # never re-declare these arrays in the scripts.
 # Wallets/keyrings/caches are intentionally absent: never archived or backed up.
 
-niri_paths=(
-  ".config/niri" ".config/noctalia"
-  ".config/alacritty"
-  ".local/state/noctalia"
+cinnamon_paths=(
+  ".config/cinnamon" ".config/nemo"
+  ".local/share/cinnamon" ".local/share/nemo"
 )
 
 # switch-de archives the dconf DB; backup-de dumps it instead (gnome_files below)
@@ -19,11 +18,6 @@ gnome_paths=(
 gnome_files=(
   ".config/mutter"
   ".local/share/gnome-shell" ".local/share/gnome-shell-extensions"
-)
-
-xfce_paths=(
-  ".config/xfce4" ".config/xfconf" ".config/xfce4-session"
-  ".config/Thunar" ".local/share/xfce4"
 )
 
 plasma_paths=(

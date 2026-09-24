@@ -255,26 +255,6 @@ ls -la ~/.config/
 ~/.local/bin/switch-de restore backups/gnome/gnome-*.dconf
 ```
 
-### Niri: Wayland applications crash
-
-**Cause:** Missing XWayland or portal issues  
-**Symptoms:** X11 applications fail in Niri  
-**Solution:**
-```bash
-# Check XWayland satellite is running
-ps aux | grep xwayland-satellite
-
-# Check portal configuration
-# Verify xdg.portal settings in modules/features/desktop.nix
-
-# Restart Niri (logout/login)
-# Or restart user services
-systemctl --user restart niri
-
-# Check portal logs
-journalctl --user -u xdg-desktop-portal
-```
-
 ### Plasma: SDDM won't start
 
 **Cause:** Graphics driver or configuration issue  
@@ -295,42 +275,6 @@ systemctl status sddm
 journalctl -xe
 ```
 
-### XFCE: settings reset to defaults after rebuild/switch
-
-**Cause:** Xfce settings live in two layers, and only one of them is Nix-owned.
-User values in `~/.config/xfce4/xfconf/xfce-perchannel-xml/` override the
-declarative system defaults in `/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/`
-(sources: `modules/home/assets/xfce/`) plus the copy-if-missing seed from
-`home.activation.seedXfceDefaults`. A plain `nh os switch` never deletes the
-user layer — if settings vanished, something else moved or replaced the files.
-**Diagnostics (in order):**
-```bash
-# 1. switch-de archives the DE you leave into ~/.local/share/de-archive/<de>/
-#    and only restores the target if the archive still exists
-ls ~/.local/share/de-archive/
-
-# 2. home-manager renames files it newly owns instead of overwriting them
-find ~/.config -name '*.hm-backup'   # e.g. user-dirs.dirs, easyeffects presets
-
-# 3. build-vm guests keep their disk (nixos.qcow2) in the launch directory —
-#    a different CWD (or a reverted VirtualBox snapshot) boots a fresh home
-ls *.qcow2; VBoxManage snapshot "NixOS" list
-
-# 4. check what the system layer actually provides right now
-ls /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/ /etc/xdg/xfce4/panel/
-```
-**Notes:**
-- Per-monitor wallpaper keys can't be predetermined (RandR names differ between
-  qemu/VirtualBox), so the wallpaper is intentionally NOT in the system defaults:
-  set it once in the GUI; it persists in the user file, which `backup-de backup xfce`
-  covers going forward.
-- To re-adopt a changed Nix default, delete the corresponding user channel file
-  (user values always shadow system ones), then rebuild + relogin:
-  `rm ~/.config/xfce4/xfconf/xfce-perchannel-xml/<channel>.xml`
-- GTK theme packages (`orchis-theme`, `tela-circle-icon-theme`, `bibata-cursors`)
-  are installed by `desktops/xfce.nix`; the theme *selection* is the `xsettings.xml`
-  default, overridable in Appearance.
-
 ### Screen tearing in games
 
 **Cause:** V-Sync or compositor settings  
@@ -339,8 +283,6 @@ ls /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/ /etc/xdg/xfce4/panel/
 ```bash
 # For GNOME: disable automatic screen workarounds
 gsettings set org.gnome.mutter experimental-features "['scale-monitor-framebuffer']"
-
-# For Niri: check compositor settings in config.kdl
 
 # For gaming: use gamescope (already configured)
 # Launch games through gamescope for frame pacing
@@ -753,7 +695,7 @@ xrandr
 # Check EDID data
 # Monitor detection issues can be driver-related
 
-# For Wayland (GNOME/Niri): check display settings
+# For Wayland (GNOME): check display settings
 # For X11: use xrandr to configure
 
 # Check monitor logs
@@ -918,10 +860,7 @@ journalctl --user -u gnome-shell
 # Check GNOME extensions
 gnome-extensions list --detailed
 
-# Niri logs
-journalctl --user -u niri
-
-# Check X11 logs (if using X11)
+# Check X11 logs (if using X11, e.g. Cinnamon)
 ~/.local/share/xorg/Xorg.0.log
 
 # Check Wayland logs

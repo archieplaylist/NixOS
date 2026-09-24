@@ -1,5 +1,5 @@
 # primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark),
-# alacritty basics (noctalia owns alacritty.toml on niri, so niri excluded).
+# alacritty basics.
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091,SC2154  # de-paths arrays are sourced at runtime
-# backup-de — backup/restore per-DE config (gnome/niri/xfce/plasma)
+# backup-de — backup/restore per-DE config (gnome/cinnamon/plasma)
 # dconf dump/load for gnome (native), tar of DE file lists for the rest.
 # No manifests, no live-reload — restore + relogin. Auto-prune keeps newest 3 per DE.
 # Stable *-latest copies (1 per DE) are git-tracked; timestamped ones stay machine-local.
@@ -24,9 +24,9 @@ BASE="${BASE:-${XDG_DATA_HOME:-$HOME/.local/share}/de-backups}"
 . "$(dirname "${BASH_SOURCE[0]}")/de-paths"
 
 usage() { cat <<'USAGE'
-backup-de backup [gnome|niri|xfce|plasma|all]  → backups/<de>/<de>-*.{dconf,tar.gz} (default: current DE)
+backup-de backup [gnome|cinnamon|plasma|all]  → backups/<de>/<de>-*.{dconf,tar.gz} (default: current DE)
 backup-de restore <file>                  → dconf load (.dconf, old bundle tars) or tar -xzf into $HOME
-backup-de list [gnome|niri|xfce|plasma]  → ls backup dirs
+backup-de list [gnome|cinnamon|plasma]  → ls backup dirs
 USAGE
 }
 
@@ -87,8 +87,7 @@ backup_files() {
   mkdir -p "$dir"
   f="$dir/$de-$(date +%Y%m%d-%H%M%S).tar.gz"
   case "$de" in
-    niri) tar_files "$f" "${niri_paths[@]}" ;;
-    xfce) tar_files "$f" "${xfce_paths[@]}" ;;
+    cinnamon) tar_files "$f" "${cinnamon_paths[@]}" ;;
     plasma) tar_files "$f" "${plasma_paths[@]}" ;;
     *) echo "unknown DE: $de" >&2; return 1 ;;
   esac || { rm -f "$f"; echo "nothing to back up for $de" >&2; return 0; }
@@ -100,8 +99,7 @@ backup_files() {
 current_de() {
   case "${XDG_CURRENT_DESKTOP:-}${DESKTOP_SESSION:-}" in
     *[Gg][Nn][Oo][Mm][Ee]*) echo gnome ;;
-    *[Nn][Ii][Rr][Ii]*) echo niri ;;
-    *[Xx][Ff][Cc][Ee]*) echo xfce ;;
+    *[Cc][Ii][Nn][Nn][Aa][Mm][Oo][Nn]*) echo cinnamon ;;
     *[Pp][Ll][Aa][Ss][Mm][Aa]*) echo plasma ;;
     *) echo all ;;
   esac
@@ -112,8 +110,8 @@ cmd="${1:-}"; case "$cmd" in
     de="${2:-$(current_de)}"
     case "$de" in
       gnome) backup_gnome ;;
-      niri|xfce|plasma) backup_files "$de" ;;
-      all) backup_gnome; backup_files niri; backup_files xfce; backup_files plasma ;;
+      cinnamon|plasma) backup_files "$de" ;;
+      all) backup_gnome; backup_files cinnamon; backup_files plasma ;;
       *) usage; echo "unknown DE: $de" >&2; exit 1 ;;
     esac
     ;;
@@ -136,7 +134,7 @@ cmd="${1:-}"; case "$cmd" in
     if [[ -n "$de" ]]; then
       ls -lh "$BASE/$de" 2>/dev/null || echo "no backups in $BASE/$de"
     else
-      for d in gnome niri xfce plasma; do
+      for d in gnome cinnamon plasma; do
         echo "== $d =="
         ls -lh "$BASE/$d" 2>/dev/null || echo "no backups in $BASE/$d"
       done

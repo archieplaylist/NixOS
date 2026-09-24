@@ -1,5 +1,5 @@
 # primary home plasma: kate + alacritty basics (Plasma ships its own apps and
-# theming — set in System Settings, no declarative config, xfce precedent).
+# theming — set in System Settings, no declarative config).
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "plasma") {
     home.packages = with pkgs; [

@@ -18,12 +18,12 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── mySystem.nix     # mySystem.* options + GNOME extension source of truth
 │   │   ├── base.nix         # locale/firewall/printing, ssh/docker/tailscale, store upkeep, nix-ld, user
 │   │   ├── filesystems.nix  # XFS by label, or LUKS2 via disko
-│   │   ├── desktop.nix      # GNOME/Niri/XFCE/Plasma + PipeWire + flatpak
+│   │   ├── desktop.nix      # GNOME/Cinnamon/Plasma + PipeWire + flatpak
 │   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers + low-latency audio
 │   │   └── hardware.nix     # intel, uefi, laptop, vm-guest slots
 │   ├── home/            # home-manager modules (all merge into home.modules.primary)
 │   │   ├── core.nix / apps.nix / ai.nix (pi + opencode)
-│   │   ├── desktops/ (gnome/niri/xfce/plasma/themes) / easyeffects.nix
+│   │   ├── desktops/ (gnome/cinnamon/plasma/themes) / easyeffects.nix
 │   │   └── scripts/     # yt, tomp3, switch-de, backup-de (+ de-paths shared lists) -> ~/.local/bin
 │   └── hosts/           # one file per machine -> nixos.hosts.<name>
 └── secrets/             # local secret templates only (never commit real values)
@@ -34,7 +34,7 @@ No wiring in `flake.nix`.
 
 ## Host flags (`mySystem.*`)
 
-- `enableDesktop` + `desktop = "gnome" | "niri" | "xfce" | "plasma"` — DE + GDM/Ly/LightDM/SDDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
+- `enableDesktop` + `desktop = "gnome" | "cinnamon" | "plasma"` — DE + GDM/LightDM/SDDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
 - `enableLaptop` / `enableSSH` / `sshPasswordAuth` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSmartd`. SSH is key-only by default (`sshAuthorizedKeys`); set `sshPasswordAuth = true` only for bootstrap/legacy clients.
 - `enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install only (repartition required).
 - `flatpakApps`, `gnomeExtensions`, `sshAuthorizedKeys`.
@@ -49,12 +49,12 @@ No wiring in `flake.nix`.
 
 - `yt <url>` / `yt -a <url>` — video / audio-only to `~/Downloads`.
 - `tomp3 file...` — to 192k MP3 in place.
-- `switch-de <gnome|niri|xfce|plasma>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
-- `backup-de backup [gnome|niri|xfce|plasma|all]|restore <file>|list` — dconf dump/load (gnome) + file tars, newest 3 kept per DE. `switch-de` prompts for a backup when none exists.
+- `switch-de <gnome|cinnamon|plasma>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
+- `backup-de backup [gnome|cinnamon|plasma|all]|restore <file>|list` — dconf dump/load (gnome) + file tars, newest 3 kept per DE. `switch-de` prompts for a backup when none exists.
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), Niri (Ly/Wayland, Noctalia v5 shell, unstable), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (Orchis-Dark + Tela-circle-dark + Bibata, unstable `pkgs.orchis-theme`): GNOME via dconf + home-manager gtk, XFCE via declarative xfconf system defaults (`/etc/xdg/xfce4/...`, sources in `modules/home/assets/xfce/`) plus a copy-if-missing seed into `~/.config/xfce4/xfconf/` — user GUI edits always win. Niri/Plasma stay stock defaults.
+GNOME (GDM/Wayland), Cinnamon (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (Orchis-Dark + Tela-circle-dark + Bibata): GNOME via dconf + home-manager gtk. Cinnamon/Plasma stay stock defaults, set in System Settings.
 
 ## Flatpak
 

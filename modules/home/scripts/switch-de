@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091,SC2154  # de-paths arrays are sourced at runtime
-# switch-de <gnome|niri|xfce|plasma>
+# switch-de <gnome|cinnamon|plasma>
 #
 # Switches this machine's desktop environment: flips the mySystem.desktop line
 # in the host module, builds the new system with `nh os boot` (nothing
@@ -12,7 +12,7 @@
 # (keyrings) are never touched — explicit deny-list below
 # keeps secrets across DE switches so no relogin is needed. Login password must
 # match Login keyring / kdewallet password for PAM auto-unlock. Declared
-# settings (GNOME dconf, niri KDL) survive the switch through Nix itself;
+# settings (GNOME dconf) survive the switch through Nix itself;
 # the archive is a recoverable copy you may delete.
 
 set -euo pipefail
@@ -68,7 +68,7 @@ archive_de() {
       case "$p" in
         */.cache/* | *keyrings* | *gnome-keyring*) continue ;;
       esac
-      # preserve relative path to avoid basename collision (.config/xfce4 vs .local/share/xfce4)
+      # preserve relative path to avoid basename collision (.config/cinnamon vs .local/share/cinnamon)
       rel="${p#"$HOME"/}"
       dest_path="$dest/$rel"
       mkdir -p "$(dirname "$dest_path")"
@@ -93,18 +93,18 @@ restore_de() {
 }
 
 usage() {
-  echo "usage: switch-de <gnome|niri|xfce|plasma>" >&2
+  echo "usage: switch-de <gnome|cinnamon|plasma>" >&2
   exit 1
 }
 
 TARGET="${1:-}"
-[ "$TARGET" = "gnome" ] || [ "$TARGET" = "niri" ] || [ "$TARGET" = "xfce" ] || [ "$TARGET" = "plasma" ] || usage
+[ "$TARGET" = "gnome" ] || [ "$TARGET" = "cinnamon" ] || [ "$TARGET" = "plasma" ] || usage
 
 HOST="$(host_module)"
 HOST_FILE="$REPO/modules/hosts/$HOST.nix"
 [ -f "$HOST_FILE" ] || { echo "error: $HOST_FILE not found" >&2; exit 1; }
 
-CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|niri|xfce|plasma)"' "$HOST_FILE" | grep -Eo '"(gnome|niri|xfce|plasma)"' | tr -d '"')"
+CURRENT="$(grep -Eo '^[[:space:]]*mySystem\.desktop = "(gnome|cinnamon|plasma)"' "$HOST_FILE" | grep -Eo '"(gnome|cinnamon|plasma)"' | tr -d '"')"
 if [ -z "$CURRENT" ]; then
   echo "error: no 'mySystem.desktop = ...' line found in $HOST_FILE" >&2
   exit 1
@@ -150,9 +150,8 @@ fi
 # Hand off runtime state: archive what the DE we're leaving wrote, so the home
 # directory only ever holds the active DE's files. Caches and wallets stay put.
 case "$CURRENT" in
-  niri) archive_de niri "${niri_paths[@]}" ;;
   gnome) archive_de gnome "${gnome_paths[@]}" ;;
-  xfce) archive_de xfce "${xfce_paths[@]}" ;;
+  cinnamon) archive_de cinnamon "${cinnamon_paths[@]}" ;;
   plasma) archive_de plasma "${plasma_paths[@]}" ;;
 esac
 # auto-restore target DE if it was archived before — one cp, no extra DB
