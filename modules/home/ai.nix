@@ -1,4 +1,4 @@
-# AI agents — pi-coding-agent (pi) + opencode, gated on appGroups.ai.enable.
+# AI agents — pi-coding-agent (pi) + opencode + llama.cpp, gated on appGroups.ai.enable.
 # Sections merged into one condition, behavior unchanged.
 { inputs, ... }: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }:
@@ -10,6 +10,7 @@
           pkgs.unstable.pi-coding-agent
           pkgs.xdg-utils
           pkgs.opencode
+          pkgs.unstable.llama-cpp
         ];
 
         # qmd binary for pi-memory `memory_search` (not in nixpkgs):

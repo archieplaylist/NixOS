@@ -80,7 +80,7 @@ _: {
                 gaming = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";
                 dev = "Development tooling (editors, languages, CLIs).";
                 work = "Work applications (dbeaver-bin, filezilla, remmina).";
-                ai = "AI coding agents (pi-coding-agent, opencode + ponytail/caveman skills).";
+                ai = "AI coding agents (pi-coding-agent, opencode + ponytail/caveman skills, llama-cpp).";
               };
             in
             lib.mapAttrs
