@@ -11,13 +11,6 @@ _: {
 
       # all DEs share gnome-keyring now, one Login keyring, no relogin
       # SSH_AUTH_SOCK is set per-DE where a keyring ssh agent is guaranteed to run
-      home.sessionVariables = {
-        XDG_CONFIG_HOME = "$HOME/.config";
-        XDG_DATA_HOME = "$HOME/.local/share";
-        XDG_STATE_HOME = "$HOME/.local/state";
-        XDG_CACHE_HOME = "$HOME/.cache";
-      };
-
       xdg.userDirs = {
         enable = true;
         desktop = "$HOME/Desktop";

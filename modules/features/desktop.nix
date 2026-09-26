@@ -4,6 +4,16 @@ _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
       (lib.mkIf config.mySystem.enableDesktop {
+        security.rtkit.enable = true;
+        services.pipewire = {
+          enable = true;
+          audio.enable = true;
+          alsa.enable = true;
+          alsa.support32Bit = true;
+          pulse.enable = true;
+          jack.enable = true;
+        };
+
         services = {
           blueman.enable = config.mySystem.desktop != "plasma";
           # ppd owns the CPU governor on desktop hosts; vm left to its host defaults
@@ -24,18 +34,6 @@ _: {
         # nautilus trash + mtp/smb + sidebar mounts outside GNOME need these
         services.gvfs.enable = true;
         services.udisks2.enable = true;
-      })
-
-      (lib.mkIf config.mySystem.enableDesktop {
-        security.rtkit.enable = true;
-        services.pipewire = {
-          enable = true;
-          audio.enable = true;
-          alsa.enable = true;
-          alsa.support32Bit = true;
-          pulse.enable = true;
-          jack.enable = true;
-        };
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "gnome") {

@@ -23,8 +23,6 @@ let
             };
           })
           (_final: prev: {
-            # orchis from unstable for latest release (stable lags)
-            orchis-theme = prev.unstable.orchis-theme;
             # opencode - npm platform binary, ahead of nixpkgs' v1
             opencode = prev.callPackage ../packages/opencode.nix { };
           })

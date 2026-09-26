@@ -1,5 +1,4 @@
-# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark),
-# alacritty basics.
+# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark).
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
@@ -41,24 +40,12 @@ _: {
         gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
         theme = {
           name = "Orchis-Dark";
-          package = pkgs.orchis-theme;
+          package = pkgs.unstable.orchis-theme; # unstable for latest release (stable lags)
         };
         gtk2.force = true;
       };
 
       dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
-
-      xdg.configFile."alacritty/alacritty.toml".text = ''
-        [window]
-        padding = { x = 12, y = 12 }
-        opacity = 0.80
-
-        [font]
-        size = 11
-
-        [font.normal]
-        family = "JetBrainsMono Nerd Font"
-      '';
     })
   ];
 }

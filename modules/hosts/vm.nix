@@ -14,9 +14,7 @@
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;
     mySystem.enableDocker = false;
-    mySystem.enableTailscale = true; # `stream` toggles sunshine over tailscale
-    mySystem.enableSunshine = true;
-    mySystem.enableMoonlight = true;
+    mySystem.enableTailscale = true;
 
     mySystem.appGroups.browsers.enable = true;
     mySystem.appGroups.media.enable = true;
