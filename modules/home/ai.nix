@@ -169,17 +169,13 @@
         # same upstream skill dirs as pi above, versioned in flake.lock.
         # Per-dir entries only — never manage ~/.config/opencode/ as a whole,
         # or imperative `plugin` installs in opencode.json get wiped on rebuild.
-        # Superpowers' plugin is v1-only (v2 refuses to load it), so link its
-        # skill dirs directly; v2 discovers skills under ~/.config/opencode/skills.
+        # v2 discovers skills under ~/.config/opencode/skills.
         xdg.configFile =
           let
-            superpowersSkills = lib.filterAttrs (_: t: t == "directory") (builtins.readDir "${inputs.superpowers}/skills");
-            sources =
-              {
-                ponytail = "${inputs.ponytail}/skills/ponytail";
-                caveman = "${inputs.caveman}/skills/caveman";
-              }
-              // lib.mapAttrs (name: _: "${inputs.superpowers}/skills/${name}") superpowersSkills;
+            sources = {
+              ponytail = "${inputs.ponytail}/skills/ponytail";
+              caveman = "${inputs.caveman}/skills/caveman";
+            };
           in
           lib.mapAttrs' (name: src: lib.nameValuePair "opencode/skills/${name}" { source = src; }) sources;
       };
