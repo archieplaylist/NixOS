@@ -34,6 +34,7 @@ _: {
           fd # telescope/snacks fuzzy file finder; falls back to find otherwise
           gh
           git
+          go # mason builds gopls/goimports/delve from source; without it every Go server install fails
           gnumake
           lazygit
           nodejs

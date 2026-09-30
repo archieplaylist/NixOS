@@ -24,11 +24,20 @@ _: {
         # get clobbered by the autowrapRuntimeDeps definition, leaving the
         # wrapper empty. nvim-treesitter then can't compile parsers (no cc/make).
         # Pass the args directly instead.
+        # The suffixes are applied by makeWrapper, not nvim (0.12 has no
+        # --suffix/--env flag).
         extraWrapperArgs = lib.mkAfter [
           "--suffix"
           "PATH"
           ":"
           (lib.makeBinPath [ pkgs.gcc pkgs.gnumake ])
+          # mason-installed .NET servers (marksman) dlopen libicu, which nix
+          # keeps out of the loader path -> "Couldn't find a valid ICU package"
+          # on every markdown buffer.
+          "--suffix"
+          "LD_LIBRARY_PATH"
+          ":"
+          (lib.makeLibraryPath [ pkgs.icu ])
         ];
       };
 

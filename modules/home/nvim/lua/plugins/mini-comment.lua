@@ -1,21 +1,20 @@
 -- ts-comments is already loaded but only detects the comment string; it has
--- no toggle. mini.comment is one dependency-free file and gets block
--- comments + visual mode right, which a hand-rolled toggler wouldn't.
+-- no toggle. mini.comment is one dependency-free file and gets block comments,
+-- local commentstring inference and dot-repeat right, which a hand-rolled
+-- toggler wouldn't. It maps itself in setup(), so no `keys` here.
 return {
   {
-    "echasnovski/mini.comment",
+    "nvim-mini/mini.comment",
     version = "*",
     main = "mini.comment",
     config = function()
-      require("mini.comment").setup()
+      require("mini.comment").setup({
+        mappings = {
+          comment = "<C-/>",
+          comment_line = "<C-/>",
+          comment_visual = "<C-/>",
+        },
+      })
     end,
-    keys = {
-      {
-        "<C-/>",
-        function() require("mini.comment").toggle_linewise() end,
-        mode = { "n", "x" },
-        desc = "Toggle Comment",
-      },
-    },
   },
 }
