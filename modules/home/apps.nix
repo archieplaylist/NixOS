@@ -15,27 +15,28 @@ _: {
 
       home.packages = lib.mkMerge [
         (with pkgs; [
-          fzf
           bat
-          fastfetch
           btop
-          zip
-          unrar
-          file-roller
           exfatprogs
+          fastfetch
+          file-roller
+          fzf
           ntfs3g
+          unrar
+          zip
           unstable.rpi-imager
+          unstable.dcmtk
         ])
         (lib.mkIf (osConfig.mySystem.desktop == "gnome") (with pkgs; [
           nautilus
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
+          gh
           git
+          gnumake
           lazygit
           nodejs
-          gh
           python3
-          gnumake
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.browsers.enable [
           pkgs.firefox
@@ -43,16 +44,16 @@ _: {
           (pkgs.vivaldi.override { commandLineArgs = "--password-store=gnome-libsecret"; })
         ])
         (lib.mkIf osConfig.mySystem.appGroups.media.enable (with pkgs; [
-          vlc
-          mpv
-          yt-dlp
           ffmpeg
+          mpv
+          vlc
+          yt-dlp
           unstable.qbittorrent
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.office.enable (with pkgs; [
           joplin-desktop
-          onlyoffice-desktopeditors
           libreoffice-fresh
+          onlyoffice-desktopeditors
           zoom-us
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.comms.enable (with pkgs; [
@@ -67,8 +68,8 @@ _: {
         (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
           chromium
           dbeaver-bin
-          remmina
           filezilla
+          remmina
         ]))
         (lib.mkIf osConfig.mySystem.enableMoonlight (with pkgs; [
           moonlight-qt
