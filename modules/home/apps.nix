@@ -31,12 +31,14 @@ _: {
           nautilus
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
+          fd # telescope/snacks fuzzy file finder; falls back to find otherwise
           gh
           git
           gnumake
           lazygit
           nodejs
           python3
+          ripgrep # telescope live grep
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.browsers.enable [
           pkgs.firefox

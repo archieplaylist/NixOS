@@ -22,7 +22,8 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 │   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers + low-latency audio
 │   │   └── hardware.nix     # intel, uefi, laptop, vm-guest slots
 │   ├── home/            # home-manager modules (all merge into home.modules.primary)
-│   │   ├── core.nix / apps.nix / ai.nix (pi + opencode)
+│   │   ├── core.nix / apps.nix / ai.nix (pi + opencode) / nvim.nix (LazyVim)
+│   │   ├── nvim/          LazyVim config tree -> ~/.config/nvim (plain Lua)
 │   │   ├── desktops/ (gnome/cinnamon/plasma/themes) / easyeffects.nix
 │   │   └── scripts/     # yt, tomp3, switch-de, backup-de (+ de-paths shared lists) -> ~/.local/bin
 │   └── hosts/           # one file per machine -> nixos.hosts.<name>
@@ -42,8 +43,19 @@ No wiring in `flake.nix`.
 
 ## Application groups (`modules/home/apps.nix`)
 
-- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
+- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable), neovim + LazyVim (`nvim.nix`). **dev**: git, lazygit, nodejs, gh, python3, gnumake, fd, ripgrep. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
 - System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo + low-latency PipeWire).
+
+## Neovim (LazyVim)
+
+`modules/home/nvim.nix` installs neovim and links `modules/home/nvim/` (plain Lua) to `~/.config/nvim`. Gated on `appGroups.editor`, so it's off on `vm`. VSCode stays installed alongside it.
+
+Two things differ from the usual LazyVim + home-manager setup, both deliberate:
+
+- **The spec lives in `./nvim/lua`, not `programs.neovim.plugins`.** That option is a strict Nix-package submodule in home-manager 26.05 and rejects lazy.nvim spec tables. Edit `modules/home/nvim/lua/plugins/extras.lua` to add or remove extras.
+- **The lockfile is pinned to `XDG_STATE_HOME`.** `~/.config/nvim` is a symlink into the read-only nix store, so lazy.nvim would fail on every write if it kept `lazy-lock.json` there. Consequence: plugin versions are not tracked in git.
+
+The wrapper also injects `gcc` + `gnumake` into nvim's PATH so tree-sitter can compile parsers. `dev` must be enabled on a host for the LSP/formatter toolchains behind the extras to exist.
 
 ## Scripts (`~/.local/bin`)
 

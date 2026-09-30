@@ -22,6 +22,7 @@
     mySystem.appGroups.media.enable = true;
     mySystem.appGroups.office.enable = true;
     mySystem.appGroups.editor.enable = true;
+    mySystem.appGroups.dev.enable = true;
     mySystem.appGroups.gaming.enable = true;
     mySystem.appGroups.ai.enable = true;
 

@@ -76,7 +76,7 @@ _: {
                 media = "Media players and tooling (vlc, mpv, yt-dlp, ffmpeg).";
                 office = "Office and productivity (joplin, onlyoffice, libreoffice, zoom).";
                 comms = "Communication apps (discord).";
-                editor = "Code editors (vscode).";
+                editor = "Code editors (vscode, neovim + LazyVim).";
                 gaming = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";
                 dev = "Development tooling (editors, languages, CLIs).";
                 work = "Work applications (dbeaver-bin, filezilla, remmina).";
