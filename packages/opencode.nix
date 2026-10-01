@@ -5,11 +5,11 @@
 
 pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "opencode";
-  version = "2.0.18";
+  version = "2.0.21";
 
   src = pkgs.fetchurl {
     url = "https://registry.npmjs.org/@opencode/cli-linux-x64/-/cli-linux-x64-${finalAttrs.version}.tgz";
-    hash = "sha256-qkVdBzs6BzOmkS9HezcPPVDKevRHFbt8zEH6oTs8wus=";
+    hash = "sha256-V9tCGraJ1oMReMhHNroeZnycJ2J4ZoSaEU+levvIF4U=";
   };
 
   sourceRoot = "package";
