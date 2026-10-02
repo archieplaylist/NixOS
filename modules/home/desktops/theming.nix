@@ -1,4 +1,4 @@
-# Shared GTK font/icon/cursor for gnome (Orchis/Tela/Bibata set) + alacritty basics for all DEs.
+# Shared GTK font/icon/cursor for GNOME + Alacritty basics for all DEs.
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
@@ -24,8 +24,22 @@ _: {
           size = 10;
         };
         iconTheme = {
-          name = "Tela-circle-dark";
-          package = pkgs.tela-circle-icon-theme;
+          name = "MacTahoe";
+          package = pkgs.stdenvNoCC.mkDerivation {
+            pname = "mactahoe-icon-theme";
+            version = "2026-09-10";
+            src = pkgs.fetchFromGitHub {
+              owner = "vinceliuice";
+              repo = "MacTahoe-icon-theme";
+              rev = "2026-09-10";
+              hash = "sha256-NAahlBOYub0QlqkYStamoCbyWh+H5JG/iFm4Ws9EU3A=";
+            };
+            nativeBuildInputs = [ pkgs.bash pkgs.gtk3 ];
+            dontBuild = true;
+            installPhase = ''
+              bash ./install.sh --dest "$out/share/icons" --name MacTahoe --theme default
+            '';
+          };
         };
         cursorTheme = {
           name = "Bibata-Modern-Classic";

@@ -1,4 +1,4 @@
-# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark).
+# primary home gnome: dconf settings, GTK/icon/cursor/font theming (MacTahoe-Dark).
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
@@ -9,7 +9,7 @@ _: {
             enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
           };
           "org/gnome/shell/extensions/user-theme" = {
-            name = "Orchis-Dark";
+            name = "MacTahoe-Dark";
           };
           "org/gnome/desktop/wm/preferences" = {
             button-layout = "appmenu:minimize,maximize,close";
@@ -32,15 +32,28 @@ _: {
       };
     }
 
-    # Orchis-Dark / Tela-circle-dark / Bibata (Orchis https://github.com/vinceliuice/Orchis-theme)
+    # MacTahoe-Dark / MacTahoe icons / Bibata
     (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
       gtk = {
         enable = true;
         gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
         gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
         theme = {
-          name = "Orchis-Dark";
-          package = pkgs.unstable.orchis-theme; # unstable for latest release (stable lags)
+          name = "MacTahoe-Dark";
+          package = pkgs.stdenvNoCC.mkDerivation {
+            pname = "mactahoe-gtk-theme";
+            version = "2026-09-10";
+            src = pkgs.fetchurl {
+              url = "https://raw.githubusercontent.com/vinceliuice/MacTahoe-gtk-theme/1e45e19f510edb8cde18fa84d6cd5319f60b086b/release/MacTahoe-Dark.tar.xz";
+              hash = "sha256-COgW5TUiR5VdHPpktErwru53z7xStStPTUvs9lDPXhU=";
+            };
+            nativeBuildInputs = [ pkgs.xz ];
+            dontBuild = true;
+            installPhase = ''
+              mkdir -p "$out/share/themes/MacTahoe-Dark"
+              cp -R . "$out/share/themes/MacTahoe-Dark"
+            '';
+          };
         };
         gtk2.force = true;
       };
