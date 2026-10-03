@@ -25,6 +25,9 @@ let
           (_final: prev: {
             # opencode - npm platform binary, ahead of nixpkgs' v1
             opencode = prev.callPackage ../packages/opencode.nix { };
+            gnomeExtensions = prev.gnomeExtensions // {
+              simple-taskbar = prev.callPackage ../packages/simple-taskbar.nix { };
+            };
           })
         ];
       }

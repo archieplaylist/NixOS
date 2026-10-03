@@ -15,6 +15,7 @@ _: {
 
       home.packages = lib.mkMerge [
         (with pkgs; [
+          aria2
           bat
           btop
           exfatprogs
@@ -22,6 +23,7 @@ _: {
           file-roller
           fzf
           ntfs3g
+          smartmontools
           unrar
           zip
           unstable.rpi-imager
@@ -35,12 +37,12 @@ _: {
           gcc # cgo linker for Go (xo/terminfo -> os/user); without it CGO_ENABLED must be 0
           gh
           git
-          go # mason builds gopls/goimports/delve from source; without it every Go server install fails
+          go
           gnumake
           lazygit
           nodejs
           python3
-          ripgrep # telescope live grep
+          ripgrep
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.browsers.enable [
           pkgs.firefox
