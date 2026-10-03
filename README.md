@@ -1,9 +1,10 @@
 # NixOS Desktop Configuration
 
-Flake-based NixOS 26.05 for Mario's machines, organized with the
+This is the NixOS 26.05 flake I use across my machines. I organize it with the
 [dendritic pattern](https://github.com/mightyiam/dendritic): every Nix file
 except the entry point is a top-level (flake-parts) module, auto-imported from
-`modules/`. Four hosts: `desktop`, `laptop`, `work`, `vm` (VM guest).
+`modules/`. It covers four hosts: `desktop`, `laptop`, `work`, and `vm` (VM
+guest).
 
 ## Layout
 
@@ -30,7 +31,7 @@ except the entry point is a top-level (flake-parts) module, auto-imported from
 └── secrets/             # local secret templates only (never commit real values)
 ```
 
-Adding a host = add one file under `modules/hosts/` (see `desktop.nix`).
+When I add a host, I add one file under `modules/hosts/` (see `desktop.nix`).
 No wiring in `flake.nix`.
 
 ## Host flags (`mySystem.*`)
@@ -50,14 +51,16 @@ No wiring in `flake.nix`.
 
 `modules/home/nvim.nix` installs neovim and links `modules/home/nvim/` (plain Lua) to `~/.config/nvim`. Gated on `appGroups.editor`, so it's off on `vm`. VSCode stays installed alongside it.
 
-Two things differ from the usual LazyVim + home-manager setup, both deliberate:
+I keep two parts of my LazyVim setup outside the usual home-manager pattern:
 
-- **The spec lives in `./nvim/lua`, not `programs.neovim.plugins`.** That option is a strict Nix-package submodule in home-manager 26.05 and rejects lazy.nvim spec tables. Edit `modules/home/nvim/lua/plugins/extras.lua` to add or remove extras.
-- **The lockfile is pinned to `XDG_STATE_HOME`.** `~/.config/nvim` is a symlink into the read-only nix store, so lazy.nvim would fail on every write if it kept `lazy-lock.json` there. Consequence: plugin versions are not tracked in git.
+- **I keep plugin specs in `./nvim/lua`, not `programs.neovim.plugins`.** Home Manager 26.05 defines that option as a strict Nix-package submodule, so it rejects lazy.nvim spec tables. I add or remove extras in `modules/home/nvim/lua/plugins/extras.lua`.
+- **I put the lockfile in `XDG_STATE_HOME`.** `~/.config/nvim` points into the read-only Nix store, so lazy.nvim cannot write `lazy-lock.json` there. Plugin versions are therefore not tracked in git.
 
 The wrapper also injects `gcc` + `gnumake` into nvim's PATH so tree-sitter can compile parsers. `dev` must be enabled on a host for the LSP/formatter toolchains behind the extras to exist.
 
 ## Scripts (`~/.local/bin`)
+
+I keep a few small helpers here for media downloads, audio conversion, and desktop switching:
 
 - `yt <url>` / `yt -a <url>` — video / audio-only to `~/Downloads`.
 - `tomp3 file...` — to 192k MP3 in place.
@@ -66,7 +69,7 @@ The wrapper also injects `gcc` + `gnumake` into nvim's PATH so tree-sitter can c
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), Cinnamon (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. GNOME extensions are the single source of truth in `mySystem.gnomeExtensions`. Theming (Orchis-Dark + Tela-circle-dark + Bibata): GNOME via dconf + home-manager gtk. Cinnamon/Plasma stay stock defaults, set in System Settings.
+GNOME (GDM/Wayland), Cinnamon (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. I keep the GNOME extension list in `mySystem.gnomeExtensions`, the single source of truth. I use Orchis-Dark, Tela-circle-dark, and Bibata in GNOME via dconf and home-manager GTK. Cinnamon and Plasma stay at their stock defaults, set in System Settings.
 
 ## Flatpak
 
