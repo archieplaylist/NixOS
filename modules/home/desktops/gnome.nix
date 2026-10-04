@@ -32,8 +32,9 @@ _: {
       };
     }
 
-    # MacTahoe-Dark / MacTahoe icons / Bibata
-    (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
+    # MacTahoe-Dark GTK theme shared by GNOME + XFCE (both GTK-based);
+    # the color-scheme dconf key below stays GNOME-only
+    (lib.mkIf (builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
       gtk = {
         enable = true;
         gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
@@ -58,7 +59,8 @@ _: {
         gtk2.force = true;
       };
 
-      dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
+      dconf.settings."org/gnome/desktop/interface".color-scheme =
+        lib.mkIf (osConfig.mySystem.desktop == "gnome") "prefer-dark";
     })
   ];
 }

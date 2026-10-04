@@ -13,7 +13,7 @@
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     mySystem.hostname = "nixlappys";
-    mySystem.desktop = "plasma";
+    mySystem.desktop = "xfce";
     mySystem.enableDesktop = true;
     mySystem.enableLaptop = true;
     mySystem.enableTailscale = true;

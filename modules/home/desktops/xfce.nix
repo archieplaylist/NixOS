@@ -14,5 +14,22 @@ _: {
       components = [ "secrets" "ssh" ];
     };
     home.sessionVariables.SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
+
+    # Mirror the shared MacTahoe GTK theming (theming.nix + gnome.nix write
+    # gtk.ini, but Xfce reads the xsettings channel) so Thunar/mousepad
+    # match GNOME. programs.xfconf is already on via the NixOS xfce module.
+    xfconf.settings = {
+      xsettings = {
+        "Net/ThemeName" = "MacTahoe-Dark";
+        "Net/IconThemeName" = "MacTahoe";
+        "Gtk/FontName" = "Noto Sans 10";
+        "Gtk/MonospaceFontName" = "JetBrainsMono Nerd Font 11";
+        "Gtk/CursorThemeName" = "Bibata-Modern-Classic";
+        "Gtk/CursorThemeSize" = 20;
+      };
+      xfwm4 = {
+        "general/theme" = "MacTahoe-Dark";
+      };
+    };
   };
 }

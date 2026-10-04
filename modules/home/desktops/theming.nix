@@ -1,4 +1,4 @@
-# Shared GTK font/icon/cursor for GNOME + Alacritty basics for all DEs.
+# Shared GTK font/icon/cursor for GNOME + XFCE, Alacritty basics for all DEs.
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
@@ -15,7 +15,7 @@ _: {
       '';
     }
 
-    (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
+    (lib.mkIf (builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
       gtk = {
         enable = true;
         font = {
