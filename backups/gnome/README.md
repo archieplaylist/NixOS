@@ -3,8 +3,8 @@
 One artifact per backup under `backups/<de>/`, newest 3 kept per pattern:
 
 ```bash
-backup-de backup [gnome|cinnamon|plasma|all]     # gnome → .dconf + files tar; cinnamon/plasma → files tar
-backup-de list [gnome|cinnamon|plasma]
+backup-de backup [gnome|xfce|plasma|all]     # gnome → .dconf + files tar; xfce/plasma → files tar
+backup-de list [gnome|xfce|plasma]
 backup-de restore backups/gnome/gnome-*.dconf
 backup-de restore backups/<de>/<de>-*.tar.gz  # extracts into $HOME
 backup-de restore backups/gnome/gnome-backup-*.tar.gz  # old bundle compat

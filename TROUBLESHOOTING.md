@@ -860,7 +860,7 @@ journalctl --user -u gnome-shell
 # Check GNOME extensions
 gnome-extensions list --detailed
 
-# Check X11 logs (if using X11, e.g. Cinnamon)
+# Check X11 logs (if using X11, e.g. XFCE)
 ~/.local/share/xorg/Xorg.0.log
 
 # Check Wayland logs

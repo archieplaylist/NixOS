@@ -19,13 +19,12 @@ guest).
 │   │   ├── mySystem.nix     # mySystem.* options + GNOME extension source of truth
 │   │   ├── base.nix         # locale/firewall/printing, ssh/docker/tailscale, store upkeep, nix-ld, user
 │   │   ├── filesystems.nix  # XFS by label, or LUKS2 via disko
-│   │   ├── desktop.nix      # GNOME/Cinnamon/Plasma + PipeWire + flatpak
+│   │   ├── desktop.nix      # GNOME/XFCE/Plasma + PipeWire + flatpak
 │   │   ├── gaming.nix       # Steam, GameMode, gamescope, controllers + low-latency audio
 │   │   └── hardware.nix     # intel, uefi, laptop, vm-guest slots
 │   ├── home/            # home-manager modules (all merge into home.modules.primary)
-│   │   ├── core.nix / apps.nix / ai.nix (pi + opencode) / nvim.nix (LazyVim)
-│   │   ├── nvim/          LazyVim config tree -> ~/.config/nvim (plain Lua)
-│   │   ├── desktops/ (gnome/cinnamon/plasma/themes) / easyeffects.nix
+│   │   ├── core.nix / apps.nix / ai.nix (pi + opencode)
+│   │   ├── desktops/ (gnome/xfce/plasma/themes) / easyeffects.nix
 │   │   └── scripts/     # yt, tomp3, switch-de, backup-de (+ de-paths shared lists) -> ~/.local/bin
 │   └── hosts/           # one file per machine -> nixos.hosts.<name>
 └── secrets/             # local secret templates only (never commit real values)
@@ -36,7 +35,7 @@ No wiring in `flake.nix`.
 
 ## Host flags (`mySystem.*`)
 
-- `enableDesktop` + `desktop = "gnome" | "cinnamon" | "plasma"` — DE + GDM/LightDM/SDDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
+- `enableDesktop` + `desktop = "gnome" | "xfce" | "plasma"` — DE + GDM/LightDM/SDDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
 - `enableLaptop` / `enableSSH` / `sshPasswordAuth` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSmartd`. SSH is key-only by default (`sshAuthorizedKeys`); set `sshPasswordAuth = true` only for bootstrap/legacy clients.
 - `enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install only (repartition required).
 - `flatpakApps`, `gnomeExtensions`, `sshAuthorizedKeys`.
@@ -44,19 +43,12 @@ No wiring in `flake.nix`.
 
 ## Application groups (`modules/home/apps.nix`)
 
-- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable), neovim + LazyVim (`nvim.nix`). **dev**: git, lazygit, nodejs, gh, python3, gnumake, fd, ripgrep. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
+- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake, fd, ripgrep. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
 - System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo + low-latency PipeWire).
 
-## Neovim (LazyVim)
+## Editor (VSCode)
 
-`modules/home/nvim.nix` installs neovim and links `modules/home/nvim/` (plain Lua) to `~/.config/nvim`. Gated on `appGroups.editor`, so it's off on `vm`. VSCode stays installed alongside it.
-
-I keep two parts of my LazyVim setup outside the usual home-manager pattern:
-
-- **I keep plugin specs in `./nvim/lua`, not `programs.neovim.plugins`.** Home Manager 26.05 defines that option as a strict Nix-package submodule, so it rejects lazy.nvim spec tables. I add or remove extras in `modules/home/nvim/lua/plugins/extras.lua`.
-- **I put the lockfile in `XDG_STATE_HOME`.** `~/.config/nvim` points into the read-only Nix store, so lazy.nvim cannot write `lazy-lock.json` there. Plugin versions are therefore not tracked in git.
-
-The wrapper also injects `gcc` + `gnumake` into nvim's PATH so tree-sitter can compile parsers. `dev` must be enabled on a host for the LSP/formatter toolchains behind the extras to exist.
+`appGroups.editor` installs VSCode (unstable) with `--password-store=gnome-libsecret` so tokens land in the Login keyring on every DE. `EDITOR`/`VISUAL` = `code --wait`.
 
 ## Scripts (`~/.local/bin`)
 
@@ -64,12 +56,12 @@ I keep a few small helpers here for media downloads, audio conversion, and deskt
 
 - `yt <url>` / `yt -a <url>` — video / audio-only to `~/Downloads`.
 - `tomp3 file...` — to 192k MP3 in place.
-- `switch-de <gnome|cinnamon|plasma>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
-- `backup-de backup [gnome|cinnamon|plasma|all]|restore <file>|list` — dconf dump/load (gnome) + file tars, newest 3 kept per DE. `switch-de` prompts for a backup when none exists.
+- `switch-de <gnome|xfce|plasma>` — flips `mySystem.desktop`, `nh os boot`, archives dormant DE state to `~/.local/share/de-archive/`. Reboot to apply.
+- `backup-de backup [gnome|xfce|plasma|all]|restore <file>|list` — dconf dump/load (gnome) + file tars, newest 3 kept per DE. `switch-de` prompts for a backup when none exists.
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), Cinnamon (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. I keep the GNOME extension list in `mySystem.gnomeExtensions`, the single source of truth. I use Orchis-Dark, Tela-circle-dark, and Bibata in GNOME via dconf and home-manager GTK. Cinnamon and Plasma stay at their stock defaults, set in System Settings.
+GNOME (GDM/Wayland), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. I keep the GNOME extension list in `mySystem.gnomeExtensions`, the single source of truth. I use Orchis-Dark, Tela-circle-dark, and Bibata in GNOME via dconf and home-manager GTK. XFCE and Plasma stay at their stock defaults, set in System Settings.
 
 ## Flatpak
 

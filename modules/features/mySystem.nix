@@ -33,9 +33,9 @@ _: {
         description = "Enable the desktop environment.";
       };
       desktop = lib.mkOption {
-        type = lib.types.enum [ "gnome" "cinnamon" "plasma" ];
+        type = lib.types.enum [ "gnome" "xfce" "plasma" ];
         default = "gnome";
-        description = "Desktop environment for this host: gnome, cinnamon or plasma.";
+        description = "Desktop environment for this host: gnome, xfce or plasma.";
       };
       enableLaptop = lib.mkOption {
         type = lib.types.bool;
@@ -76,7 +76,7 @@ _: {
                 media = "Media players and tooling (vlc, mpv, yt-dlp, ffmpeg).";
                 office = "Office and productivity (joplin, onlyoffice, libreoffice, zoom).";
                 comms = "Communication apps (discord).";
-                editor = "Code editors (vscode, neovim + LazyVim).";
+                editor = "Code editors (vscode).";
                 gaming = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";
                 dev = "Development tooling (editors, languages, CLIs).";
                 work = "Work applications (dbeaver-bin, filezilla, remmina).";

@@ -13,6 +13,11 @@ _: {
         };
       };
 
+      home.sessionVariables = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
+        EDITOR = "code --wait";
+        VISUAL = "code --wait";
+      };
+
       home.packages = lib.mkMerge [
         (with pkgs; [
           aria2
@@ -63,6 +68,8 @@ _: {
           zoom-us
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.comms.enable (with pkgs; [
+          # Electron/Chromium backend defaults to gnome-libsecret outside KDE —
+          # no flag override needed once xfce.nix provides org.freedesktop.secrets
           unstable.discord
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [

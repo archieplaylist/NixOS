@@ -1,5 +1,5 @@
 # Desktop slot: shared X/Bluetooth/NetworkManager/Flatpak + PipeWire,
-# GNOME/GDM, Cinnamon/LightDM, Plasma/SDDM. Sections merged, behavior unchanged.
+# GNOME/GDM, XFCE/LightDM, Plasma/SDDM. Sections merged, behavior unchanged.
 _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
@@ -82,16 +82,28 @@ _: {
         ];
       })
 
-      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "cinnamon") {
+      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "xfce") {
         services = {
           xserver.enable = true;
-          xserver.displayManager.lightdm.enable = true;
-          xserver.desktopManager.cinnamon.enable = true;
+          xserver.displayManager.lightdm = {
+            enable = true;
+            greeters.gtk.enable = true;
+          };
+          xserver.desktopManager.xfce.enable = true;
           gnome.gnome-keyring.enable = true;
           upower.enable = true;
         };
 
+        # PAM unlocks the Login keyring at LightDM login; user daemon below
+        # (home/desktops/xfce.nix) guarantees org.freedesktop.secrets + ssh
+        # socket for vivaldi/vscode/discord even if PAM races the session
         security.pam.services.lightdm.enableGnomeKeyring = true;
+
+        environment.systemPackages = with pkgs; [
+          seahorse # GUI to verify/unlock the Login keyring after first boot
+          mousepad
+          ristretto
+        ];
 
         xdg.portal = {
           enable = true;

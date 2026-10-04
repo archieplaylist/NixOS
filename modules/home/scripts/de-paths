@@ -5,9 +5,9 @@
 # never re-declare these arrays in the scripts.
 # Wallets/keyrings/caches are intentionally absent: never archived or backed up.
 
-cinnamon_paths=(
-  ".config/cinnamon" ".config/nemo"
-  ".local/share/cinnamon" ".local/share/nemo"
+xfce_paths=(
+  ".config/xfce4" ".config/Thunar" ".config/mousepad"
+  ".local/share/Thunar" ".local/share/xfce4"
 )
 
 # switch-de archives the dconf DB; backup-de dumps it instead (gnome_files below)
