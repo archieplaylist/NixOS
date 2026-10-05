@@ -34,7 +34,7 @@ _: {
         "commands/custom/override" = true;
         "commands/custom/Super_L" = "xfce4-popup-whiskermenu";
         "commands/custom/<Super>Return" = "exo-open --launch TerminalEmulator";
-        "commands/custom/<Alt>space" = "catfish";
+        "commands/custom/<Super>space" = "catfish";
       };
     };
   };
