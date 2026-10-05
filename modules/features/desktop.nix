@@ -103,6 +103,8 @@ _: {
           seahorse # GUI to verify/unlock the Login keyring after first boot
           mousepad
           ristretto
+          xfce4-clipman-plugin
+          xfce4-whiskermenu-plugin
           catfish
         ];
 
