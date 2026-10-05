@@ -46,6 +46,7 @@ _: {
           gnumake
           lazygit
           nodejs
+          unstable.pnpm
           python3
           ripgrep
         ]))

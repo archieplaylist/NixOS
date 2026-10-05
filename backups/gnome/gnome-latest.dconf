@@ -3,6 +3,12 @@ ignore-scrollback-limit=true
 last-window-maximised=false
 last-window-size=(1348, 583)
 
+[Music]
+window-maximized=false
+
+[Showtime/State]
+is-maximized=false
+
 [TextEditor]
 restore-session=false
 
@@ -30,7 +36,7 @@ size=(870, 690)
 
 [control-center]
 last-panel='network'
-window-state=(980, 640, false)
+window-state=(980, 640, true)
 
 [desktop/app-folders]
 folder-children=['System', 'Utilities', 'YaST', 'Pardus', 'a9cf2e61-e2c5-426f-ace5-ff07bceb6aef', '77024304-917e-4dc4-a948-6d347c276838']
@@ -65,8 +71,8 @@ name='Unnamed Folder'
 
 [desktop/background]
 picture-options='zoom'
-picture-uri='file:///nix/store/rlld3kg5q1mvf02gss7vw4xgv268nyfy-wallpaper.png'
-picture-uri-dark='file:///nix/store/rlld3kg5q1mvf02gss7vw4xgv268nyfy-wallpaper.png'
+picture-uri='file:///nix/store/yln67k4if56za4bhmn10lk3sr3dlbw7a-wallpaper.jpg'
+picture-uri-dark='file:///nix/store/yln67k4if56za4bhmn10lk3sr3dlbw7a-wallpaper.jpg'
 
 [desktop/break-reminders/eyesight]
 play-sound=true
@@ -88,13 +94,16 @@ document-font-name='Noto Sans 11'
 enable-animations=true
 font-name='Noto Sans 10'
 gtk-enable-primary-paste=true
-gtk-theme='Orchis-Dark'
-icon-theme='Tela-circle-dark'
+gtk-theme='MacTahoe-Dark'
+icon-theme='MacTahoe'
 monospace-font-name='JetBrainsMono Nerd Font 11'
 
 [desktop/notifications]
-application-children=['gnome-about-panel', 'org-gnome-software', 'org-gnome-baobab', 'vivaldi-stable', 'org-gnome-extensions', 'org-gnome-console', 'filezilla', 'org-gnome-nautilus']
+application-children=['gnome-about-panel', 'org-gnome-software', 'org-gnome-baobab', 'vivaldi-stable', 'org-gnome-extensions', 'org-gnome-console', 'filezilla', 'org-gnome-nautilus', 'org-gnome-showtime', 'vlc', 'dbeaver']
 show-in-lock-screen=false
+
+[desktop/notifications/application/dbeaver]
+application-id='dbeaver.desktop'
 
 [desktop/notifications/application/filezilla]
 application-id='filezilla.desktop'
@@ -114,11 +123,17 @@ application-id='org.gnome.Extensions.desktop'
 [desktop/notifications/application/org-gnome-nautilus]
 application-id='org.gnome.Nautilus.desktop'
 
+[desktop/notifications/application/org-gnome-showtime]
+application-id='org.gnome.Showtime.desktop'
+
 [desktop/notifications/application/org-gnome-software]
 application-id='org.gnome.Software.desktop'
 
 [desktop/notifications/application/vivaldi-stable]
 application-id='vivaldi-stable.desktop'
+
+[desktop/notifications/application/vlc]
+application-id='vlc.desktop'
 
 [desktop/peripherals/keyboard]
 numlock-state=true
@@ -138,7 +153,7 @@ resize-with-right-button=true
 
 [file-roller/listing]
 list-mode='as-folder'
-name-column-width=268
+name-column-width=299
 show-path=false
 sort-method='name'
 sort-type='ascending'
@@ -149,7 +164,7 @@ window-height=480
 window-width=600
 
 [gnome-system-monitor]
-current-tab='processes'
+current-tab='resources'
 maximized=false
 show-dependencies=false
 show-whose-processes='user'
@@ -163,6 +178,9 @@ columns-order=[0, 12, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19
 sort-col=15
 sort-order=0
 
+[mutter]
+overlay-key='Super'
+
 [nautilus/icon-view]
 default-zoom-level='medium'
 
@@ -174,7 +192,7 @@ default-folder-viewer='icon-view'
 migrated-gtk-settings=true
 
 [nautilus/window-state]
-initial-size=(890, 550)
+initial-size=(1920, 1040)
 initial-size-file-chooser=(890, 550)
 maximized=true
 
@@ -186,11 +204,34 @@ ignore-phase2-ca-cert=false
 ignore-ca-cert=false
 ignore-phase2-ca-cert=false
 
+[nm-applet/eap/e97dd10c-07d2-459e-b8b5-e03f6510103c]
+ignore-ca-cert=false
+ignore-phase2-ca-cert=false
+
+[papers]
+night-mode=false
+
+[papers/default]
+annot-color='yellow'
+continuous=true
+dual-page=false
+dual-page-odd-left=false
+enable-spellchecking=true
+eraser-mode-objects='true'
+highlight-color='yellow'
+highlight-stroke=2.0
+pen-color='blue'
+pen-stroke=1.0
+show-sidebar=true
+sizing-mode='automatic'
+text-color='blue'
+window-height=1036
+
 [portal/filechooser/com.vivaldi.Vivaldi]
-last-folder-path='/home/mario/Downloads/LIM_STEVEN_HALIM,_TN/957372 LIM STEVEN HALIM TN'
+last-folder-path='/home/mario/Downloads/titip/R-TITIP/nikita'
 
 [portal/filechooser/firefox]
-last-folder-path='/home/mario/Downloads/ISO'
+last-folder-path='/home/mario/Downloads'
 
 [portal/filechooser/org.chromium.Chromium]
 last-folder-path='/home/mario/nixos'
@@ -214,31 +255,72 @@ custom-keybindings=@as []
 sleep-inactive-ac-type='nothing'
 
 [shell]
-app-picker-layout=[{'a9cf2e61-e2c5-426f-ace5-ff07bceb6aef': <{'position': <0>}>, 'Utilities': <{'position': <1>}>, 'org.gnome.Settings.desktop': <{'position': <2>}>, 'blueman-manager.desktop': <{'position': <3>}>, 'btop.desktop': <{'position': <4>}>, 'System': <{'position': <5>}>, 'org.gnome.Calculator.desktop': <{'position': <6>}>, 'chromium-browser.desktop': <{'position': <7>}>, 'com.github.wwmm.easyeffects.desktop': <{'position': <8>}>, 'com.mattjakeman.ExtensionManager.desktop': <{'position': <9>}>, 'org.gnome.Extensions.desktop': <{'position': <10>}>}, {'com.github.tchx84.Flatseal.desktop': <{'position': <0>}>, 'it.mijorus.gearlever.desktop': <{'position': <1>}>, '77024304-917e-4dc4-a948-6d347c276838': <{'position': <2>}>, 'org.localsend.localsend_app.desktop': <{'position': <3>}>, 'cups.desktop': <{'position': <4>}>, 'mpv.desktop': <{'position': <5>}>, 'nixos-manual.desktop': <{'position': <6>}>, 'antigravity-ide.desktop': <{'position': <7>}>, 'onlyoffice-desktopeditors.desktop': <{'position': <8>}>, 'ca.desrt.dconf-editor.desktop': <{'position': <9>}>, 'org.gnome.tweaks.desktop': <{'position': <10>}>, 'code.desktop': <{'position': <11>}>, 'org.gnome.FileRoller.desktop': <{'position': <12>}>}, {'vlc.desktop': <{'position': <0>}>, 'xterm.desktop': <{'position': <1>}>, 'org.gnome.Calendar.desktop': <{'position': <2>}>, 'org.gnome.Music.desktop': <{'position': <3>}>}]
-enabled-extensions=['appindicatorsupport@rgcjonas.gmail.com', 'blur-my-shell@aunetx', 'caffeine@patapon.info', 'clipboard-indicator@tudmotu.com', 'CoverflowAltTab@palatis.blogspot.com', 'dash-to-dock@micxgx.gmail.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'impatience@gfxmonk.net', 'just-perfection-desktop@just-perfection', 'tailscale-gnome-qs@tailscale-qs.github.io', 'user-theme@gnome-shell-extensions.gcampax.github.com']
-favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'org.gnome.Nautilus.desktop', 'vivaldi-stable.desktop', 'firefox.desktop', 'rest.insomnia.Insomnia.desktop', 'dbeaver.desktop', 'filezilla.desktop', 'org.remmina.Remmina.desktop', 'joplin.desktop', 'virtualbox.desktop']
+app-picker-layout=[{'a9cf2e61-e2c5-426f-ace5-ff07bceb6aef': <{'position': <0>}>, 'Utilities': <{'position': <1>}>, 'System': <{'position': <2>}>, 'org.gnome.Settings.desktop': <{'position': <3>}>, 'blueman-manager.desktop': <{'position': <4>}>, 'btop.desktop': <{'position': <5>}>, 'org.gnome.Calculator.desktop': <{'position': <6>}>, 'chromium-browser.desktop': <{'position': <7>}>, 'com.mattjakeman.ExtensionManager.desktop': <{'position': <8>}>, 'org.gnome.Extensions.desktop': <{'position': <9>}>}, {'com.github.tchx84.Flatseal.desktop': <{'position': <0>}>, 'it.mijorus.gearlever.desktop': <{'position': <1>}>, '77024304-917e-4dc4-a948-6d347c276838': <{'position': <2>}>, 'org.localsend.localsend_app.desktop': <{'position': <3>}>, 'cups.desktop': <{'position': <4>}>, 'mpv.desktop': <{'position': <5>}>, 'nixos-manual.desktop': <{'position': <6>}>, 'onlyoffice-desktopeditors.desktop': <{'position': <7>}>, 'ca.desrt.dconf-editor.desktop': <{'position': <8>}>, 'org.qbittorrent.qBittorrent.desktop': <{'position': <9>}>, 'org.gnome.tweaks.desktop': <{'position': <10>}>, 'code.desktop': <{'position': <11>}>, 'org.gnome.FileRoller.desktop': <{'position': <12>}>, 'Zoom.desktop': <{'position': <13>}>, 'com.github.wwmm.easyeffects.desktop': <{'position': <14>}>, 'com.moonlight_stream.Moonlight.desktop': <{'position': <15>}>, 'dev.lizardbyte.app.Sunshine.desktop': <{'position': <16>}>}, {'vlc.desktop': <{'position': <0>}>, 'xterm.desktop': <{'position': <1>}>, 'org.gnome.Calendar.desktop': <{'position': <2>}>, 'org.gnome.Music.desktop': <{'position': <3>}>}]
+disabled-extensions=['dash-to-dock@micxgx.gmail.com']
+enabled-extensions=['appindicatorsupport@rgcjonas.gmail.com', 'blur-my-shell@aunetx', 'caffeine@patapon.info', 'clipboard-indicator@tudmotu.com', 'CoverflowAltTab@palatis.blogspot.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'impatience@gfxmonk.net', 'just-perfection-desktop@just-perfection', 'simple-taskbar@sultech', 'tailscale-gnome-qs@tailscale-qs.github.io', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'org.gnome.Nautilus.desktop', 'vivaldi-stable.desktop', 'firefox.desktop', 'rest.insomnia.Insomnia.desktop', 'dbeaver.desktop', 'filezilla.desktop', 'org.remmina.Remmina.desktop', 'joplin.desktop', 'virtualbox.desktop', 'com.raspberrypi.rpi-imager.desktop']
 last-selected-power-profile='performance'
 welcome-dialog-last-shown-version='50.2'
 
+[shell/extensions/appindicator]
+icon-brightness=0.0
+icon-contrast=0.0
+icon-opacity=240
+icon-saturation=0.0
+icon-size=0
+
 [shell/extensions/blur-my-shell]
+pipelines={'pipeline_default': {'name': <'Default'>, 'effects': <[<{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000000'>, 'params': <{'radius': <30>, 'brightness': <0.59999999999999998>}>}>]>}, 'pipeline_default_rounded': {'name': <'Default rounded'>, 'effects': <[<{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000001'>, 'params': <{'radius': <30>, 'brightness': <0.59999999999999998>}>}>, <{'type': <'corner'>, 'id': <'effect_000000000002'>, 'params': <{'radius': <24>}>}>]>}}
 rounded-blur-found=false
 settings-version=2
 
 [shell/extensions/blur-my-shell/appfolder]
+blur=false
 brightness=0.59999999999999998
 sigma=30
+
+[shell/extensions/blur-my-shell/applications]
+pipeline='pipeline_default'
+
+[shell/extensions/blur-my-shell/coverflow-alt-tab]
+pipeline='pipeline_default'
 
 [shell/extensions/blur-my-shell/dash-to-dock]
 blur=true
 brightness=0.59999999999999998
+override-background=true
+pipeline='pipeline_default_rounded'
 sigma=30
 static-blur=true
 style-dash-to-dock=0
+unblur-in-overview=false
+
+[shell/extensions/blur-my-shell/dash-to-panel]
+blur-original-panel=true
+
+[shell/extensions/blur-my-shell/hidetopbar]
+compatibility=false
+
+[shell/extensions/blur-my-shell/lockscreen]
+pipeline='pipeline_default'
+
+[shell/extensions/blur-my-shell/overview]
+pipeline='pipeline_default'
+style-components=3
 
 [shell/extensions/blur-my-shell/panel]
 brightness=0.59999999999999998
 corner-radius=0
+force-light-text=false
+override-background=true
+override-background-dynamically=false
+pipeline='pipeline_default'
 sigma=30
+static-blur=true
+style-panel=0
+
+[shell/extensions/blur-my-shell/screenshot]
+pipeline='pipeline_default'
 
 [shell/extensions/blur-my-shell/window-list]
 brightness=0.59999999999999998
@@ -246,17 +328,18 @@ sigma=30
 
 [shell/extensions/caffeine]
 cli-toggle=true
-indicator-position-max=2
+indicator-position-max=3
 restore-state=true
 user-enabled=true
 
 [shell/extensions/coverflowalttab]
-switcher-background-color=(0.19607843137254902, 0.50588235294117645, 0.91764705882352937)
+switcher-background-color=(0.20784313725490197, 0.51764705882352946, 0.89411764705882357)
 switcher-style='Coverflow'
 
 [shell/extensions/dash-to-dock]
 apply-custom-theme=true
 background-opacity=0.81000000000000005
+click-action='focus-minimize-or-previews'
 custom-theme-shrink=true
 dash-max-icon-size=39
 disable-overview-on-startup=false
@@ -298,8 +381,81 @@ workspace-popup=true
 workspaces-in-app-grid=true
 world-clock=false
 
+[shell/extensions/simple-taskbar]
+active-dock-axis='horizontal'
+active-panel-axis='horizontal'
+active-panel-mode='default-panel'
+activities-button-position='left'
+activities-button-visible=true
+animate-appicon-hover-animation-type='magnify'
+application-overflow-enabled=true
+classic-highlight-appicon-hover=true
+clock-position='center'
+clock-visible=true
+combine-app-buttons-mode='always'
+default-gnome-panel=true
+default-panel-horizontal-settings={'activities-button-visible': <true>, 'folder-menu-position': <'right'>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <12>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'hide-dash-enabled': <false>, 'tray-overflow-position': <'right'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <['Super']>, 'activities-button-position': <'left'>, 'transparency-on-unmaximized': <false>, 'transparency-dynamic-animation-time': <300>, 'transparency-dynamic-level': <100>, 'launch-to-desktop-enabled': <false>, 'gnome-start-button-visible': <false>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'transparency-dynamic-distance': <20>, 'multi-monitor-panels': <true>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'panel-height': <32>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>}
+default-panel-horizontal-settings-saved=true
+dock-axis-profiles-initialized=true
+dock-horizontal-settings={'activities-button-visible': <true>, 'folder-menu-position': <'right'>, 'start-button-padding': <2>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <12>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'hide-dash-enabled': <false>, 'tray-overflow-position': <'right'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'always'>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <['Super']>, 'activities-button-position': <'left'>, 'transparency-on-unmaximized': <false>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <false>, 'icon-spacing': <5>, 'transparency-dynamic-level': <100>, 'launch-to-desktop-enabled': <false>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'transparency-dynamic-distance': <20>, 'multi-monitor-panels': <true>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'panel-height': <32>, 'icon-size': <48>, 'show-pinned-app-separator': <true>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>}
+dock-horizontal-settings-saved=true
+dock-mode=true
+dock-mode-initialized=true
+dock-multi-monitor-panels=false
+dock-panel-border-enabled=true
+dock-panel-border-light-enabled=false
+dock-panel-mode=false
+dock-position='bottom'
+folder-menu-position='right'
+gnome-start-button-visible=true
+hide-dash-enabled=false
+hide-pinned-taskbar-apps=false
+hide-unpinned-taskbar-apps=false
+hot-edge-overview-enabled=false
+icon-size=38
+icon-spacing=5
+launch-to-desktop-enabled=false
+locations-show-documents=false
+locations-show-downloads=true
+multi-monitor-panels=true
+panel-axis-profiles-initialized=true
+panel-border-enabled=false
+panel-border-light-enabled=false
+panel-button-padding=12
+panel-height=32
+panel-height-follow-icon-size=false
+panel-item-order=['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']
+panel-mode-profiles-initialized=true
+panel-position='top'
+panel-profile-transition=false
+show-desktop-button-visible=false
+show-pinned-app-separator=true
+start-button-padding=2
+start-menu-displaced-overlay-key=@as []
+system-menu-position='right'
+system-menu-visible=true
+target-prefs-page=''
+taskbar-axis-profiles-enabled=true
+taskbar-highlight-length-enabled=false
+taskbar-highlight-size-enabled=false
+taskbar-highlight-style='classic'
+taskbar-horizontal-settings={'hide-dash-enabled': <true>, 'start-menu-displaced-overlay-key': <['Super']>, 'launch-to-desktop-enabled': <true>}
+taskbar-horizontal-settings-saved=true
+taskbar-mode-settings={'hide-dash-enabled': <true>, 'start-menu-displaced-overlay-key': <['Super']>, 'launch-to-desktop-enabled': <true>}
+taskbar-mode-settings-saved=true
+transparency-dynamic-animation-time=300
+transparency-dynamic-behavior='maximized-windows'
+transparency-dynamic-distance=20
+transparency-dynamic-level=100
+transparency-on-unmaximized=false
+tray-overflow-position='right'
+use-pinned-apps-as-launchers=false
+window-minimize-effect='gnome-default'
+windows-start-menu-enabled=false
+windows-xp-theme-enabled=false
+
 [shell/extensions/user-theme]
-name='Orchis-Dark'
+name='MacTahoe-Dark'
 
 [shell/world-clocks]
 locations=@av []
