@@ -21,7 +21,7 @@ _: {
     xfconf.settings = {
       xsettings = {
         "Net/ThemeName" = "MacTahoe-Dark";
-        "Net/IconThemeName" = "MacTahoe";
+        "Net/IconThemeName" = "MacTahoe-dark";
         "Gtk/FontName" = "Noto Sans 10";
         "Gtk/MonospaceFontName" = "JetBrainsMono Nerd Font 11";
         "Gtk/CursorThemeName" = "Bibata-Modern-Classic";
@@ -29,6 +29,12 @@ _: {
       };
       xfwm4 = {
         "general/theme" = "MacTahoe-Dark";
+      };
+      xfce4-keyboard-shortcuts = {
+        "commands/custom/override" = true;
+        "commands/custom/Super_L" = "xfce4-popup-whiskermenu";
+        "commands/custom/<Super>Return" = "exo-open --launch TerminalEmulator";
+        "commands/custom/<Alt>space" = "catfish";
       };
     };
   };

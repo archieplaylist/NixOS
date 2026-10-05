@@ -103,6 +103,7 @@ _: {
           seahorse # GUI to verify/unlock the Login keyring after first boot
           mousepad
           ristretto
+          catfish
         ];
 
         xdg.portal = {
