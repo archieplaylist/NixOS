@@ -41,20 +41,7 @@ _: {
         gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
         theme = {
           name = "MacTahoe-Dark";
-          package = pkgs.stdenvNoCC.mkDerivation {
-            pname = "mactahoe-gtk-theme";
-            version = "2026-09-10";
-            src = pkgs.fetchurl {
-              url = "https://raw.githubusercontent.com/vinceliuice/MacTahoe-gtk-theme/1e45e19f510edb8cde18fa84d6cd5319f60b086b/release/MacTahoe-Dark.tar.xz";
-              hash = "sha256-COgW5TUiR5VdHPpktErwru53z7xStStPTUvs9lDPXhU=";
-            };
-            nativeBuildInputs = [ pkgs.xz ];
-            dontBuild = true;
-            installPhase = ''
-              mkdir -p "$out/share/themes/MacTahoe-Dark"
-              cp -R . "$out/share/themes/MacTahoe-Dark"
-            '';
-          };
+          package = pkgs.mactahoe-gtk;
         };
         gtk2.force = true;
       };

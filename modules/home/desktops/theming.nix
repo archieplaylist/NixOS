@@ -25,21 +25,7 @@ _: {
         };
         iconTheme = {
           name = "MacTahoe";
-          package = pkgs.stdenvNoCC.mkDerivation {
-            pname = "mactahoe-icon-theme";
-            version = "2026-09-10";
-            src = pkgs.fetchFromGitHub {
-              owner = "vinceliuice";
-              repo = "MacTahoe-icon-theme";
-              rev = "2026-09-10";
-              hash = "sha256-NAahlBOYub0QlqkYStamoCbyWh+H5JG/iFm4Ws9EU3A=";
-            };
-            nativeBuildInputs = [ pkgs.bash pkgs.gtk3 ];
-            dontBuild = true;
-            installPhase = ''
-              bash ./install.sh --dest "$out/share/icons" --name MacTahoe --theme default
-            '';
-          };
+          package = pkgs.mactahoe-icons;
         };
         cursorTheme = {
           name = "Bibata-Modern-Classic";

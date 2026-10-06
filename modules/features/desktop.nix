@@ -87,7 +87,32 @@ _: {
           xserver.enable = true;
           xserver.displayManager.lightdm = {
             enable = true;
-            greeters.gtk.enable = true;
+            # same wallpaper as the session (modules/home/assets/wallpaper.jpg);
+            # store path is world-readable so the lightdm user can load it
+            background = ../home/assets/wallpaper.jpg;
+            greeters.gtk = {
+              enable = true;
+              theme = {
+                name = "MacTahoe-Dark";
+                package = pkgs.mactahoe-gtk;
+              };
+              iconTheme = {
+                # dark variant to match xfconf Net/IconThemeName in home/desktops/xfce.nix
+                name = "MacTahoe-dark";
+                package = pkgs.mactahoe-icons;
+              };
+              cursorTheme = {
+                name = "Bibata-Modern-Classic";
+                package = pkgs.bibata-cursors;
+                size = 20;
+              };
+              indicators = [ "~host" "~spacer" "~clock" "~spacer" "~session" "~a11y" "~power" ];
+              extraConfig = ''
+                font-name = Noto Sans 10
+                xft-antialias = true
+                xft-hintstyle = hintfull
+              '';
+            };
           };
           xserver.desktopManager.xfce.enable = true;
           gnome.gnome-keyring.enable = true;
