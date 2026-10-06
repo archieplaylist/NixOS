@@ -63,10 +63,10 @@ _: {
           unstable.qbittorrent
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.office.enable (with pkgs; [
-          joplin-desktop
           libreoffice-fresh
           onlyoffice-desktopeditors
           zoom-us
+          unstable.joplin-desktop
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.comms.enable (with pkgs; [
           # Electron/Chromium backend defaults to gnome-libsecret outside KDE —
