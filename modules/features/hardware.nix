@@ -43,9 +43,11 @@ _: {
   # qemu/spice/vbox agents coexist harmlessly — only the active hypervisor's agent does work.
   config.nixos.modules.vm-guest =
     let
-      # VirtualBox GuestAdditions fix for kernel 6.12+ (drm_fb_helper_alloc_info removed).
+      # VirtualBox GuestAdditions fixes for newer kernels (drm fb_helper API churn).
+      #  - kernel 6.12+: drm_fb_helper_alloc_info removed (vbox_fb.c).
+      #  - kernel 6.18+: drm_fb_helper_restore_fbdev_mode_unlocked gained bool force (vbox_main.c).
       # Scoped here (only vm imports this) instead of a global overlay.
-      # Re-check on VirtualBox >7.2.16 / kernel >6.18 — delete when vm builds without it.
+      # Re-check on VirtualBox with upstream 6.18 support — delete when vm builds without it.
       patchVboxGuestAdditions = kernelPackages:
         kernelPackages.extend (_final: prev: {
           virtualboxGuestAdditions = prev.virtualboxGuestAdditions.overrideAttrs (old: {
@@ -54,6 +56,10 @@ _: {
               if [ -n "$fb" ]; then
                 sed -i 's@info = drm_fb_helper_alloc_info(helper);@info = helper->info;@' "$fb"
                 sed -i 's@if (IS_ERR(info))@if (IS_ERR(info) || !info)@' "$fb"
+              fi
+              main=$(find src -name vbox_main.c 2>/dev/null | head -n1)
+              if [ -n "$main" ]; then
+                sed -i 's@drm_fb_helper_restore_fbdev_mode_unlocked(&vbox->fbdev->helper)@drm_fb_helper_restore_fbdev_mode_unlocked(\&vbox->fbdev->helper, true)@' "$main"
               fi
             '';
           });
