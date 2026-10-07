@@ -25,7 +25,6 @@ let
           (_final: prev: {
             # opencode - npm platform binary, ahead of nixpkgs' v1
             opencode = prev.callPackage ../packages/opencode.nix { };
-            mactahoe-gtk = prev.callPackage ../packages/mactahoe-gtk.nix { };
             mactahoe-icons = prev.callPackage ../packages/mactahoe-icons.nix { };
             gnomeExtensions = prev.gnomeExtensions // {
               simple-taskbar = prev.callPackage ../packages/simple-taskbar.nix { };

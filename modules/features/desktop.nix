@@ -93,8 +93,8 @@ _: {
             greeters.gtk = {
               enable = true;
               theme = {
-                name = "MacTahoe-Dark";
-                package = pkgs.mactahoe-gtk;
+                name = "Orchis-Dark";
+                package = pkgs.unstable.orchis-theme;
               };
               iconTheme = {
                 # dark variant to match xfconf Net/IconThemeName in home/desktops/xfce.nix

@@ -1,4 +1,4 @@
-# primary home gnome: dconf settings, GTK/icon/cursor/font theming (MacTahoe-Dark).
+# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark).
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
@@ -9,7 +9,7 @@ _: {
             enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
           };
           "org/gnome/shell/extensions/user-theme" = {
-            name = "MacTahoe-Dark";
+            name = "Orchis-Dark";
           };
           "org/gnome/desktop/wm/preferences" = {
             button-layout = "appmenu:minimize,maximize,close";
@@ -32,7 +32,7 @@ _: {
       };
     }
 
-    # MacTahoe-Dark GTK theme shared by GNOME + XFCE (both GTK-based);
+    # Orchis-Dark GTK theme (unstable) shared by GNOME + XFCE (both GTK-based);
     # the color-scheme dconf key below stays GNOME-only
     (lib.mkIf (builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
       gtk = {
@@ -40,8 +40,8 @@ _: {
         gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
         gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
         theme = {
-          name = "MacTahoe-Dark";
-          package = pkgs.mactahoe-gtk;
+          name = "Orchis-Dark";
+          package = pkgs.unstable.orchis-theme;
         };
         gtk2.force = true;
       };
