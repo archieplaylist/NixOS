@@ -20,7 +20,7 @@ _: {
     # match GNOME. programs.xfconf is already on via the NixOS xfce module.
     xfconf.settings = {
       xsettings = {
-        "Net/ThemeName" = "Orchis-Dark";
+        "Net/ThemeName" = "Orchis-Dark-Compact";
         "Net/IconThemeName" = "MacTahoe-dark";
         "Gtk/FontName" = "Noto Sans 10";
         "Gtk/MonospaceFontName" = "JetBrainsMono Nerd Font 11";
@@ -28,7 +28,7 @@ _: {
         "Gtk/CursorThemeSize" = 20;
       };
       xfwm4 = {
-        "general/theme" = "Orchis-Dark";
+        "general/theme" = "Orchis-Dark-Compact";
       };
       xfce4-keyboard-shortcuts = {
         "commands/custom/override" = true;
