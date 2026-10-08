@@ -36,7 +36,7 @@ size=(870, 690)
 
 [control-center]
 last-panel='network'
-window-state=(980, 640, true)
+window-state=(980, 640, false)
 
 [desktop/app-folders]
 folder-children=['System', 'Utilities', 'YaST', 'Pardus', 'a9cf2e61-e2c5-426f-ace5-ff07bceb6aef', '77024304-917e-4dc4-a948-6d347c276838']
@@ -95,11 +95,11 @@ enable-animations=true
 font-name='Noto Sans 10'
 gtk-enable-primary-paste=true
 gtk-theme='Orchis-Dark'
-icon-theme='MacTahoe-dark'
+icon-theme='MacTahoe'
 monospace-font-name='JetBrainsMono Nerd Font 11'
 
 [desktop/notifications]
-application-children=['gnome-about-panel', 'org-gnome-software', 'org-gnome-baobab', 'vivaldi-stable', 'org-gnome-extensions', 'org-gnome-console', 'filezilla', 'org-gnome-nautilus', 'org-gnome-showtime', 'vlc', 'dbeaver']
+application-children=['gnome-about-panel', 'org-gnome-software', 'org-gnome-baobab', 'vivaldi-stable', 'org-gnome-extensions', 'org-gnome-console', 'filezilla', 'org-gnome-nautilus', 'org-gnome-showtime', 'vlc', 'dbeaver', 'firefox']
 show-in-lock-screen=false
 
 [desktop/notifications/application/dbeaver]
@@ -107,6 +107,9 @@ application-id='dbeaver.desktop'
 
 [desktop/notifications/application/filezilla]
 application-id='filezilla.desktop'
+
+[desktop/notifications/application/firefox]
+application-id='firefox.desktop'
 
 [desktop/notifications/application/gnome-about-panel]
 application-id='gnome-about-panel.desktop'
@@ -256,8 +259,8 @@ sleep-inactive-ac-type='nothing'
 
 [shell]
 app-picker-layout=[{'a9cf2e61-e2c5-426f-ace5-ff07bceb6aef': <{'position': <0>}>, 'Utilities': <{'position': <1>}>, 'System': <{'position': <2>}>, 'org.gnome.Settings.desktop': <{'position': <3>}>, 'blueman-manager.desktop': <{'position': <4>}>, 'btop.desktop': <{'position': <5>}>, 'org.gnome.Calculator.desktop': <{'position': <6>}>, 'chromium-browser.desktop': <{'position': <7>}>, 'com.mattjakeman.ExtensionManager.desktop': <{'position': <8>}>, 'org.gnome.Extensions.desktop': <{'position': <9>}>}, {'com.github.tchx84.Flatseal.desktop': <{'position': <0>}>, 'it.mijorus.gearlever.desktop': <{'position': <1>}>, '77024304-917e-4dc4-a948-6d347c276838': <{'position': <2>}>, 'org.localsend.localsend_app.desktop': <{'position': <3>}>, 'cups.desktop': <{'position': <4>}>, 'mpv.desktop': <{'position': <5>}>, 'nixos-manual.desktop': <{'position': <6>}>, 'onlyoffice-desktopeditors.desktop': <{'position': <7>}>, 'ca.desrt.dconf-editor.desktop': <{'position': <8>}>, 'org.qbittorrent.qBittorrent.desktop': <{'position': <9>}>, 'org.gnome.tweaks.desktop': <{'position': <10>}>, 'code.desktop': <{'position': <11>}>, 'org.gnome.FileRoller.desktop': <{'position': <12>}>, 'Zoom.desktop': <{'position': <13>}>, 'com.github.wwmm.easyeffects.desktop': <{'position': <14>}>, 'com.moonlight_stream.Moonlight.desktop': <{'position': <15>}>, 'dev.lizardbyte.app.Sunshine.desktop': <{'position': <16>}>, 'nm-connection-editor.desktop': <{'position': <17>}>, 'appimagekit-joplin.desktop': <{'position': <18>}>}, {'vlc.desktop': <{'position': <0>}>, 'xterm.desktop': <{'position': <1>}>, 'org.gnome.Calendar.desktop': <{'position': <2>}>, 'org.gnome.Music.desktop': <{'position': <3>}>}]
-disabled-extensions=['dash-to-dock@micxgx.gmail.com']
-enabled-extensions=['appindicatorsupport@rgcjonas.gmail.com', 'blur-my-shell@aunetx', 'caffeine@patapon.info', 'clipboard-indicator@tudmotu.com', 'CoverflowAltTab@palatis.blogspot.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'impatience@gfxmonk.net', 'just-perfection-desktop@just-perfection', 'simple-taskbar@sultech', 'tailscale-gnome-qs@tailscale-qs.github.io', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+disabled-extensions=['blur-my-shell@aunetx']
+enabled-extensions=['appindicatorsupport@rgcjonas.gmail.com', 'caffeine@patapon.info', 'clipboard-indicator@tudmotu.com', 'CoverflowAltTab@palatis.blogspot.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'impatience@gfxmonk.net', 'just-perfection-desktop@just-perfection', 'simple-taskbar@sultech', 'tailscale-gnome-qs@tailscale-qs.github.io', 'user-theme@gnome-shell-extensions.gcampax.github.com']
 favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'org.gnome.Nautilus.desktop', 'vivaldi-stable.desktop', 'firefox.desktop', 'rest.insomnia.Insomnia.desktop', 'dbeaver.desktop', 'filezilla.desktop', 'org.remmina.Remmina.desktop', 'joplin.desktop', 'virtualbox.desktop', 'com.raspberrypi.rpi-imager.desktop']
 last-selected-power-profile='performance'
 welcome-dialog-last-shown-version='50.2'
@@ -271,6 +274,7 @@ icon-saturation=0.0
 icon-size=0
 
 [shell/extensions/blur-my-shell]
+hacks-level=0
 pipelines={'pipeline_default': {'name': <'Default'>, 'effects': <[<{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000000'>, 'params': <{'radius': <30>, 'brightness': <0.59999999999999998>}>}>]>}, 'pipeline_default_rounded': {'name': <'Default rounded'>, 'effects': <[<{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000001'>, 'params': <{'radius': <30>, 'brightness': <0.59999999999999998>}>}>, <{'type': <'corner'>, 'id': <'effect_000000000002'>, 'params': <{'radius': <24>}>}>]>}}
 rounded-blur-found=false
 settings-version=2
@@ -287,7 +291,7 @@ pipeline='pipeline_default'
 pipeline='pipeline_default'
 
 [shell/extensions/blur-my-shell/dash-to-dock]
-blur=true
+blur=false
 brightness=0.59999999999999998
 override-background=true
 pipeline='pipeline_default_rounded'
@@ -297,7 +301,7 @@ style-dash-to-dock=0
 unblur-in-overview=false
 
 [shell/extensions/blur-my-shell/dash-to-panel]
-blur-original-panel=true
+blur-original-panel=false
 
 [shell/extensions/blur-my-shell/hidetopbar]
 compatibility=false
@@ -306,10 +310,12 @@ compatibility=false
 pipeline='pipeline_default'
 
 [shell/extensions/blur-my-shell/overview]
+blur=true
 pipeline='pipeline_default'
 style-components=3
 
 [shell/extensions/blur-my-shell/panel]
+blur=false
 brightness=0.59999999999999998
 corner-radius=0
 force-light-text=false
@@ -317,8 +323,13 @@ override-background=true
 override-background-dynamically=false
 pipeline='pipeline_default'
 sigma=30
-static-blur=true
+static-blur=false
 style-panel=0
+unblur-in-overview=true
+
+[shell/extensions/blur-my-shell/popup]
+blur=false
+pipeline='pipeline_default_rounded'
 
 [shell/extensions/blur-my-shell/screenshot]
 pipeline='pipeline_default'
@@ -334,7 +345,7 @@ restore-state=true
 user-enabled=true
 
 [shell/extensions/coverflowalttab]
-switcher-background-color=(1.0, 1.0, 1.0)
+switcher-background-color=(0.19607843137254902, 0.50588235294117645, 0.91764705882352937)
 switcher-style='Coverflow'
 
 [shell/extensions/dash-to-dock]
@@ -389,46 +400,61 @@ active-panel-mode='default-panel'
 activities-button-position='left'
 activities-button-visible=true
 animate-appicon-hover-animation-type='magnify'
+app-alignment='center'
 application-overflow-enabled=true
 classic-highlight-appicon-hover=true
 clock-position='center'
 clock-visible=true
 combine-app-buttons-mode='always'
+custom-indicator-colors-enabled=false
 custom-panel-color-enabled=false
 default-gnome-panel=true
-default-panel-horizontal-settings={'activities-button-visible': <true>, 'taskbar-highlight-length-enabled': <false>, 'folder-menu-position': <'right'>, 'start-button-padding': <2>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <12>, 'hot-edge-overview-enabled': <false>, 'animate-appicon-hover-animation-type': <'magnify'>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'taskbar-highlight-style': <'classic'>, 'hide-dash-enabled': <false>, 'hide-unpinned-taskbar-apps': <false>, 'tray-overflow-position': <'right'>, 'window-minimize-effect': <'gnome-default'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'always'>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <@as []>, 'activities-button-position': <'left'>, 'target-prefs-page': <''>, 'transparency-on-unmaximized': <false>, 'locations-show-downloads': <true>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <false>, 'icon-spacing': <5>, 'transparency-dynamic-level': <100>, 'launch-to-desktop-enabled': <false>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'taskbar-highlight-size-enabled': <false>, 'transparency-dynamic-distance': <20>, 'classic-highlight-appicon-hover': <true>, 'multi-monitor-panels': <true>, 'application-overflow-enabled': <true>, 'locations-show-documents': <false>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'panel-height': <32>, 'icon-size': <38>, 'show-pinned-app-separator': <true>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>, 'hide-pinned-taskbar-apps': <false>}
+default-panel-horizontal-settings={'activities-button-visible': <true>, 'taskbar-highlight-length-enabled': <false>, 'folder-menu-enabled': <false>, 'folder-menu-position': <'right'>, 'start-button-padding': <2>, 'custom-panel-color-enabled': <false>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <10>, 'hot-edge-overview-enabled': <false>, 'panel-menu-click-only': <true>, 'animate-appicon-hover-animation-type': <'magnify'>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'taskbar-highlight-style': <'classic'>, 'hide-dash-enabled': <false>, 'hide-unpinned-taskbar-apps': <false>, 'volume-mixer-enabled': <true>, 'tray-overflow-position': <'right'>, 'window-minimize-effect': <'gnome-default'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'always'>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <@as []>, 'activities-button-position': <'left'>, 'target-prefs-page': <''>, 'transparency-on-unmaximized': <true>, 'locations-show-downloads': <true>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <false>, 'icon-spacing': <5>, 'panel-theme-follow-system': <true>, 'launch-to-desktop-enabled': <false>, 'quick-settings-icon-spacing': <15>, 'transparency-dynamic-level': <100>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'transparency-enabled': <true>, 'task-manager-app': <'net.nokyan.Resources.desktop'>, 'taskbar-highlight-size-enabled': <false>, 'transparency-level': <30>, 'transparency-dynamic-distance': <20>, 'classic-highlight-appicon-hover': <true>, 'multi-monitor-panels': <false>, 'application-overflow-enabled': <true>, 'locations-show-documents': <false>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'notification-banner-bottom-end': <true>, 'panel-height': <34>, 'icon-size': <38>, 'show-pinned-app-separator': <true>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>, 'tray-overflow-enabled': <false>, 'hide-pinned-taskbar-apps': <false>}
 default-panel-horizontal-settings-saved=true
-default-panel-mode-settings={'activities-button-visible': <true>, 'taskbar-highlight-length-enabled': <false>, 'folder-menu-position': <'right'>, 'panel-position': <'top'>, 'start-button-padding': <2>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <12>, 'hot-edge-overview-enabled': <false>, 'animate-appicon-hover-animation-type': <'magnify'>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'taskbar-highlight-style': <'classic'>, 'hide-dash-enabled': <false>, 'hide-unpinned-taskbar-apps': <false>, 'tray-overflow-position': <'right'>, 'window-minimize-effect': <'gnome-default'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'always'>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <@as []>, 'activities-button-position': <'left'>, 'target-prefs-page': <''>, 'transparency-on-unmaximized': <false>, 'locations-show-downloads': <true>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <false>, 'icon-spacing': <5>, 'transparency-dynamic-level': <100>, 'launch-to-desktop-enabled': <false>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'taskbar-highlight-size-enabled': <false>, 'transparency-dynamic-distance': <20>, 'classic-highlight-appicon-hover': <true>, 'multi-monitor-panels': <true>, 'application-overflow-enabled': <true>, 'locations-show-documents': <false>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'panel-height': <32>, 'icon-size': <38>, 'show-pinned-app-separator': <true>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>, 'hide-pinned-taskbar-apps': <false>}
+default-panel-mode-settings={'activities-button-visible': <true>, 'taskbar-highlight-length-enabled': <false>, 'folder-menu-enabled': <false>, 'folder-menu-position': <'right'>, 'panel-position': <'top'>, 'start-button-padding': <2>, 'custom-panel-color-enabled': <false>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <10>, 'hot-edge-overview-enabled': <false>, 'panel-menu-click-only': <true>, 'animate-appicon-hover-animation-type': <'magnify'>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'taskbar-highlight-style': <'classic'>, 'hide-dash-enabled': <false>, 'hide-unpinned-taskbar-apps': <false>, 'volume-mixer-enabled': <true>, 'tray-overflow-position': <'right'>, 'window-minimize-effect': <'gnome-default'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'always'>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <@as []>, 'activities-button-position': <'left'>, 'target-prefs-page': <''>, 'transparency-on-unmaximized': <true>, 'locations-show-downloads': <true>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <false>, 'icon-spacing': <5>, 'panel-theme-follow-system': <true>, 'launch-to-desktop-enabled': <false>, 'quick-settings-icon-spacing': <15>, 'transparency-dynamic-level': <100>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'transparency-enabled': <true>, 'task-manager-app': <'net.nokyan.Resources.desktop'>, 'taskbar-highlight-size-enabled': <false>, 'transparency-level': <30>, 'transparency-dynamic-distance': <20>, 'classic-highlight-appicon-hover': <true>, 'multi-monitor-panels': <false>, 'application-overflow-enabled': <true>, 'locations-show-documents': <false>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'notification-banner-bottom-end': <true>, 'panel-height': <34>, 'icon-size': <38>, 'show-pinned-app-separator': <true>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>, 'tray-overflow-enabled': <false>, 'hide-pinned-taskbar-apps': <false>}
 default-panel-mode-settings-saved=true
+default-panel-vertical-settings={'activities-button-visible': <true>, 'taskbar-highlight-length-enabled': <false>, 'folder-menu-enabled': <false>, 'folder-menu-position': <'right'>, 'start-button-padding': <2>, 'custom-panel-color-enabled': <false>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <10>, 'hot-edge-overview-enabled': <false>, 'panel-menu-click-only': <true>, 'animate-appicon-hover-animation-type': <'magnify'>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'taskbar-highlight-style': <'classic'>, 'hide-dash-enabled': <false>, 'hide-unpinned-taskbar-apps': <false>, 'volume-mixer-enabled': <true>, 'tray-overflow-position': <'right'>, 'window-minimize-effect': <'gnome-default'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'always'>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <@as []>, 'activities-button-position': <'left'>, 'target-prefs-page': <''>, 'transparency-on-unmaximized': <false>, 'locations-show-downloads': <true>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <false>, 'icon-spacing': <5>, 'panel-theme-follow-system': <true>, 'launch-to-desktop-enabled': <false>, 'quick-settings-icon-spacing': <15>, 'transparency-dynamic-level': <100>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'taskbar-highlight-size-enabled': <false>, 'transparency-dynamic-distance': <20>, 'classic-highlight-appicon-hover': <true>, 'multi-monitor-panels': <false>, 'application-overflow-enabled': <true>, 'locations-show-documents': <false>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'notification-banner-bottom-end': <true>, 'panel-height': <34>, 'icon-size': <38>, 'show-pinned-app-separator': <true>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>, 'tray-overflow-enabled': <false>, 'hide-pinned-taskbar-apps': <false>}
+default-panel-vertical-settings-saved=true
 dock-axis-profiles-initialized=true
+dock-custom-panel-color-enabled=false
+dock-dodge-windows-mode='all-windows'
+dock-hide-dash-enabled=true
 dock-horizontal-settings={'activities-button-visible': <true>, 'folder-menu-position': <'right'>, 'start-button-padding': <2>, 'panel-item-order': <['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']>, 'panel-button-padding': <12>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'hide-dash-enabled': <false>, 'tray-overflow-position': <'right'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'always'>, 'show-desktop-button-visible': <false>, 'start-menu-displaced-overlay-key': <['Super']>, 'activities-button-position': <'left'>, 'transparency-on-unmaximized': <false>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <false>, 'icon-spacing': <5>, 'transparency-dynamic-level': <100>, 'launch-to-desktop-enabled': <false>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'transparency-dynamic-distance': <20>, 'multi-monitor-panels': <true>, 'system-menu-visible': <true>, 'clock-position': <'center'>, 'panel-height': <32>, 'icon-size': <48>, 'show-pinned-app-separator': <true>, 'windows-start-menu-enabled': <false>, 'panel-border-light-enabled': <false>}
 dock-horizontal-settings-saved=true
 dock-mode=true
 dock-mode-initialized=true
 dock-multi-monitor-panels=false
-dock-panel-border-enabled=true
+dock-panel-border-enabled=false
 dock-panel-border-light-enabled=false
 dock-panel-mode=false
+dock-panel-theme-follow-system=true
 dock-position='bottom'
+dock-transparency-level=50
+dock-transparency-on-unmaximized=false
 folder-menu-enabled=false
 folder-menu-position='right'
 gnome-start-button-visible=true
+grid-alt-tab-enabled=false
 hide-dash-enabled=false
 hide-pinned-taskbar-apps=false
 hide-unpinned-taskbar-apps=false
 hot-edge-overview-enabled=false
-icon-size=38
+icon-edge-padding=7
+icon-size=36
 icon-spacing=5
 launch-to-desktop-enabled=false
 locations-show-documents=false
 locations-show-downloads=true
 multi-monitor-panels=false
 notification-banner-bottom-end=true
+panel-autohide-enabled=false
 panel-axis-profiles-initialized=true
 panel-border-enabled=false
 panel-border-light-enabled=false
 panel-button-padding=10
-panel-height=36
+panel-dodge-windows-enabled=true
+panel-dodge-windows-mode='all-windows'
+panel-height=34
 panel-height-follow-icon-size=false
 panel-item-order=['left-box', 'center-box', 'right-box', 'start-button', 'activities', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock', 'show-desktop']
 panel-menu-click-only=true
@@ -437,13 +463,16 @@ panel-position='top'
 panel-profile-transition=false
 panel-theme-follow-system=true
 quick-settings-icon-spacing=15
+running-indicator-style='segmented'
 show-desktop-button-visible=false
 show-pinned-app-separator=true
+start-button-follow-app-alignment=true
 start-button-padding=2
 start-menu-displaced-overlay-key=@as []
 system-menu-position='right'
 system-menu-visible=true
 target-prefs-page=''
+task-manager-app='net.nokyan.Resources.desktop'
 taskbar-axis-profiles-enabled=true
 taskbar-highlight-length-enabled=false
 taskbar-highlight-size-enabled=false
@@ -456,13 +485,18 @@ transparency-dynamic-animation-time=300
 transparency-dynamic-behavior='maximized-windows'
 transparency-dynamic-distance=20
 transparency-dynamic-level=100
-transparency-on-unmaximized=false
+transparency-enabled=true
+transparency-level=30
+transparency-on-unmaximized=true
 tray-overflow-enabled=false
 tray-overflow-position='right'
 use-pinned-apps-as-launchers=false
 volume-mixer-enabled=true
 window-minimize-effect='gnome-default'
 windows-start-menu-enabled=false
+windows-xp-mode-settings={'activities-button-visible': <false>, 'taskbar-highlight-length-enabled': <false>, 'folder-menu-enabled': <false>, 'show-location-separator': <false>, 'folder-menu-position': <'right'>, 'panel-position': <'bottom'>, 'show-desktop-button-position': <'left'>, 'start-button-padding': <2>, 'custom-panel-color-enabled': <false>, 'panel-item-order': <['start-button', 'left-box', 'activities', 'show-desktop', 'center-box', 'right-box', 'applications', 'folder-menu', 'tray-overflow', 'system-menu', 'clock']>, 'panel-button-padding': <0>, 'start-menu-running-indicators': <false>, 'hot-edge-overview-enabled': <true>, 'panel-menu-click-only': <true>, 'animate-appicon-hover-animation-type': <'none'>, 'transparency-dynamic-behavior': <'maximized-windows'>, 'taskbar-highlight-style': <'classic'>, 'hide-dash-enabled': <true>, 'hide-unpinned-taskbar-apps': <false>, 'volume-mixer-enabled': <true>, 'tray-overflow-position': <'right'>, 'window-minimize-effect': <'gnome-default'>, 'system-menu-position': <'right'>, 'panel-height-follow-icon-size': <false>, 'combine-app-buttons-mode': <'when-full'>, 'show-desktop-button-visible': <true>, 'start-menu-displaced-overlay-key': <['Super']>, 'activities-button-position': <'left'>, 'target-prefs-page': <''>, 'transparency-on-unmaximized': <true>, 'locations-show-downloads': <true>, 'transparency-dynamic-animation-time': <300>, 'use-pinned-apps-as-launchers': <true>, 'icon-spacing': <-5>, 'panel-theme-follow-system': <false>, 'launch-to-desktop-enabled': <true>, 'quick-settings-icon-spacing': <15>, 'app-alignment': <'left'>, 'start-button-position': <'left'>, 'transparency-dynamic-level': <100>, 'gnome-start-button-visible': <true>, 'panel-border-enabled': <false>, 'clock-visible': <true>, 'transparency-enabled': <false>, 'task-manager-app': <'net.nokyan.Resources.desktop'>, 'taskbar-highlight-size-enabled': <false>, 'transparency-level': <30>, 'transparency-dynamic-distance': <20>, 'classic-highlight-appicon-hover': <true>, 'multi-monitor-panels': <true>, 'application-overflow-enabled': <true>, 'locations-show-documents': <false>, 'system-menu-visible': <true>, 'clock-position': <'right'>, 'notification-banner-bottom-end': <true>, 'panel-height': <30>, 'icon-size': <16>, 'show-pinned-app-separator': <false>, 'windows-start-menu-enabled': <true>, 'panel-border-light-enabled': <false>, 'tray-overflow-enabled': <true>, 'hide-pinned-taskbar-apps': <false>}
+windows-xp-mode-settings-saved=true
+windows-xp-previous-mode='dock'
 windows-xp-theme-enabled=false
 
 [shell/extensions/user-theme]

@@ -163,7 +163,6 @@ _: {
 
       mySystem.gnomeExtensions = lib.mkIf (config.mySystem.desktop == "gnome") [
         { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
-        { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
         { uuid = "caffeine@patapon.info"; package = "caffeine"; }
         { uuid = "clipboard-indicator@tudmotu.com"; package = "clipboard-indicator"; }
         { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
