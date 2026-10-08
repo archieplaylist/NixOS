@@ -52,7 +52,7 @@ No wiring in `flake.nix`.
 
 ## Virtualization (virt-manager)
 
-`enableVirtManager` (on `desktop`, `laptop`, `work`) gives KVM/libvirt + virt-manager with UEFI (OVMF), TPM (swtpm), SPICE USB redirection, and the `libvirtd`/`kvm` groups (relog once). Guests get their own LAN IP via a per-VM macvtap bridge NIC (wired NIC, source mode Bridge); on WiFi use NAT instead, and note macvtap blocks host↔guest traffic by design. Clipboard needs Video Virtio (or QXL), Display Spice, and a `com.redhat.spice.0` channel plus `spice-vdagent` in the guest (NixOS guests already have it via the `vm-guest` module). `work` keeps VirtualBox too — run KVM or VirtualBox VMs, never both at once.
+`enableVirtManager` (on `desktop`, `laptop`, `work`) gives KVM/libvirt + virt-manager with UEFI (OVMF ships with QEMU), TPM (swtpm), SPICE USB redirection, and the `libvirtd`/`kvm` groups (relog once). Guests get their own LAN IP via a per-VM macvtap bridge NIC (wired NIC, source mode Bridge); on WiFi use NAT instead, and note macvtap blocks host↔guest traffic by design. Clipboard needs Video Virtio (or QXL), Display Spice, and a `com.redhat.spice.0` channel plus `spice-vdagent` in the guest (NixOS guests already have it via the `vm-guest` module). `work` keeps VirtualBox too — run KVM or VirtualBox VMs, never both at once.
 
 ## Scripts (`~/.local/bin`)
 
