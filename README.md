@@ -36,7 +36,7 @@ No wiring in `flake.nix`.
 ## Host flags (`mySystem.*`)
 
 - `enableDesktop` + `desktop = "gnome" | "xfce" | "plasma"` — DE + GDM/LightDM/SDDM, PipeWire, Bluetooth, NetworkManager, Flatpak.
-- `enableLaptop` / `enableSSH` / `sshPasswordAuth` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableSmartd`. SSH is key-only by default (`sshAuthorizedKeys`); set `sshPasswordAuth = true` only for bootstrap/legacy clients.
+- `enableLaptop` / `enableSSH` / `sshPasswordAuth` / `enableDocker` / `enableTailscale` / `enableVirtualBox` / `enableVirtManager` / `enableSmartd`. SSH is key-only by default (`sshAuthorizedKeys`); set `sshPasswordAuth = true` only for bootstrap/legacy clients.
 - `enableLuks` / `enableTpm2` / `enableSecureBoot` — fresh-install only (repartition required).
 - `flatpakApps`, `gnomeExtensions`, `sshAuthorizedKeys`.
 - `appGroups.{browsers,media,office,comms,editor,gaming,dev,work,ai}.enable` — package toggles shared by system + home (`apps.nix` via `osConfig`). Off by default: each host opts in explicitly.
@@ -49,6 +49,10 @@ No wiring in `flake.nix`.
 ## Editor (VSCode)
 
 `appGroups.editor` installs VSCode (unstable) with `--password-store=gnome-libsecret` so tokens land in the Login keyring on every DE. `EDITOR`/`VISUAL` = `code --wait`.
+
+## Virtualization (virt-manager)
+
+`enableVirtManager` (on `desktop`, `laptop`, `work`) gives KVM/libvirt + virt-manager with UEFI (OVMF), TPM (swtpm), SPICE USB redirection, and the `libvirtd`/`kvm` groups (relog once). Guests get their own LAN IP via a per-VM macvtap bridge NIC (wired NIC, source mode Bridge); on WiFi use NAT instead, and note macvtap blocks host↔guest traffic by design. Clipboard needs Video Virtio (or QXL), Display Spice, and a `com.redhat.spice.0` channel plus `spice-vdagent` in the guest (NixOS guests already have it via the `vm-guest` module). `work` keeps VirtualBox too — run KVM or VirtualBox VMs, never both at once.
 
 ## Scripts (`~/.local/bin`)
 

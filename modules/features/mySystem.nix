@@ -62,6 +62,11 @@ _: {
         default = false;
         description = "Enable the VirtualBox host (with kernel modules).";
       };
+      enableVirtManager = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable KVM/libvirt + virt-manager (SPICE clipboard, macvtap bridge per VM).";
+      };
       isVm = lib.mkOption {
         type = lib.types.bool;
         default = false;

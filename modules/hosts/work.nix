@@ -14,6 +14,7 @@
     mySystem.enableDocker = true;
     mySystem.enableTailscale = true; # daemon on for `stream` toggle; `tailscale down` persists across reboots
     mySystem.enableVirtualBox = true;
+    mySystem.enableVirtManager = true;
     mySystem.enableSmartd = true;
     mySystem.enableSunshine = true;
     mySystem.enableMoonlight = true;

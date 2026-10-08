@@ -15,6 +15,7 @@
     mySystem.enableDocker = true;
     mySystem.enableTailscale = true;
     mySystem.enableSmartd = true;
+    mySystem.enableVirtManager = true;
     mySystem.enableSunshine = true;
     mySystem.enableMoonlight = true;
 
