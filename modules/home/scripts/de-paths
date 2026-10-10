@@ -22,8 +22,8 @@ gnome_files=(
 
 plasma_paths=(
   ".config/plasma*" ".config/kde*" ".config/KDE"
-  ".config/kwin*" ".config/kglobal*" ".config/kwallet*"
+  ".config/kwin*" ".config/kglobal*"
   ".config/katerc" ".config/kate" ".config/konsolerc"
-  ".local/share/plasma" ".local/share/kwalletd" ".local/share/kscreen"
+  ".local/share/plasma" ".local/share/kscreen"
   ".local/share/konsole" ".local/share/kate"
 )
