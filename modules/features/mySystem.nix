@@ -12,6 +12,16 @@ _: {
         default = "mario";
         description = "Primary user for this host.";
       };
+      gitName = lib.mkOption {
+        type = lib.types.str;
+        default = "archieplaylist";
+        description = "Git user.name for the primary user.";
+      };
+      gitEmail = lib.mkOption {
+        type = lib.types.str;
+        default = "archieplaylist@users.noreply.github.com";
+        description = "Git user.email for the primary user.";
+      };
       sshAuthorizedKeys = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
@@ -23,9 +33,9 @@ _: {
         description = "Enable the desktop environment.";
       };
       desktop = lib.mkOption {
-        type = lib.types.enum [ "gnome" "niri" "xfce" ];
+        type = lib.types.enum [ "gnome" "xfce" "plasma" ];
         default = "gnome";
-        description = "Desktop environment for this host: gnome, niri or xfce.";
+        description = "Desktop environment for this host: gnome, xfce or plasma.";
       };
       enableLaptop = lib.mkOption {
         type = lib.types.bool;
@@ -37,6 +47,11 @@ _: {
         default = false;
         description = "Enable the OpenSSH server.";
       };
+      sshPasswordAuth = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Allow SSH password login. Prefer keys; enable only for bootstrap or legacy clients.";
+      };
       enableDocker = lib.mkOption {
         type = lib.types.bool;
         default = false;
@@ -46,6 +61,11 @@ _: {
         type = lib.types.bool;
         default = false;
         description = "Enable the VirtualBox host (with kernel modules).";
+      };
+      enableVirtManager = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable KVM/libvirt + virt-manager (SPICE clipboard, macvtap bridge per VM).";
       };
       isVm = lib.mkOption {
         type = lib.types.bool;
@@ -65,14 +85,14 @@ _: {
                 gaming = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";
                 dev = "Development tooling (editors, languages, CLIs).";
                 work = "Work applications (dbeaver-bin, filezilla, remmina).";
-                ai = "AI coding agents (pi-coding-agent, opencode + ponytail/caveman skills).";
+                ai = "AI coding agents (pi-coding-agent, opencode + ponytail/caveman skills, llama-cpp).";
               };
             in
             lib.mapAttrs
-              (name: description: {
+              (_name: description: {
                 enable = lib.mkOption {
                   type = lib.types.bool;
-                  default = name != "work";
+                  default = false;
                   inherit description;
                 };
               })
@@ -148,14 +168,13 @@ _: {
 
       mySystem.gnomeExtensions = lib.mkIf (config.mySystem.desktop == "gnome") [
         { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }
-        { uuid = "blur-my-shell@aunetx"; package = "blur-my-shell"; }
         { uuid = "caffeine@patapon.info"; package = "caffeine"; }
         { uuid = "clipboard-indicator@tudmotu.com"; package = "clipboard-indicator"; }
         { uuid = "CoverflowAltTab@palatis.blogspot.com"; package = "coverflow-alt-tab"; }
-        { uuid = "dash-to-dock@micxgx.gmail.com"; package = "dash-to-dock"; }
         { uuid = "drive-menu@gnome-shell-extensions.gcampax.github.com"; package = "removable-drive-menu"; }
         { uuid = "impatience@gfxmonk.net"; package = "impatience"; }
         { uuid = "just-perfection-desktop@just-perfection"; package = "just-perfection"; }
+        { uuid = "simple-taskbar@sultech"; package = "simple-taskbar"; }
         { uuid = "tailscale-gnome-qs@tailscale-qs.github.io"; package = "tailscale-qs"; }
         { uuid = "user-theme@gnome-shell-extensions.gcampax.github.com"; package = "user-themes"; }
       ];

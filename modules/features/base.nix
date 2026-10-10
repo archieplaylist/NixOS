@@ -56,11 +56,11 @@ _: {
       }
 
       {
-        # password login on purpose (keys optional) — user password comes from /etc/hashed-password
+        # key-only by default; set mySystem.sshPasswordAuth = true for legacy/bootstrap clients
         services.openssh = lib.mkIf config.mySystem.enableSSH {
           enable = true;
           settings = {
-            PasswordAuthentication = true;
+            PasswordAuthentication = config.mySystem.sshPasswordAuth;
             PermitRootLogin = "no";
             KbdInteractiveAuthentication = false;
           };
@@ -117,13 +117,26 @@ _: {
           host.enable = true;
         };
 
+        virtualisation.libvirtd = lib.mkIf config.mySystem.enableVirtManager {
+          enable = true;
+          qemu = {
+            package = pkgs.qemu_kvm;
+            runAsRoot = true;
+            swtpm.enable = true;
+          };
+        };
+
+        virtualisation.spiceUSBRedirection.enable = config.mySystem.enableVirtManager;
+        programs.virt-manager.enable = config.mySystem.enableVirtManager;
+        programs.dconf.enable = lib.mkIf config.mySystem.enableVirtManager true;
+
         environment.systemPackages = with pkgs; [
           curl
           wget
           ripgrep
           unzip
           jq # tailscale-qs GNOME extension shells out to jq
-        ];
+        ] ++ lib.optionals config.mySystem.enableVirtManager [ spice-gtk ];
       }
 
       {
@@ -227,6 +240,7 @@ _: {
             ++ lib.optionals config.mySystem.enableDesktop [ "networkmanager" ]
             ++ lib.optionals config.mySystem.enableDocker [ "docker" ]
             ++ lib.optionals config.mySystem.enableVirtualBox [ "vboxusers" ]
+            ++ lib.optionals config.mySystem.enableVirtManager [ "libvirtd" "kvm" ]
             ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" "input" ]
             ++ lib.optionals config.mySystem.enableSunshine [ "uinput" ];
           openssh.authorizedKeys.keys = config.mySystem.sshAuthorizedKeys;

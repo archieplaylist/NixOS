@@ -1,5 +1,4 @@
-# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark),
-# alacritty basics (noctalia owns alacritty.toml on niri, so niri excluded).
+# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark).
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
@@ -33,46 +32,22 @@ _: {
       };
     }
 
-    # Orchis-Dark / Tela-circle-dark / Bibata (Orchis https://github.com/vinceliuice/Orchis-theme)
-    (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
+    # Orchis-Dark GTK theme (unstable) shared by GNOME + XFCE (both GTK-based);
+    # the color-scheme dconf key below stays GNOME-only
+    (lib.mkIf (builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
       gtk = {
         enable = true;
         gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
         gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
-        font = {
-          package = pkgs.noto-fonts;
-          name = "Noto Sans";
-          size = 10;
-        };
         theme = {
           name = "Orchis-Dark";
-          package = pkgs.orchis-theme;
-        };
-        iconTheme = {
-          name = "Tela-circle-dark";
-          package = pkgs.tela-circle-icon-theme;
-        };
-        cursorTheme = {
-          name = "Bibata-Modern-Classic";
-          package = pkgs.bibata-cursors;
-          size = 20;
+          package = pkgs.unstable.orchis-theme;
         };
         gtk2.force = true;
       };
 
-      dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
-
-      xdg.configFile."alacritty/alacritty.toml".text = ''
-        [window]
-        padding = { x = 12, y = 12 }
-        opacity = 0.80
-
-        [font]
-        size = 11
-
-        [font.normal]
-        family = "JetBrainsMono Nerd Font"
-      '';
+      dconf.settings."org/gnome/desktop/interface".color-scheme =
+        lib.mkIf (osConfig.mySystem.desktop == "gnome") "prefer-dark";
     })
   ];
 }

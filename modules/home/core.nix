@@ -10,14 +10,7 @@ _: {
       };
 
       # all DEs share gnome-keyring now, one Login keyring, no relogin
-      home.sessionVariables = {
-        XDG_CONFIG_HOME = "$HOME/.config";
-        XDG_DATA_HOME = "$HOME/.local/share";
-        XDG_STATE_HOME = "$HOME/.local/state";
-        XDG_CACHE_HOME = "$HOME/.cache";
-        SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
-      };
-
+      # SSH_AUTH_SOCK is set per-DE where a keyring ssh agent is guaranteed to run
       xdg.userDirs = {
         enable = true;
         desktop = "$HOME/Desktop";
@@ -46,9 +39,6 @@ _: {
           ll = "ls -lha";
           grep = "grep --color=auto";
           ff = "fastfetch";
-        } // lib.optionalAttrs (osConfig.mySystem.hostname == "central8") {
-          # work-only websvr docker recycle — folder exists only on central8
-          websvr-restart = "cd ~/Documents/test-folder/websvr && sudo systemctl restart docker && sleep 3 && sudo docker compose down && sleep 3 && sudo docker compose up -d";
         };
       };
 
@@ -74,6 +64,10 @@ _: {
         source = ./scripts/backup-de;
         executable = true;
       };
+      # shared DE path lists, sourced by switch-de + backup-de
+      home.file.".local/bin/de-paths" = {
+        source = ./scripts/de-paths;
+      };
     }
 
     # sunshine/tailscale toggle — only where the sunshine host is enabled
@@ -88,8 +82,8 @@ _: {
       programs.git = {
         enable = true;
         settings = {
-          user.name = "archieplaylist";
-          user.email = "archieplaylist@users.noreply.github.com";
+          user.name = osConfig.mySystem.gitName;
+          user.email = osConfig.mySystem.gitEmail;
           init.defaultBranch = "main";
           push.autoSetupRemote = true;
         };

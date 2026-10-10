@@ -57,15 +57,8 @@ case "${1:-status}" in
 esac
 case "$action" in on | off | status) ;; *) usage ;; esac
 
-run() {
-  case "$1" in
-    tailscale) "ts_$action" ;;
-    sunshine) "sun_$action" ;;
-  esac
-}
-
 if [ "$target" = "all" ]; then
   if [ "$action" = "on" ]; then ts_on; sun_on; elif [ "$action" = "off" ]; then sun_off; ts_off; else ts_status; sun_status; fi
-else
-  run "$target"
+elif [ "$target" = "tailscale" ]; then "ts_$action";
+else "sun_$action";
 fi

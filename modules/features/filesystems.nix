@@ -55,11 +55,9 @@ _: {
                   settings = {
                     allowDiscards = true;
                     bypassWorkqueues = true;
-                    # always ask the TPM even if no TPM key is enrolled
-                    # (systemd-cryptsetup silently falls back to passphrase; setting
-                    # this only when enableTpm2 would require threading the option
-                    # through disko.settings, which can't see mySystem.* cleanly).
-                    crypttabExtraOpts = [ "tpm2-device=auto" ];
+                    # only probe the TPM when a key is enrolled; otherwise every
+                    # boot would ask the TPM for a key that does not exist
+                    crypttabExtraOpts = lib.mkIf config.mySystem.enableTpm2 [ "tpm2-device=auto" ];
                   };
                   content = {
                     type = "filesystem";

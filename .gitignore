@@ -3,6 +3,7 @@ result
 .direnv
 *.swp
 .kilo
+*.bak
 PLAN.md
 
 # DE backups are machine-local (large binaries) — except 1 git-tracked *-latest per DE
@@ -10,5 +11,5 @@ backups/**/*.tar.gz
 backups/**/*.dconf
 !backups/gnome/gnome-latest.dconf
 !backups/gnome/gnome-files-latest.tar.gz
-!backups/niri/niri-latest.tar.gz
 !backups/xfce/xfce-latest.tar.gz
+!backups/plasma/plasma-latest.tar.gz

@@ -23,8 +23,12 @@ let
             };
           })
           (_final: prev: {
-            # orchis from unstable for latest release (stable lags)
-            orchis-theme = prev.unstable.orchis-theme;
+            # opencode - npm platform binary, ahead of nixpkgs' v1
+            opencode = prev.callPackage ../packages/opencode.nix { };
+            mactahoe-icons = prev.callPackage ../packages/mactahoe-icons.nix { };
+            gnomeExtensions = prev.gnomeExtensions // {
+              simple-taskbar = prev.callPackage ../packages/simple-taskbar.nix { };
+            };
           })
         ];
       }
@@ -45,6 +49,9 @@ in
   flake.checks.${system} = lib.mapAttrs (_: cfg: cfg.config.system.build.toplevel) hosts;
 
   perSystem = { pkgs, ... }: {
+    # flake output so `nix-update --flake opencode` can bump version+hash
+    packages.opencode = pkgs.callPackage ../packages/opencode.nix { };
+
     devShells.default = pkgs.mkShell {
       packages = with pkgs; [
         gnumake
@@ -52,6 +59,7 @@ in
         deadnix
         statix
         shellcheck
+        nix-update
       ];
     };
 

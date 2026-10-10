@@ -31,8 +31,18 @@
   `caveman` skill: terse, literal, minimal-diff edits.
 - `web_search` for docs/API lookup, `fetch_content` for URLs, repos, PDFs,
   YouTube/local video. Zero-config; keys go in `~/.pi/web-search.json`.
-- `/plan` writes `PLAN.md` and gates edits behind approval; `/review` (prompt)
-  for bug/security/perf review sorted by severity with minimal diffs.
+- `modules/home/ai.nix` writes `~/.pi/agent/extensions/modes.ts`: one extension
+  with both read-only modes, sharing a single permission layer.
+  - `/plan` (or `pi --plan`) writes `PLAN.md`; say `approved` to unlock edits.
+    Paths named in `PLAN.md` become the locked scope, so leaving it needs a new
+    approval. `done` abandons.
+  - `/ask` (or `pi --ask`) is read-only Q&A, never writes. `off` exits.
+  - Both gate `edit`/`write`/`powershell` and non-read-only `bash`, and keep
+    skills, read-only tools and subagents live. Switching modes drops the other.
+  - `ask` tool batches clarifying questions; `ask_permission` grants one blocked
+    call. Prefer both over asking to leave the mode.
+- `/review` (prompt) for bug/security/perf review sorted by severity with
+  minimal diffs.
 - `memory_*` tools persist facts across sessions; `memory_search` needs the
   `qmd` binary (auto-installed to `~/.local/share/npm-global/bin` on switch).
 
