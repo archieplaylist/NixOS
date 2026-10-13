@@ -130,6 +130,15 @@ _: {
         programs.virt-manager.enable = config.mySystem.enableVirtManager;
         programs.dconf.enable = lib.mkIf config.mySystem.enableVirtManager true;
 
+        # Wireshark via the NixOS module (not home.packages): setuid dumpcap
+        # wrapper + wireshark group so the primary user can capture without sudo.
+        # Group membership needs a relog to take effect.
+        programs.wireshark = lib.mkIf config.mySystem.appGroups.work.enable {
+          enable = true;
+          dumpcap.enable = true;
+          package = pkgs.wireshark; # full Qt GUI (default would be wireshark-cli)
+        };
+
         environment.systemPackages = with pkgs; [
           curl
           wget
@@ -242,6 +251,7 @@ _: {
             ++ lib.optionals config.mySystem.enableVirtualBox [ "vboxusers" ]
             ++ lib.optionals config.mySystem.enableVirtManager [ "libvirtd" "kvm" ]
             ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" "input" ]
+            ++ lib.optionals config.mySystem.appGroups.work.enable [ "wireshark" ]
             ++ lib.optionals config.mySystem.enableSunshine [ "uinput" ];
           openssh.authorizedKeys.keys = config.mySystem.sshAuthorizedKeys;
           hashedPasswordFile = "/etc/hashed-password";
