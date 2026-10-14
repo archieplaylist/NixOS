@@ -19,6 +19,7 @@
     mySystem.enableTailscale = true;
     mySystem.enableSmartd = true;
     mySystem.enableVirtManager = true;
+    mySystem.enableWireshark = true;
     mySystem.enableSunshine = true;
     mySystem.enableMoonlight = true;
 

@@ -67,6 +67,11 @@ _: {
         default = false;
         description = "Enable KVM/libvirt + virt-manager (SPICE clipboard, macvtap bridge per VM).";
       };
+      enableWireshark = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable Wireshark with dumpcap setuid wrapper + wireshark group.";
+      };
       isVm = lib.mkOption {
         type = lib.types.bool;
         default = false;
