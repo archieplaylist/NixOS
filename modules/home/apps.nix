@@ -84,6 +84,7 @@ _: {
           dbeaver-bin
           filezilla
           remmina
+          weasis
         ]))
         (lib.mkIf osConfig.mySystem.enableMoonlight (with pkgs; [
           moonlight-qt
