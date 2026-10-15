@@ -28,7 +28,12 @@ _: {
   config.nixos.modules.uefi = { config, lib, ... }: {
     boot.loader.efi.canTouchEfiVariables = true;
     boot.loader.efi.efiSysMountPoint = "/boot";
-    boot.loader.timeout = 1;
+    boot.loader.timeout = 5;
+
+    # Plymouth boot splash (initrd stage, works with systemd-boot and lanzaboote).
+    # The plymouth module adds "splash" itself; "quiet" keeps the boot log hidden.
+    boot.plymouth.enable = true;
+    boot.kernelParams = [ "quiet" ];
 
     # systemd-boot unless Secure Boot is enabled (lanzaboote replaces it)
     boot.loader.systemd-boot.enable = !config.mySystem.enableSecureBoot;
