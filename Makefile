@@ -4,13 +4,17 @@
 #   make switch HOST=<host>  rebuild + activate (default: desktop)
 HOST ?= desktop
 
-.PHONY: help check fmt fmt-check hooks build boot switch clean update develop update-opencode
+.PHONY: help check test fmt fmt-check hooks build boot switch clean update develop update-opencode
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' Makefile | sed 's/:.*##/:/' | sort
 
 check: ## Build every host config (`nix flake check`)
+	bash tests/state.sh
 	nix flake check
+
+test: ## Run lightweight shell regression tests
+	bash tests/state.sh
 
 fmt: ## Reformat all Nix files (`nix fmt`)
 	nix fmt

@@ -84,12 +84,17 @@ _: {
           autodetect = true;
         };
 
-        # openFirewall punches Sunshine TCP/UDP ports; capSysAdmin needed for KMS capture on Wayland
+        # Sunshine is reachable only through the Tailscale interface; capSysAdmin enables KMS capture on Wayland.
         services.sunshine = lib.mkIf config.mySystem.enableSunshine {
           enable = true;
           autoStart = true;
           capSysAdmin = true;
-          openFirewall = true;
+          openFirewall = false;
+        };
+
+        networking.firewall.interfaces.tailscale0 = lib.mkIf config.mySystem.enableSunshine {
+          allowedTCPPorts = map (offset: config.services.sunshine.settings.port + offset) [ (-5) 0 1 21 ];
+          allowedUDPPorts = map (offset: config.services.sunshine.settings.port + offset) [ 9 10 11 13 21 ];
         };
 
         # logind ACLs grant the active session instant uinput access —

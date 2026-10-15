@@ -73,8 +73,11 @@ archive_de() {
       dest_path="$dest/$rel"
       mkdir -p "$(dirname "$dest_path")"
       if ! mv -f "$p" "$dest_path" 2>/dev/null; then
-        cp -a "$p" "$dest_path" 2>/dev/null || true
-        rm -rf "$p" 2>/dev/null || true
+        if ! cp -a "$p" "$dest_path"; then
+          echo "error: could not archive $p; original was kept" >&2
+          return 1
+        fi
+        rm -rf -- "$p" || { echo "error: archived $p but could not remove original" >&2; return 1; }
       fi
       moved=$((moved + 1))
     done
@@ -88,8 +91,8 @@ restore_de() {
   [ -d "$src" ] || return 0
   # one cp restores runtime tweaks, declarative Nix already recreates declared XMLs/dconf
   echo "restoring $de config from $src"
-  cp -a "$src/." "$HOME/" 2>/dev/null || true
-  rm -rf "$src" 2>/dev/null || true
+  cp -a "$src/." "$HOME/" || { echo "error: restore failed; archive kept at $src" >&2; return 1; }
+  rm -rf -- "$src" || { echo "error: restored $de but could not remove archive at $src" >&2; return 1; }
 }
 
 usage() {

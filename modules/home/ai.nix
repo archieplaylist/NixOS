@@ -137,7 +137,7 @@
             "   ## Not doing - what you are deliberately leaving alone",
             "   ## Verification - the exact command that proves it works",
             "   ## Risks - what could break, and the blast radius",
-            "5. Stop and wait. Say `approved` to unlock edits (paths named in PLAN.md become the locked scope), `approved <path>` to set the scope explicitly, `done` to abandon.",
+            "5. Stop and wait. Say `approved` to unlock edits (paths named in PLAN.md become the locked scope), `approved <path>` to set the scope explicitly, `approved all` to release the scope, `done` to abandon.",
           ].join("\n");
 
           const ASK_CONTEXT = [
@@ -234,11 +234,11 @@
             return out;
           }
 
-          function inScope(target: string, scope: string[]): boolean {
-            const t = target.replace(/^\.\//, "");
+          function inScope(target: string, scope: string[], cwd: string): boolean {
+            const targetPath = path.resolve(cwd, target);
             return scope.some((entry) => {
-              const s = entry.replace(/^\.\//, "").replace(/\/+$/, "");
-              return t === s || t.startsWith(s + "/") || s.startsWith(t + "/");
+              const relative = path.relative(path.resolve(cwd, entry), targetPath);
+              return relative === "" || (relative !== ".." && !relative.startsWith(".." + path.sep) && !path.isAbsolute(relative));
             });
           }
 
@@ -275,6 +275,7 @@
               let mode: Mode = "off";
               let savedTools: string[] = [];
               let scope: string[] | null = null;
+              let scopeCwd = process.cwd();
               let grants: Record<string, number> = {};
 
               const setStatus = (ctx: any) => {
@@ -301,7 +302,6 @@
                   } catch { /* runtime not bound yet */ }
                   savedTools = [];
                 } else {
-                  scope = null;
                   grants = {};
                   // Snapshot only when leaving off. Switching ask <-> plan must not
                   // re-snapshot the already-filtered list, or nothing can be restored.
@@ -323,18 +323,20 @@
               };
 
               const approve = (ctx: any, arg: string) => {
-                const found = arg ? [] : extractScope(readPlan(ctx.cwd));
-                scope = arg ? arg.split(/\s+/) : found.length > 0 ? found : null;
+                scopeCwd = ctx.cwd;
+                const all = arg.toLowerCase() === "all";
+                const found = arg && !all ? [] : extractScope(readPlan(ctx.cwd));
+                scope = all ? null : arg ? arg.split(/\s+/) : found.length > 0 ? found : null;
                 setMode("off");
                 setStatus(ctx);
                 ctx.ui.notify(scope
                   ? "Edits approved" + (arg ? " for: " + scope.join(", ") : ", scope locked to " + scope.length + " path(s) in PLAN.md")
-                  : ", unscoped (no paths found in PLAN.md)", "info");
+                  : all ? "All edits approved; scope released." : "Unscoped approval (no paths found in PLAN.md).", "info");
               };
 
               pi.registerCommand("plan", {
                 description: "Plan mode: read-only until `approved` (/plan <goal> seeds PLAN.md)",
-                getArgumentCompletions: () => [{ value: "approved" }, { value: "done" }],
+                getArgumentCompletions: () => [{ value: "approved" }, { value: "approved all" }, { value: "done" }],
                 handler: async (args: string, ctx: any) => {
                   const arg = (args ?? "").trim();
                   const lower = arg.toLowerCase();
@@ -429,6 +431,7 @@
 
               if (typeof pi.on === "function") {
                 pi.on("session_start", async (_event: any, ctx: any) => {
+                  if (typeof ctx?.cwd === "string") scopeCwd = ctx.cwd;
                   const wantPlan = pi.getFlag && pi.getFlag("plan") === true;
                   const wantAsk = pi.getFlag && pi.getFlag("ask") === true;
                   if (wantPlan) {
@@ -482,16 +485,19 @@
                   }
                   // Mode is off. If an approved plan named a scope, leaving it needs a
                   // new approval rather than a silent expansion of the change.
-                  if (scope && tool === "bash")
-                    return { block: true, reason: "Plan scope lock is active (bash is unscoped). Say `approved` to release it." };
                   if (scope) {
-                    const target = typeof event.input?.path === "string" ? event.input.path : null;
-                    if (target !== null && !inScope(target, scope)) {
-                      scope = null;
-                      return {
-                        block: true,
-                        reason: "`" + target + "` is outside the approved plan scope. Scope lock released. Say `approved " + target + "` to re-lock to it, or `approved` to allow all edits.",
-                      };
+                    if (tool === "bash")
+                      return { block: true, reason: "Plan scope lock is active (bash is unscoped). Use an in-scope file tool, or say `approved all` to release the scope." };
+                    if (WRITE_TOOLS.indexOf(tool) !== -1) {
+                      const target = typeof event.input?.path === "string" ? event.input.path : null;
+                      if (target === null || !inScope(target, scope, scopeCwd)) {
+                        return {
+                          block: true,
+                          reason: target === null
+                            ? "Plan scope lock is active; this write tool has no path to check. Use an in-scope file tool, or say `approved all` to release the scope."
+                            : "`" + target + "` is outside the approved plan scope. Scope remains locked. Say `approved " + target + "` to approve that path, or `approved all` to release the scope.",
+                        };
+                      }
                     }
                   }
                   return undefined;

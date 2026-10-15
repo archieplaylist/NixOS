@@ -76,12 +76,15 @@ Declared via nix-flatpak (`desktop.nix` + `mySystem.flatpakApps`). Shared: Local
 ```bash
 ./setup.sh --list-hosts        # no root needed: see installable hosts
 sudo ./setup.sh              # interactive (whiptail menu, plain fallback)
-sudo ./setup.sh --yes        # non-interactive
+sudo ./setup.sh --yes        # non-interactive; reuses labeled root + boot filesystems
+sudo ./setup.sh --yes --disk=/dev/nvme0n1 --force-wipe  # unattended fresh install
 sudo ./setup.sh --luks --tpm2
 sudo ./setup.sh --resume       # restore choices after Ctrl-C / disconnect
 ```
 
 Does: preflight → optional destructive partitioning (installer ISO only, type disk + `WIPE`) → user password hash to `/etc/hashed-password` (never in repo) → pick host → `nixos-install` (ISO) or `nixos-rebuild switch`. See `./setup.sh --help`.
+
+For a noninteractive fresh install, specify both `--disk=DEVICE` and `--force-wipe`; `--yes` alone never guesses a disk. Existing labeled filesystems can be reused without `--disk`.
 
 Filesystems are by label (`nixos-root` / `nixos-boot`); LUKS2 is `cryptroot` via disko. With `--luks`, `setup.sh` patches `mySystem.enableLuks` (+ disko device when non-`/dev/sda`) into the host file. Secure Boot needs one-time `sbctl create-keys && sbctl enroll-keys --microsoft` after first boot.
 

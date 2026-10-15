@@ -3,12 +3,14 @@
 #
 # Usage:
 #   sudo ./setup.sh [--luks] [--tpm2] [--secure-boot] [--yes]   interactive setup
+#   sudo ./setup.sh --yes --disk=/dev/sda --force-wipe          unattended fresh install
 #   sudo ./setup.sh --luks --tpm2      encrypt root + TPM2 auto-unlock
 #   ./setup.sh --help | --list-hosts | --dry-run   work without root
 #
 # Flags: --yes (noninteractive; secrets still prompt, LUKS_PASSPHRASE skips),
 #   --tui=auto|plain|gum|whiptail, --no-tui, --no-color ($NO_COLOR too),
-#   --resume (restore choices after interrupt), --fresh (discard saved state),
+#   --disk=DEVICE selects a target disk; --resume restores choices after interrupt,
+#   --fresh discards saved state,
 #   --dry-run (print plan, change nothing), --list-hosts.
 #
 # Required tools auto-install via nix at preflight (Step 1) when missing —
@@ -65,7 +67,7 @@ LUKS_PASSPHRASE=""
 # Password hash captured in step_password; written to /etc/hashed-password
 # on the target by step_deploy (base.nix user section reads it via hashedPasswordFile).
 PASSWORD_HASH=""
-# Disk path captured in step_partition (only set when partitioning actually
+# Disk path from --disk or captured in step_partition (only set when partitioning actually
 # happens — empty on --yes re-runs against an already-formatted disk, in which
 # case patch_host_flags leaves the disko device override alone).
 INSTALL_DISK=""
@@ -74,6 +76,8 @@ INSTALL_DISK=""
 TARGET_USER=""
 CLI_USER=0
 CLI_USER_VAL=""
+CLI_DISK=0
+CLI_DISK_VAL=""
 
 _emit() {
   local c="$1"; shift
@@ -146,6 +150,7 @@ setup.sh -- bootstrap a new machine from this flake-based NixOS config.
 
 Usage:
   sudo ./setup.sh [--luks] [--tpm2] [--secure-boot] [--yes]
+  sudo ./setup.sh --yes --disk=/dev/sda --force-wipe   unattended fresh install
   sudo ./setup.sh --luks --tpm2        encrypt root + TPM2 auto-unlock
   ./setup.sh --help | --list-hosts | --dry-run     (no root needed)
 
@@ -159,8 +164,11 @@ Steps (interactive = archinstall-style guided menu, defaults shown):
 
 Flags:
   --yes           answer yes to confirms (passphrases still prompt;
-                  set LUKS_PASSPHRASE env to skip the LUKS prompt)
+                  set LUKS_PASSPHRASE env to skip the LUKS prompt).
+                  Fresh ISO install: also pass --disk=DEVICE --force-wipe.
+                  Existing labeled root+boot can be reused without --disk.
   --user=NAME     primary username (default: mario, env NIXOS_USER)
+  --disk=DEVICE   target whole disk (e.g. /dev/sda or /dev/nvme0n1)
   --luks          LUKS2-encrypt root (offered interactively if omitted)
   --tpm2          TPM2 auto-unlock (needs --luks + TPM2 hardware)
   --secure-boot   patch mySystem.enableSecureBoot + print sbctl next steps
@@ -390,12 +398,36 @@ collect_flags() {
   mark_done "flags"
 }
 
+validate_security_flags() {
+  [[ $ENABLE_TPM2 -eq 0 || $ENABLE_LUKS -eq 1 ]] \
+    || die "--tpm2 requires --luks (e.g.: sudo ./setup.sh --luks --tpm2)"
+  [[ $ENABLE_SECURE_BOOT -eq 0 || $ENABLE_LUKS -eq 1 ]] \
+    || die "--secure-boot requires --luks (e.g.: sudo ./setup.sh --luks --secure-boot)"
+}
+
 collect_disk() {
   log "Step 4/7 — Target disk"
   if ! is_installer_env; then
     info "not on the installer ISO — no wipe needed on a live system"
     SKIP_WIPE=1
     return 0
+  fi
+  if [[ $DRY_RUN -eq 0 && $AN_YES_SET -eq 0 && ! -t 0 ]]; then
+    die "noninteractive setup requires --yes"
+  fi
+  if [[ -n "$INSTALL_DISK" ]]; then
+    [[ "$INSTALL_DISK" =~ $DISK_PATTERN ]] || die "invalid target disk: $INSTALL_DISK"
+    [[ -b "$INSTALL_DISK" ]] || die "not a block device: $INSTALL_DISK"
+    disk_is_mounted "$INSTALL_DISK" && die "disk $INSTALL_DISK has mounted partitions — refusing to wipe it"
+  fi
+  if [[ $DRY_RUN -eq 0 && $AN_YES_SET -eq 1 ]]; then
+    if [[ $FORCE_WIPE -eq 0 ]] && installer_target_ready; then
+      SKIP_WIPE=1
+      info "reusing existing labeled root and boot filesystems"
+      return 0
+    fi
+    [[ -n "$INSTALL_DISK" ]] || die "fresh noninteractive install needs --disk=DEVICE --force-wipe"
+    [[ $FORCE_WIPE -eq 1 ]] || die "noninteractive disk wiping also requires --force-wipe"
   fi
   if [[ -n "$INSTALL_DISK" && -b "$INSTALL_DISK" ]]; then
     SKIP_WIPE=0
@@ -539,6 +571,13 @@ is_installer_env() {
   local fs
   fs="$(findmnt -n -o FSTYPE / || true)"
   [[ "$fs" == "squashfs" || "$fs" == "overlay" || "$fs" == "tmpfs" ]]
+}
+
+installer_target_ready() {
+  local rootdev
+  if [[ $ENABLE_LUKS -eq 1 ]]; then rootdev="/dev/mapper/cryptroot";
+  else rootdev="/dev/disk/by-label/nixos-root"; fi
+  [[ -e "$rootdev" && -e /dev/disk/by-label/nixos-boot ]]
 }
 
 disk_is_mounted() {
@@ -1020,6 +1059,8 @@ while [[ $# -gt 0 ]]; do
     -y|--yes) AN_YES_SET=1 ;;
     --user=*) TARGET_USER="${1#--user=}"; CLI_USER=1; CLI_USER_VAL="$TARGET_USER" ;;
     --user) if [[ $# -ge 2 ]]; then TARGET_USER="$2"; CLI_USER=1; CLI_USER_VAL="$TARGET_USER"; shift; else die "--user needs a name"; fi ;;
+    --disk=*) INSTALL_DISK="${1#--disk=}"; CLI_DISK=1; CLI_DISK_VAL="$INSTALL_DISK" ;;
+    --disk) if [[ $# -ge 2 ]]; then INSTALL_DISK="$2"; CLI_DISK=1; CLI_DISK_VAL="$INSTALL_DISK"; shift; else die "--disk needs a device path"; fi ;;
     --luks) ENABLE_LUKS=1; CLI_LUKS=1 ;;
     --tpm2) ENABLE_TPM2=1; CLI_TPM2=1 ;;
     --secure-boot) ENABLE_SECURE_BOOT=1; CLI_SB=1 ;;
@@ -1060,13 +1101,14 @@ if [[ $RESUME -eq 1 ]]; then
     [[ $CLI_SB -ne -1 ]] && ENABLE_SECURE_BOOT=$CLI_SB
     # CLI --user wins over resumed state (value saved before load_state)
     [[ $CLI_USER -eq 1 ]] && TARGET_USER="$CLI_USER_VAL"
+    [[ $CLI_DISK -eq 1 ]] && INSTALL_DISK="$CLI_DISK_VAL"
     [[ $SKIP_WIPE =~ ^[01]$ ]] || SKIP_WIPE=0
     # summary embedded: the confirm below would wipe a plain line above
     if ! confirm -y "Restored host='${SELECTED_HOST:-?}' user='${TARGET_USER:-?}' disk='${INSTALL_DISK:-?}' luks=$ENABLE_LUKS tpm2=$ENABLE_TPM2 secure-boot=$ENABLE_SECURE_BOOT. Continue?"; then
       clear_state; SELECTED_HOST=""; INSTALL_DISK=""; info "starting fresh"
     fi
   else
-    note "no saved state at $STATE_FILE — starting fresh"
+    note "no valid, private saved state at $STATE_FILE — starting fresh"
   fi
 fi
 trap save_state INT TERM EXIT
@@ -1082,6 +1124,7 @@ else
   step_user
   collect_usb
 fi
+validate_security_flags
 print_plan
 if [[ $DRY_RUN -eq 1 ]]; then
   info "dry run — nothing changed."
