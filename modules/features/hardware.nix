@@ -25,14 +25,17 @@ _: {
     };
   };
 
-  config.nixos.modules.uefi = { config, lib, ... }: {
+  config.nixos.modules.uefi = { config, lib, pkgs, ... }: {
     boot.loader.efi.canTouchEfiVariables = true;
     boot.loader.efi.efiSysMountPoint = "/boot";
     boot.loader.timeout = 5;
 
     # Plymouth boot splash (initrd stage, works with systemd-boot and lanzaboote).
     # The plymouth module adds "splash" itself; "quiet" keeps the boot log hidden.
+    # Logo is the default Nix snowflake (boot.plymouth.logo).
     boot.plymouth.enable = true;
+    boot.plymouth.themePackages = [ pkgs.adi1090x-plymouth-themes ];
+    boot.plymouth.theme = "connect";
     boot.kernelParams = [ "quiet" ];
 
     # systemd-boot unless Secure Boot is enabled (lanzaboote replaces it)
