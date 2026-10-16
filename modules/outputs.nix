@@ -49,8 +49,10 @@ in
   flake.checks.${system} = lib.mapAttrs (_: cfg: cfg.config.system.build.toplevel) hosts;
 
   perSystem = { pkgs, ... }: {
-    # flake output so `nix-update --flake opencode` can bump version+hash
+    # flake outputs so `nix-update --flake <name>` can bump version+hash
     packages.opencode = pkgs.callPackage ../packages/opencode.nix { };
+    packages.mactahoe-icons = pkgs.callPackage ../packages/mactahoe-icons.nix { };
+    packages.simple-taskbar = pkgs.callPackage ../packages/simple-taskbar.nix { };
 
     devShells.default = pkgs.mkShell {
       packages = with pkgs; [

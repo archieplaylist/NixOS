@@ -1,12 +1,12 @@
 { stdenvNoCC, fetchFromGitHub, bash, gtk3 }:
 
-stdenvNoCC.mkDerivation {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "mactahoe-icon-theme";
   version = "2026-09-10";
   src = fetchFromGitHub {
     owner = "vinceliuice";
     repo = "MacTahoe-icon-theme";
-    rev = "2026-09-10";
+    rev = finalAttrs.version;
     hash = "sha256-NAahlBOYub0QlqkYStamoCbyWh+H5JG/iFm4Ws9EU3A=";
   };
   nativeBuildInputs = [ bash gtk3 ];
@@ -14,4 +14,4 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     bash ./install.sh --dest "$out/share/icons" --name MacTahoe --theme default
   '';
-}
+})

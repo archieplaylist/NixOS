@@ -1,13 +1,13 @@
 { stdenvNoCC, fetchFromGitHub, gettext, glib, gnome-shell, unzip }:
 
-stdenvNoCC.mkDerivation {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "gnome-shell-extension-simple-taskbar";
-  version = "66";
+  version = "70";
   src = fetchFromGitHub {
     owner = "Sultech";
     repo = "simple-taskbar";
-    rev = "66";
-    hash = "sha256-Rj7zI3xug6tzK+uB/RbsRTPmpkj5t44zJh+jxGw0HBM=";
+    rev = finalAttrs.version;
+    hash = "sha256-azCmkihrdUmOhlKCjCVgO4gEtWYZP16qOJ6etWcLcbU=";
   };
   nativeBuildInputs = [ gettext glib gnome-shell unzip ];
   dontBuild = true;
@@ -26,4 +26,4 @@ stdenvNoCC.mkDerivation {
       -d "$out/share/gnome-shell/extensions/simple-taskbar@sultech"
     runHook postInstall
   '';
-}
+})

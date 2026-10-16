@@ -1,10 +1,14 @@
 # Day-to-day commands for this flake (nh-only).
 #   make help                list all targets
 #   make check               build every host config (nix flake check)
-#   make switch HOST=<host>  rebuild + activate (default: desktop)
-HOST ?= desktop
+#   make switch HOST=<host>  rebuild + activate (default: auto-detected from hostname)
+# Flake attrs (desktop/laptop/vm/work) differ from system hostnames, so the
+# default HOST is resolved by matching `hostname` against mySystem.hostname in
+# modules/hosts/*.nix — same lookup as the switch-de script. Override with HOST=...
+DETECTED_HOST := $(shell grep -lE 'mySystem\.hostname *= *"$(shell hostname)"' modules/hosts/*.nix 2>/dev/null | head -1 | xargs -r basename 2>/dev/null | sed 's/\.nix$$//')
+HOST ?= $(if $(DETECTED_HOST),$(DETECTED_HOST),work)
 
-.PHONY: help check test fmt fmt-check hooks build boot switch clean update develop update-opencode
+.PHONY: help check test fmt fmt-check hooks build boot switch clean update develop update-opencode update-all
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' Makefile | sed 's/:.*##/:/' | sort
@@ -42,6 +46,9 @@ update: ## Refresh flake inputs
 
 update-opencode: ## Bump opencode to the latest 2.x npm release (version + hash)
 	nix develop --command nix-update --flake opencode
+
+update-all: ## Bump all overlay packages (opencode, mactahoe-icons, simple-taskbar)
+	nix develop --command bash -c "nix-update --flake opencode && nix-update --flake mactahoe-icons && nix-update --flake simple-taskbar"
 
 develop: ## Enter a shell with the formatter and Nix linters
 	nix develop
