@@ -207,6 +207,9 @@ _: {
           "vm.watermark_boost_factor" = 0;
           "vm.watermark_scale_factor" = 125;
           "vm.vfs_cache_pressure" = 50; # 50 keeps inode cache, faster 2nd open
+          # rootless dockerd can't bind <1024 (nginx-proxy publishes :80)
+          "net.ipv4.ip_unprivileged_port_start" =
+            lib.mkIf config.mySystem.enableDocker 80;
         };
 
         systemd.tmpfiles.rules = [
