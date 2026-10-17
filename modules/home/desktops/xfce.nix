@@ -82,7 +82,7 @@ _: {
             printf '%s' "$title" | sed 's/%/%%/g'
           )
           if [ "$id" = "$active" ]; then
-            fg='%{F#3281ea}%{B#2c2c2c}'
+            fg='%{F#e6b450}%{B#141821}'
           else
             fg='%{F-}%{B-}'
           fi

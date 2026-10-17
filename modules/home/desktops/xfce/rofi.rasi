@@ -1,5 +1,6 @@
 /* drun launcher for XFCE — Super_L binding in modules/home/desktops/xfce.nix.
-   Palette matches polybar and the installed Orchis-Dark GTK theme. */
+   Palette = canonical ayu-dark (ayu-colors v9), matching polybar: bg
+   #0d1017, panel #141821, fg #bfbdb6, dim #5a6378, accent #e6b450. */
 
 configuration {
     modes: "drun";
@@ -10,11 +11,11 @@ configuration {
 }
 
 * {
-    background: rgba ( 33, 33, 33, 85 % );
-    bg-alt: rgba ( 44, 44, 44, 85 % );
-    fg: #ffffff;
-    fg-dim: #909090;
-    accent: #3281ea;
+    background: rgba ( 13, 16, 23, 85 % );
+    bg-alt: rgba ( 20, 24, 33, 85 % );
+    fg: #bfbdb6;
+    fg-dim: #5a6378;
+    accent: #e6b450;
 }
 
 window {
