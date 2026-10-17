@@ -53,10 +53,19 @@ listview {
 element {
     padding: 6px 10px;
     background-color: transparent;
+    text-color: @fg;
+}
+
+/* pin normal + alternate states so the default theme's alternating
+   row backgrounds can't leak through */
+element alternate {
+    background-color: transparent;
+    text-color: @fg;
 }
 
 element selected {
     background-color: @bg-alt;
+    text-color: @accent;
     border-color: @accent;
 }
 

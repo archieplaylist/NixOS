@@ -47,10 +47,14 @@ _: {
 
     home.file.".local/bin/polybar-start".text = ''
       #!/usr/bin/env bash
-      # XFCE autostart: hand the panel role to polybar — kill the stock
-      # xfce4-panel once the session is up, then start the bar in its place.
-      sleep 1
-      killall -q xfce4-panel
+      # XFCE autostart: hand the panel role to polybar. The panel can start
+      # after autostart entries and is re-spawned by xfce4-session on an
+      # unclean kill — so polybar starts immediately while a background loop
+      # keeps killing every panel (top bar + dock) until it stays dead.
+      ( for _ in $(seq 1 20); do
+          killall -q xfce4-panel 2>/dev/null || exit 0
+          sleep 0.5
+        done ) &
       killall -q polybar
       exec ${pkgs.polybar}/bin/polybar main
     '';
