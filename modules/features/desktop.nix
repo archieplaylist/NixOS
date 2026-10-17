@@ -124,13 +124,29 @@ _: {
         # socket for vivaldi/vscode/discord even if PAM races the session
         security.pam.services.lightdm.enableGnomeKeyring = true;
 
-        environment.systemPackages = with pkgs; [
-          seahorse # GUI to verify/unlock the Login keyring after first boot
-          mousepad
-          ristretto
-          xfce4-clipman-plugin
-          xfce4-whiskermenu-plugin
-          catfish
+        # Polybar owns the bar (modules/home/desktops/xfce.nix). xfce4-session
+        # keeps (re)spawning xfce4-panel as a session client and the panel
+        # rewrites its own xfconf layout, so don't fight xfconf at all:
+        # shadow the binary on PATH — every session spawn routes to polybar.
+        # mkBefore wins the buildEnv symlink collision against the real
+        # xfce4-panel package in the merged list (first entry on PATH).
+        environment.systemPackages = lib.mkMerge [
+          (lib.mkBefore [
+            (pkgs.writeShellScriptBin "xfce4-panel" ''
+              # polybar owns the bar; session-mgr spawns land here, ignore
+              # any session args (--sm-client-id etc)
+              pkill -x polybar 2>/dev/null
+              exec ${pkgs.polybar}/bin/polybar main
+            '')
+          ])
+          (with pkgs; [
+            seahorse # GUI to verify/unlock the Login keyring after first boot
+            mousepad
+            ristretto
+            xfce4-clipman-plugin
+            xfce4-whiskermenu-plugin
+            catfish
+          ])
         ];
 
         xdg.portal = {
@@ -138,21 +154,6 @@ _: {
           extraPortals = with pkgs; [ xdg-desktop-portal-gtk ];
           config.common.default = "gtk";
         };
-
-        # Polybar owns the bar (modules/home/desktops/xfce.nix): an empty
-        # /panels array stops xfce4-panel from ever drawing — no stock
-        # layout, no windows, no dock, no fight with the session manager
-        # respawning it. configver=2 skips the migration pass that would
-        # otherwise re-seed a default layout. Verified against xfconf 4.20
-        # that an empty <property> parses as a 0-item array.
-        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
-          <?xml version="1.0" encoding="UTF-8"?>
-
-          <channel name="xfce4-panel" version="1.0">
-            <property name="configver" type="int" value="2"/>
-            <property name="panels" type="array"/>
-          </channel>
-        '';
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "plasma") {

@@ -38,12 +38,6 @@ _: {
         "commands/custom/<Super>Return" = "exo-open --launch TerminalEmulator";
         "commands/custom/<Super>space" = "catfish";
       };
-      # polybar owns the bar; reset the user-saved panel layout on every HM
-      # activation so it falls through to the system-wide empty default
-      # (features/desktop.nix /etc/xfconf file) and the panel stays blank
-      "xfce4-panel" = {
-        "panels" = null;
-      };
     };
 
     # Keys + rofi launcher; polybar takes over the panel + tray. Configs are
@@ -53,10 +47,11 @@ _: {
 
     home.file.".local/bin/polybar-start".text = ''
       #!/usr/bin/env bash
-      # XFCE autostart: start the bar; xfce4-panel is neutralized
-      # declaratively (empty /panels xfconf default in features/desktop.nix +
-      # the panels reset above), so no panel killing is needed here.
-      killall -q polybar
+      # XFCE autostart fallback: features/desktop.nix also shadows
+      # bin/xfce4-panel on PATH so the session manager's panel spawns land
+      # in the same shim — this covers brand-new sessions without a panel
+      # client. Whatever starts last wins; both kill the other first.
+      pkill -x polybar 2>/dev/null
       exec ${pkgs.polybar}/bin/polybar main
     '';
     home.file.".local/bin/polybar-start".executable = true;
