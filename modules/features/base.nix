@@ -109,12 +109,14 @@ _: {
         systemd.user.services.sunshine.wantedBy =
           lib.mkIf config.mySystem.enableSunshine (lib.mkForce [ ]);
 
+        # rootless only — rootful daemon disabled; DOCKER_HOST points at the
+        # per-user socket via /etc/profile (setSocketVariable)
         virtualisation.docker = lib.mkIf config.mySystem.enableDocker {
-          enable = true;
-          enableOnBoot = true;
+          enable = false;
           rootless = {
             enable = true;
             setSocketVariable = true;
+            extraPackages = with pkgs; [ rootlesskit fuse-overlayfs ];
           };
         };
 
@@ -252,7 +254,6 @@ _: {
           extraGroups =
             [ "wheel" "video" "audio" ]
             ++ lib.optionals config.mySystem.enableDesktop [ "networkmanager" ]
-            ++ lib.optionals config.mySystem.enableDocker [ "docker" ]
             ++ lib.optionals config.mySystem.enableVirtualBox [ "vboxusers" ]
             ++ lib.optionals config.mySystem.enableVirtManager [ "libvirtd" "kvm" ]
             ++ lib.optionals config.mySystem.appGroups.gaming.enable [ "gamemode" "input" ]
@@ -260,6 +261,8 @@ _: {
             ++ lib.optionals config.mySystem.enableSunshine [ "uinput" ];
           openssh.authorizedKeys.keys = config.mySystem.sshAuthorizedKeys;
           hashedPasswordFile = "/etc/hashed-password";
+          # required for rootless docker (subordinate uid/gid range)
+          autoSubUidGidRange = config.mySystem.enableDocker;
         };
       }
 

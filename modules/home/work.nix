@@ -3,6 +3,6 @@ _: {
   config.home.modules.primary = { lib, osConfig, ... }:
     lib.mkIf (osConfig.mySystem.hostname == "central8") {
       programs.bash.shellAliases.websvr-restart =
-        "(cd ~/Documents/test-folder/websvr && sudo docker compose up -d --force-recreate)";
+        "(cd ~/Documents/test-folder/websvr && docker compose up -d --force-recreate)";
     };
 }
