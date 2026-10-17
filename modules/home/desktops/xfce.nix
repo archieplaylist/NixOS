@@ -42,8 +42,8 @@ _: {
 
     # Keys + rofi launcher; polybar takes over the panel + tray. Configs are
     # the standard polybar/rofi paths polybar reads without -c flags.
-    xdg.configFile."polybar/config.ini".source = ./polybar.ini;
-    xdg.configFile."rofi/config.rasi".source = ./rofi.rasi;
+    xdg.configFile."polybar/config.ini".source = ./xfce/polybar.ini;
+    xdg.configFile."rofi/config.rasi".source = ./xfce/rofi.rasi;
 
     home.file.".local/bin/polybar-start".text = ''
       #!/usr/bin/env bash
