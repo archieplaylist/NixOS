@@ -1,4 +1,5 @@
-# primary home gnome: dconf settings, GTK/icon/cursor/font theming (Orchis-Dark).
+# primary home gnome: dconf settings, GTK/icon/cursor/font theming
+# (Orchis-Dark for gnome, Ayu-Dark for xfce — set per-DE below).
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
@@ -32,22 +33,36 @@ _: {
       };
     }
 
-    # Orchis-Dark GTK theme (unstable) shared by GNOME + XFCE (both GTK-based);
-    # the color-scheme dconf key below stays GNOME-only
+    # GTK theme is per-DE, set in the blocks below; shared bits:
+    # fonts/icons/cursor live in theming.nix. Both DEs get dark preference.
     (lib.mkIf (builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
       gtk = {
         enable = true;
         gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
         gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
-        theme = {
-          name = "Orchis-Dark";
-          package = pkgs.unstable.orchis-theme;
-        };
         gtk2.force = true;
       };
 
       dconf.settings."org/gnome/desktop/interface".color-scheme =
         lib.mkIf (osConfig.mySystem.desktop == "gnome") "prefer-dark";
+    })
+
+    (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
+      # gnome keeps the riced Orchis-Dark shell theme
+      gtk.theme = {
+        name = "Orchis-Dark";
+        package = pkgs.unstable.orchis-theme;
+      };
+    })
+
+    # Ayu for Xfce — matches the ayu-dark polybar/rofi palette
+    # (modules/home/desktops/xfce/*); nixpkgs ayu-theme-gtk ships gtk-2/3 +
+    # xfwm4 assets
+    (lib.mkIf (osConfig.mySystem.desktop == "xfce") {
+      gtk.theme = {
+        name = "Ayu-Dark";
+        package = pkgs.ayu-theme-gtk;
+      };
     })
   ];
 }

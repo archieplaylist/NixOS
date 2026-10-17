@@ -11,7 +11,7 @@ _: {
       rofi # Super_L launcher, replaces whiskermenu
       wmctrl # dock taskbar: window list + click-to-focus
       xdotool # dock taskbar: window activate/close actions
-      xorg.xprop # dock taskbar: focused-window property
+      xprop # dock taskbar: focused-window property
     ];
 
     services.gnome-keyring = {
@@ -20,12 +20,12 @@ _: {
     };
     home.sessionVariables.SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
 
-    # Mirror the shared Orchis-Dark GTK theming (theming.nix + gnome.nix write
-    # gtk.ini, but Xfce reads the xsettings channel) so Thunar/mousepad
-    # match GNOME. programs.xfconf is already on via the NixOS xfce module.
+    # Mirror the Ayu-Dark GTK theming (gnome.nix sets gtk.theme for xfce) so
+    # Thunar/mousepad match the ayu polybar/rofi. Xfce reads the xsettings
+    # channel; programs.xfconf is already on via the NixOS xfce module.
     xfconf.settings = {
       xsettings = {
-        "Net/ThemeName" = "Orchis-Dark-Compact";
+        "Net/ThemeName" = "Ayu-Dark";
         "Net/IconThemeName" = "MacTahoe-dark";
         "Gtk/FontName" = "Noto Sans 10";
         "Gtk/MonospaceFontName" = "JetBrainsMono Nerd Font 11";
@@ -33,7 +33,7 @@ _: {
         "Gtk/CursorThemeSize" = 20;
       };
       xfwm4 = {
-        "general/theme" = "Orchis-Dark-Compact";
+        "general/theme" = "Ayu-Dark";
       };
       xfce4-keyboard-shortcuts = {
         "commands/custom/override" = true;
@@ -59,7 +59,7 @@ _: {
         # polybar update tick (interval=1). Glyphs verified in
         # JetBrainsMono Nerd Font; titles %-escaped for polybar markup.
         WMC="${pkgs.wmctrl}/bin/wmctrl"
-        XPR="${pkgs.xorg.xprop}/bin/xprop"
+        XPR="${pkgs.xprop}/bin/xprop"
         XDO="${pkgs.xdotool}/bin/xdotool"
 
         active=$("$XPR" -root _NET_ACTIVE_WINDOW 2>/dev/null | awk '{print $5}')

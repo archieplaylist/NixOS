@@ -93,8 +93,8 @@ _: {
             greeters.gtk = {
               enable = true;
               theme = {
-                name = "Orchis-Dark";
-                package = pkgs.unstable.orchis-theme;
+                name = "Ayu-Dark";
+                package = pkgs.ayu-theme-gtk;
               };
               iconTheme = {
                 # dark variant to match xfconf Net/IconThemeName in home/desktops/xfce.nix
