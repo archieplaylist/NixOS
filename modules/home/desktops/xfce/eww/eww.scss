@@ -1,0 +1,258 @@
+// Combined styles: gross widget classes (search/powermenu/appbar/fetch) +
+// Saimoomedits bar classes (bar_class/module-*), recolored from gruvbox-like
+// upstream palettes to the canonical ayu-dark palette used everywhere else in
+// this config (xfce GTK theme + the old polybar.ini/rofi.rasi):
+//   bg #0d1017 | panel #141821 | fg #bfbdb6 | dim #5a6378 | accent #e6b450
+//   warn #f0a33a | urgent #d95757
+
+$bg: #0d1017;
+$panel: #141821;
+$fg: #bfbdb6;
+$fg-dim: #5a6378;
+$accent: #e6b450;
+$warn: #f0a33a;
+$urgent: #d95757;
+
+* {
+  all: unset;
+  font-family: "JetBrainsMono Nerd Font";
+}
+
+// ---------- gross ----------
+
+window {
+  background: transparent;
+  color: $fg;
+}
+
+.bg {
+  background-color: $bg;
+}
+
+.uinfo {
+  font-size: 1.25rem;
+  color: $accent;
+}
+.cpu {
+  padding: 19px;
+}
+
+.metric scale trough highlight {
+  all: unset;
+  background: $accent;
+}
+.metric scale trough {
+  all: unset;
+  background-color: $panel;
+  min-height: 10px;
+  min-width: 100px;
+  margin-left: 10px;
+  margin-right: 5px;
+}
+.metric .label {
+  color: $fg;
+  font-size: 1.5rem;
+}
+
+.bigpowermenu {
+  font-size: 2.4rem;
+  background-color: $panel;
+  border-radius: 12px;
+  border: 1px solid $accent;
+  padding: 14px 24px;
+}
+.bigpowermenu button {
+  color: $fg;
+  transition: all 0.2s ease;
+}
+.bigpowermenu button:hover {
+  color: $urgent;
+}
+
+.appbar {
+  font-size: 1.8rem;
+  background-color: $bg;
+  border-radius: 14px;
+  padding: 6px 10px;
+  border: 1px solid $accent;
+}
+.appbar button {
+  color: $fg;
+}
+.appbar button:hover {
+  color: $accent;
+}
+
+.searchapps-bar {
+  color: $accent;
+  font-size: 1.4rem;
+  margin: -2px;
+  padding: 24px 90px 24px 90px;
+  background-color: $bg;
+  border: 1px solid $accent;
+}
+.search-bar {
+  color: $fg;
+}
+.search-label {
+  font-size: 1.8rem;
+  font-weight: 700;
+  padding-right: 20px;
+  color: $accent;
+}
+.app-container {
+  margin: -2px;
+  font-size: 1.15rem;
+  padding: 24px;
+  color: $fg;
+  background-color: $bg;
+  border: 1px solid $panel;
+  border-radius: 0px 0px 12px 12px;
+}
+.item {
+  padding: 10px;
+  background: rgba(13, 16, 23, 0.6);
+}
+.item:hover {
+  background: rgba(20, 24, 33, 0.8);
+  color: $accent;
+}
+
+.quote-text {
+  padding: 5px;
+  font-size: 1rem;
+  font-style: italic;
+  color: $warn;
+}
+
+.fetch-key {
+  color: $accent;
+  font-weight: 700;
+}
+.fetch-sep {
+  color: $fg-dim;
+}
+.fetch-val {
+  color: $fg;
+}
+
+// ---------- bar (Saimoomedits-style classes) ----------
+
+.bar_class {
+  background-color: $bg;
+  padding: 0px 8px;
+}
+
+.right_modules,
+.left_modules {
+  font-size: 12px;
+  color: $fg;
+}
+.left_modules {
+  border-radius: 0px 0px 8px 0px;
+}
+
+.separ {
+  color: $fg-dim;
+}
+
+.module {
+  color: $accent;
+  font-size: 13px;
+}
+.module-2 {
+  color: $fg;
+  font-size: 12px;
+}
+.module-wif {
+  color: $fg;
+}
+
+.module_essid {
+  color: $fg;
+  font-size: 11px;
+}
+
+.clock_time_class,
+.clock_minute_class {
+  color: $accent;
+  font-weight: 700;
+}
+.clock_time_sep {
+  color: $warn;
+}
+.clock_date_class {
+  color: $fg-dim;
+  font-size: 11px;
+}
+
+.volume_icon,
+.bright_icon {
+  color: $fg;
+}
+.volume_icon:hover,
+.bright_icon:hover {
+  color: $accent;
+}
+
+.signalscale_highlight,
+.volbar trough highlight,
+.brightbar trough highlight {
+  all: unset;
+  background-color: $accent;
+  min-height: 6px;
+  border-radius: 3px;
+}
+.volbar trough,
+.brightbar trough {
+  all: unset;
+  background-color: $panel;
+  min-height: 6px;
+  min-width: 90px;
+  border-radius: 3px;
+}
+
+.batbar,
+.membar,
+.cpubar {
+  color: $accent;
+  font-size: 6px;
+}
+.iconbat,
+.iconmem,
+.iconcpu {
+  color: $fg;
+  font-size: 13px;
+}
+.iconbat:hover,
+.iconmem:hover,
+.iconcpu:hover {
+  color: $accent;
+}
+
+.powerbtn {
+  color: $fg;
+}
+.powerbtn:hover {
+  color: $urgent;
+}
+
+.works {
+  margin-left: 4px;
+}
+.works button {
+  font-size: 11px;
+}
+.works-f {
+  color: $accent;
+}
+.works-o {
+  color: $fg-dim;
+}
+.works-e {
+  color: $fg-dim;
+  opacity: 0.55;
+}
+.works button:hover {
+  color: $accent;
+}

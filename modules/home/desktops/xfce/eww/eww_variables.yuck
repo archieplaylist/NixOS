@@ -1,0 +1,59 @@
+;; Variable defs for the eww xfce setup. Gross variables (TODAY, distro, wm,
+;; uptime, search_listen) merged with the bar ones (workspace, cpu, memory,
+;; battery, volume, brightness, wifi, clock). Arch-isms ported: pacman count
+;; -> profile bin count, iwgetid -> nmcli, mpc/fortune widgets dropped (not
+;; installed on these hosts).
+
+;;;; gross: fetch + date
+(defpoll TODAY :interval "1s" `date +%m/%d/%y`)
+(defpoll distro :interval "12h" "awk '/^ID=/' /etc/*-release | awk -F'=' '{ print tolower($2) }'")
+(defpoll de :interval "12h" "echo $XDG_CURRENT_DESKTOP")
+(defpoll wm :interval "12h" "wmctrl -m | grep \"Name:\" | awk '{print $2}'")
+(defpoll shell :interval "5m" "echo $SHELL | awk -F'/' '{print $NF}'")
+(defpoll uptime :interval "30s" "uptime -p | sed -e 's/up //;s/ hours,/h/;s/ minutes/m'")
+;; gross used `pacman -Q | wc -l` — nothing there on NixOS, count binaries in
+;; the user profile instead (close enough as a "how much is installed" metric)
+(defpoll packages :interval "5m" "ls $HOME/.nix-profile/bin /run/current-system/sw/bin 2>/dev/null | sort -u | wc -l")
+
+;;;;;; gross: app list var (search.sh rewrites search_items.txt on every
+;;;; keystroke; state dir because the HM config dir is a read-only symlink)
+(defpoll search_listen :interval "1s" "cat ~/.local/state/eww/search_items.txt")
+
+;;;; bar: clock + status numbers
+(defpoll clock_time :interval "5m" "date +%I")
+(defpoll clock_minute :interval "5s" "date +%M")
+(defpoll clock_date :interval "10h" "date '+%d/%m'")
+
+;;;; bar: memory/battery (scripts ported from Saimoomedits/eww-widgets)
+(defpoll battery :interval "15s" "./scripts/battery.sh --bat")
+(defpoll battery_status :interval "1m" "./scripts/battery.sh --bat-st")
+(defpoll memory :interval "15s" "./scripts/memory.sh")
+(defpoll memory_used_mb :interval "2m" "./scripts/mem-ad.sh used")
+(defpoll memory_total_mb :interval "2m" "./scripts/mem-ad.sh total")
+
+;;;; bar: gross cpu/net vars feed the metric bars (wlan0 name from upstream)
+(defpoll ssid :interval "5s" "~/.config/eww/scripts/wifi.sh --ESSID")
+(defpoll wifi_icon :interval "5s" "~/.config/eww/scripts/wifi.sh --ICON")
+(defpoll wifi_col :interval "5s" "~/.config/eww/scripts/wifi.sh --COL")
+
+;;;; bar: volume + brightness
+(defpoll volume_percent :interval "3s" "pactl get-sink-volume @DEFAULT_SINK@ | grep -oP '\\d+(?=%)' | head -1")
+(defpoll volume_muted :interval "3s" "pactl get-sink-mute @DEFAULT_SINK@ | grep -o 'yes' || echo 'no'")
+(defpoll brightness_percent :interval "5s" "brightnessctl -m | awk -F, '{print substr($4, 0, length($4)-1)}' | tr -d '%'")
+
+;;;; bar: workspaces — gross echoes a yuck box; xfwm4 desktops have no bspwm
+;;;; subscribe socket, so poll instead of upstream's bspc loop
+(defpoll workspace :interval "1s" "scripts/workspace.sh")
+
+(defvar music_reveal false)
+(defvar vol_reveal false)
+(defvar br_reveal false)
+(defvar wifi_rev false)
+(defvar time_rev false)
+
+;; gross eww var — upstream pointed at their custom ~/.local/bin/eww/eww;
+;; this one is just the PATH binary (eww 0.6 reads ~/.config/eww by default)
+(defvar eww "eww")
+
+;; gross quote_text poll — upstream used `fortune`, not installed here
+(defpoll quote_text :interval "1h" "echo 'eww: loathing un-announced dpi changes since 2021.'")

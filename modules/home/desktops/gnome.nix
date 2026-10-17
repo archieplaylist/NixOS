@@ -55,7 +55,7 @@ _: {
       };
     })
 
-    # Ayu for Xfce — matches the ayu-dark polybar/rofi palette
+    # Ayu for Xfce — matches the ayu-dark eww bar / gross widget palette
     # (modules/home/desktops/xfce/*); nixpkgs ayu-theme-gtk ships gtk-2/3 +
     # xfwm4 assets
     (lib.mkIf (osConfig.mySystem.desktop == "xfce") {

@@ -1,0 +1,69 @@
+;; Widget defs. Gross widgets (searchapps, bigpowermenu, appbar) ported to the
+;; installed apps; bar widgets (workspaces, wifi, volume, brightness, cpu/mem
+;; gauges, clock) taken from Saimoomedits/eww-widgets minus the mpc/music and
+;; amixer/pulse-only bits (NixOS xfce hosts run PipeWire -> pactl instead).
+
+;;;; ---------- gross widgets ----------
+
+;; rofi-style search: input feeds search.sh, which rewrites search_items.txt
+(defwidget searchapps []
+  (eventbox :onhoverlost "eww close searchapps"
+    (box :orientation "v" :space-evenly false :class "search-win" :halign "top" :valign "top"
+      (box :orientation "h" :space-evenly false :class "searchapps-bar" :halign "top" :valign "top"
+        (label :class "search-label" :text "")
+        (input :class "search-bar" :onchange "~/.config/eww/scripts/search.sh {}"))
+      (literal :halign "center" :valign "center" :class "app-container" :content search_listen))))
+
+;; powermenu — right-click actions from gross, actions ported to XFCE
+;; (xflock4 + xfce4-session-logout instead of bsplock / bspc quit)
+(defwidget bigpowermenu []
+  (box :orientation "h" :space-evenly false :class "bigpowermenu" :halign "center" :valign "center" :spacing 20
+    (button :class "shutdown" :onclick "systemctl poweroff" "")
+    (button :class "reboot"   :onclick "systemctl reboot" "")
+    (button :class "lock"     :onclick "xflock4" "")
+    (button :class "suspend"  :onclick "systemctl suspend" "")
+    (button :class "logout"   :onclick "xfce4-session-logout --logout --fast" "")))
+
+;; appbar = the bottom dock (drops the old polybar launch-* modules + per-window
+;; taskbar; grid opens the gross search so the launcher icon stays an app grid)
+(defwidget appbar []
+  (box :orientation "h" :space-evenly true :class "appbar" :spacing "12" :halign "center" :valign "center"
+    (button :class "dock-btn" :onclick "exo-open --launch TerminalEmulator &" "")
+    (button :class "dock-btn" :onclick "exo-open --launch FileManager $HOME/Documents &" "")
+    (button :class "dock-btn" :onclick "vivaldi &" "")
+    (button :class "dock-btn" :onclick "firefox &" "")
+    (button :class "dock-btn" :onclick "eww open searchapps" "")))
+
+;; gross fetch panel — kept for manual `eww open fetch`, not opened at start
+(defwidget uinfo []
+  (box :class "uinfo" :orientation "v" :space-evenly false :halign "center" :valign "center"
+    (label :class "fetch-key" :text "${distro} ${wm}" :wrap "false" :limit-width 25)
+    (label :class "fetch-sep" :text "⎯⎯⎯" :wrap "false" :limit-width 25)
+    (label :class "fetch-val" :text "shell: ${shell}" :wrap "false" :limit-width 25)
+    (label :class "fetch-val" :text "dr ${de}" :wrap "false" :limit-width 25)
+    (label :class "fetch-val" :text "up: ${uptime}" :wrap "false" :limit-width 25)
+    (label :class "fetch-val" :text "bins: ${packages}" :wrap "false" :limit-width 25)))
+
+;; gross metric helper (kept for the sys panel)
+(defwidget metric [label value onchange]
+  (box :orientation "h" :class "metric" :space-evenly false
+    (box :class "label" label)
+    (scale :min 0 :max 101 :active {onchange != ""} :value value :onchange onchange)))
+
+(defwidget sys []
+  (box :class "cpu" :orientation "v" :space-evenly false :halign "center" :valign "center"
+    (metric :label "" :value {EWW_CPU.avg} :onchange "")
+    (metric :label "" :value {EWW_RAM.used_mem_perc} :onchange "")
+    (metric :label "" :value {(EWW_DISK["/"].free / EWW_DISK["/"].total) * 100} :onchange "")))
+
+;; gross quote widget — upstream pulled quotes from `fortune`; no fortune on
+;; these hosts, so the poll in eww_variables.yuck serves a fixed line instead
+(defwidget quote []
+  (box :class "quote" :orientation "v" :space-evenly false :halign "center" :valign "center"
+    (label :class "quote-text" :text "${quote_text}" :wrap true)))
+
+;;;; ---------- bar widgets (Saimoomedits/eww-widgets) ----------
+
+(defwidget workspaces []
+  (literal :content workspace))
+

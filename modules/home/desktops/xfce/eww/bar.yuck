@@ -1,0 +1,113 @@
+;; Bar core for the xfce host (eww). Gross has no bar, so the bar widget tree
+;; is Saimoomedits/eww-widgets' eww/bar/eww.yuck trimmed + re-ordered for the
+;; old polybar [bar/main] layout: workspaces left, cpu/mem + wifi + volume +
+;; clock right. Workspaces are xfwm4's wmctrl desktops via scripts/workspace.sh
+;; (upstream was bspwm-only). Music widget dropped — no mpd on these hosts.
+
+(defwidget wifi []
+  (eventbox :onhover "${eww} update wifi_rev=true"
+            :onhoverlost "${eww} update wifi_rev=false"
+    (box :vexpand "false" :hexpand "false" :space-evenly "false"
+      (button :class "module-wif" :onclick "~/.config/eww/scripts/airplane_mode.sh &" :wrap "false" :limit-width 12 :style "color: ${wifi_col};" "${wifi_icon}")
+      (revealer :transition "slideright"
+                :reveal wifi_rev
+                :duration "350ms"
+       (label :class "module_essid"
+              :text ssid
+              :orientation "h")))))
+
+(defwidget bat []
+  (circular-progress :value battery :class "batbar" :thickness 4
+    (button :class "iconbat"
+            :limit-width 2
+            :tooltip "battery on ${battery}% (${battery_status})"
+            :show_truncated false
+            :wrap false
+            "")))
+
+(defwidget membtn []
+  (circular-progress :value memory :class "membar" :thickness 4
+    (button :class "iconmem"
+            :limit-width 2
+            :tooltip "using ${memory}% ram (${memory_used_mb}/${memory_total_mb}MB)"
+            :show_truncated false
+            :wrap false
+            "")))
+
+(defwidget sep []
+  (box :class "module-sep" :vexpand "false" :hexpand "false"
+    (label :class "separ" :text "|")))
+
+(defwidget volume_module []
+  (eventbox :onhover "${eww} update vol_reveal=true"
+            :onhoverlost "${eww} update vol_reveal=false"
+    (box :class "module-2" :space-evenly "false" :orientation "h" :spacing "3"
+      (button :class "volume_icon"
+              :onclick "pactl set-sink-mute @DEFAULT_SINK@ toggle"
+              {volume_muted == 'yes' ? "" : ""})
+      (revealer :transition "slideleft"
+                :reveal vol_reveal
+                :duration "350ms"
+       (scale :class "volbar"
+              :value volume_percent
+              :orientation "h"
+              :tooltip "${volume_percent}%"
+              :max 100
+              :min 0
+              :onchange "pactl set-sink-volume @DEFAULT_SINK@ {}%")))))
+
+(defwidget bright []
+  (eventbox :onhover "${eww} update br_reveal=true" :onhoverlost "${eww} update br_reveal=false"
+    (box :class "module-2" :space-evenly "false" :orientation "h" :spacing "3"
+      (label :text "" :class "bright_icon" :tooltip "brightness")
+      (revealer :transition "slideleft"
+                :reveal br_reveal
+                :duration "350ms"
+       (scale :class "brightbar"
+              :value brightness_percent
+              :orientation "h"
+              :tooltip "${brightness_percent}%"
+              :max 100
+              :min 0
+              :onchange "brightnessctl set {}%")))))
+
+(defwidget powerbtn []
+  (button :class "powerbtn" :onclick "eww open bigpowermenu" ""))
+
+(defwidget clock_module []
+  (eventbox :onhover "${eww} update time_rev=true"
+            :onhoverlost "${eww} update time_rev=false"
+    (box :class "module" :space-evenly "false" :orientation "h" :spacing "3"
+      (label :text clock_time :class "clock_time_class")
+      (label :text "·" :class "clock_time_sep")
+      (label :text clock_minute :class "clock_minute_class")
+      (revealer :transition "slideleft"
+                :reveal time_rev
+                :duration "350ms"
+       (button :class "clock_date_class" :onclick "exo-open --launch Calendar" clock_date)))))
+
+(defwidget left []
+  (box :orientation "h"
+       :space-evenly false
+       :halign "end"
+       :class "left_modules"
+(membtn)
+(volume_module)
+(wifi)
+(sep)
+(bat)
+(powerbtn)
+(clock_module)))
+
+(defwidget right []
+  (box :orientation "h"
+       :space-evenly false
+       :halign "start"
+       :class "right_modules"
+(workspaces)))
+
+(defwidget bar_1 []
+  (box :class "bar_class"
+       :orientation "h"
+       (right)
+       (left)))

@@ -124,20 +124,19 @@ _: {
         # socket for vivaldi/vscode/discord even if PAM races the session
         security.pam.services.lightdm.enableGnomeKeyring = true;
 
-        # Polybar owns the bar (modules/home/desktops/xfce.nix). xfce4-session
+        # Eww owns the bar (modules/home/desktops/xfce.nix). xfce4-session
         # keeps (re)spawning xfce4-panel as a session client and the panel
         # rewrites its own xfconf layout, so don't fight xfconf at all:
-        # shadow the binary on PATH — every session spawn routes to polybar.
+        # shadow the binary on PATH — every session spawn routes to eww-start.
         # mkBefore wins the buildEnv symlink collision against the real
         # xfce4-panel package in the merged list (first entry on PATH).
         environment.systemPackages = lib.mkMerge [
           (lib.mkBefore [
             (pkgs.writeShellScriptBin "xfce4-panel" ''
-              # polybar owns the bar; session-mgr spawns land here, ignore
-              # any session args (--sm-client-id etc). Two bars: main + dock.
-              pkill -x polybar 2>/dev/null
-              ${pkgs.polybar}/bin/polybar main >/dev/null 2>&1 &
-              ${pkgs.polybar}/bin/polybar dock >/dev/null 2>&1 &
+              # eww owns the bar; session-mgr spawns land here, ignore
+              # any session args (--sm-client-id etc)
+              pkill -x eww 2>/dev/null
+              /home/${config.mySystem.username}/.local/bin/eww-start || true
               wait
             '')
           ])
