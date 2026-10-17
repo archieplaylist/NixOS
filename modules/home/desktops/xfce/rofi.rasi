@@ -1,0 +1,73 @@
+/* drun launcher for XFCE — Super_L binding in modules/home/desktops/xfce.nix.
+   Palette matches polybar and the installed Orchis-Dark GTK theme. */
+
+configuration {
+    modes: "drun";
+    show-icons: true;
+    /* matches xfconf Net/IconThemeName */
+    icon-theme: "MacTahoe-dark";
+    font: "Noto Sans 11";
+}
+
+* {
+    background: rgba ( 33, 33, 33, 85 % );
+    bg-alt: rgba ( 44, 44, 44, 85 % );
+    fg: #ffffff;
+    fg-dim: #909090;
+    accent: #3281ea;
+}
+
+window {
+    width: 750px;
+    border: 1px;
+    border-color: @accent;
+    padding: 14px;
+    background-color: @background;
+}
+
+mainbox {
+    spacing: 10px;
+    children: [ inputbar, listview ];
+}
+
+inputbar {
+    padding: 8px;
+    background-color: @bg-alt;
+    children: [ prompt, entry ];
+}
+
+prompt {
+    text-color: @accent;
+}
+
+entry {
+    text-color: @fg;
+}
+
+listview {
+    lines: 10;
+    scrollbar: false;
+    spacing: 2px;
+}
+
+element {
+    padding: 6px 10px;
+    background-color: transparent;
+}
+
+element selected {
+    background-color: @bg-alt;
+    border-color: @accent;
+}
+
+element-icon {
+    size: 28px;
+}
+
+element-text {
+    text-color: @fg;
+}
+
+element-text selected {
+    text-color: @accent;
+}

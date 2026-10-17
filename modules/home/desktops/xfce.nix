@@ -7,6 +7,8 @@ _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "xfce") {
     home.packages = with pkgs; [
       libsecret # secret-tool for debugging the Login keyring
+      polybar # replaces xfce4-panel, see polybar-start + autostart below
+      rofi # Super_L launcher, replaces whiskermenu
     ];
 
     services.gnome-keyring = {
@@ -32,10 +34,35 @@ _: {
       };
       xfce4-keyboard-shortcuts = {
         "commands/custom/override" = true;
-        "commands/custom/Super_L" = "xfce4-popup-whiskermenu";
+        "commands/custom/Super_L" = "rofi -show drun";
         "commands/custom/<Super>Return" = "exo-open --launch TerminalEmulator";
         "commands/custom/<Super>space" = "catfish";
       };
     };
+
+    # Keys + rofi launcher; polybar takes over the panel + tray. Configs are
+    # the standard polybar/rofi paths polybar reads without -c flags.
+    xdg.configFile."polybar/config.ini".source = ./polybar.ini;
+    xdg.configFile."rofi/config.rasi".source = ./rofi.rasi;
+
+    home.file.".local/bin/polybar-start".text = ''
+      #!/usr/bin/env bash
+      # XFCE autostart: hand the panel role to polybar — kill the stock
+      # xfce4-panel once the session is up, then start the bar in its place.
+      sleep 1
+      killall -q xfce4-panel
+      killall -q polybar
+      exec ${pkgs.polybar}/bin/polybar main
+    '';
+    home.file.".local/bin/polybar-start".executable = true;
+
+    xdg.configFile."autostart/polybar.desktop".text = ''
+      [Desktop Entry]
+      Type=Application
+      Name=Polybar
+      Exec=/home/${osConfig.mySystem.username}/.local/bin/polybar-start
+      NoDisplay=true
+      X-Order=-100
+    '';
   };
 }
