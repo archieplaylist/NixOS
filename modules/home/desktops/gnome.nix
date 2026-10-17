@@ -55,9 +55,8 @@ _: {
       };
     })
 
-    # Ayu for Xfce — matches the ayu-dark eww bar / gross widget palette
-    # (modules/home/desktops/xfce/*); nixpkgs ayu-theme-gtk ships gtk-2/3 +
-    # xfwm4 assets
+    # Ayu for Xfce — GTK/xfwm4 theme used by xfconf.settings in
+    # xfce.nix; nixpkgs ayu-theme-gtk ships gtk-2/3 + xfwm4 assets
     (lib.mkIf (osConfig.mySystem.desktop == "xfce") {
       gtk.theme = {
         name = "Ayu-Dark";

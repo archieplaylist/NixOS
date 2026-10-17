@@ -124,30 +124,16 @@ _: {
         # socket for vivaldi/vscode/discord even if PAM races the session
         security.pam.services.lightdm.enableGnomeKeyring = true;
 
-        # Eww owns the bar (modules/home/desktops/xfce.nix). xfce4-session
-        # keeps (re)spawning xfce4-panel as a session client and the panel
-        # rewrites its own xfconf layout, so don't fight xfconf at all:
-        # shadow the binary on PATH — every session spawn routes to eww-start.
-        # mkBefore wins the buildEnv symlink collision against the real
-        # xfce4-panel package in the merged list (first entry on PATH).
-        environment.systemPackages = lib.mkMerge [
-          (lib.mkBefore [
-            (pkgs.writeShellScriptBin "xfce4-panel" ''
-              # eww owns the bar; session-mgr spawns land here, ignore
-              # any session args (--sm-client-id etc)
-              pkill -x eww 2>/dev/null
-              /home/${config.mySystem.username}/.local/bin/eww-start || true
-              wait
-            '')
-          ])
-          (with pkgs; [
-            seahorse # GUI to verify/unlock the Login keyring after first boot
-            mousepad
-            ristretto
-            xfce4-clipman-plugin
-            xfce4-whiskermenu-plugin
-            catfish
-          ])
+        # Stock xfce4-panel again (eww bar removed 2026-10). xfce4-session
+        # spawns the panel as a session client; the layout stays user-owned
+        # xfconf state — don't fight it here.
+        environment.systemPackages = with pkgs; [
+          seahorse # GUI to verify/unlock the Login keyring after first boot
+          mousepad
+          ristretto
+          xfce4-clipman-plugin
+          xfce4-whiskermenu-plugin
+          catfish
         ];
 
         xdg.portal = {
