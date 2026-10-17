@@ -138,6 +138,21 @@ _: {
           extraPortals = with pkgs; [ xdg-desktop-portal-gtk ];
           config.common.default = "gtk";
         };
+
+        # Polybar owns the bar (modules/home/desktops/xfce.nix): an empty
+        # /panels array stops xfce4-panel from ever drawing — no stock
+        # layout, no windows, no dock, no fight with the session manager
+        # respawning it. configver=2 skips the migration pass that would
+        # otherwise re-seed a default layout. Verified against xfconf 4.20
+        # that an empty <property> parses as a 0-item array.
+        environment.etc."xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = ''
+          <?xml version="1.0" encoding="UTF-8"?>
+
+          <channel name="xfce4-panel" version="1.0">
+            <property name="configver" type="int" value="2"/>
+            <property name="panels" type="array"/>
+          </channel>
+        '';
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "plasma") {
