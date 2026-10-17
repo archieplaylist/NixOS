@@ -134,9 +134,11 @@ _: {
           (lib.mkBefore [
             (pkgs.writeShellScriptBin "xfce4-panel" ''
               # polybar owns the bar; session-mgr spawns land here, ignore
-              # any session args (--sm-client-id etc)
+              # any session args (--sm-client-id etc). Two bars: main + dock.
               pkill -x polybar 2>/dev/null
-              exec ${pkgs.polybar}/bin/polybar main
+              ${pkgs.polybar}/bin/polybar main >/dev/null 2>&1 &
+              ${pkgs.polybar}/bin/polybar dock >/dev/null 2>&1 &
+              wait
             '')
           ])
           (with pkgs; [

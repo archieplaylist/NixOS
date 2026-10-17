@@ -9,6 +9,9 @@ _: {
       libsecret # secret-tool for debugging the Login keyring
       polybar # replaces xfce4-panel, see polybar-start + autostart below
       rofi # Super_L launcher, replaces whiskermenu
+      wmctrl # dock taskbar: window list + click-to-focus
+      xdotool # dock taskbar: window activate/close actions
+      xorg.xprop # dock taskbar: focused-window property
     ];
 
     services.gnome-keyring = {
@@ -44,15 +47,63 @@ _: {
     # the standard polybar/rofi paths polybar reads without -c flags.
     xdg.configFile."polybar/config.ini".source = ./xfce/polybar.ini;
     xdg.configFile."rofi/config.rasi".source = ./xfce/rofi.rasi;
+    xdg.configFile."polybar/dock-icons.sh" = {
+      source = ./xfce/dock-icons.sh;
+      executable = true;
+    };
+    xdg.configFile."polybar/taskbar.sh" = {
+      text = ''
+        #!/usr/bin/env bash
+        # Clickable icon-per-window list for the bottom dock: click focuses
+        # the window, right-click closes it. Kills poll via wmctrl each
+        # polybar update tick (interval=1). Glyphs verified in
+        # JetBrainsMono Nerd Font; titles %-escaped for polybar markup.
+        WMC="${pkgs.wmctrl}/bin/wmctrl"
+        XPR="${pkgs.xorg.xprop}/bin/xprop"
+        XDO="${pkgs.xdotool}/bin/xdotool"
+
+        active=$("$XPR" -root _NET_ACTIVE_WINDOW 2>/dev/null | awk '{print $5}')
+        "$WMC" -l -x 2>/dev/null | while read -r id desk host class title; do
+          c=$(
+            echo "$class" | tr '[:upper:]' '[:lower:]'
+          )
+          case "$c" in
+            *polybar*) continue ;;
+          esac
+          case "$c" in
+            *term* | *alacritty* | *xterm*) glyph=$(printf '\ue795') ;;
+            *firefox* | *chrom* | *vivaldi* | *brave*) glyph=$(printf '\uf269') ;;
+            *thunar* | *pcmanfm* | *nautilus* | *ranger* | *nemo*) glyph=$(printf '\uf07b') ;;
+            *code* | *jetbrains* | *vim* | *neovim*) glyph=$(printf '\ue70c') ;;
+            *) glyph=$(printf '\U000F0768') ;;
+          esac
+          # polybar reads % as token start — escape titles
+          esc=$(
+            printf '%s' "$title" | sed 's/%/%%/g'
+          )
+          if [ "$id" = "$active" ]; then
+            fg='%{F#3281ea}%{B#2c2c2c}'
+          else
+            fg='%{F-}%{B-}'
+          fi
+          echo -n "$fg%{A1:$WMC -ia $id:}%{A3:$XDO windowclose $id:} $glyph $esc %{A}%{A}"
+        done
+        echo
+      '';
+      executable = true;
+    };
 
     home.file.".local/bin/polybar-start".text = ''
       #!/usr/bin/env bash
       # XFCE autostart fallback: features/desktop.nix also shadows
       # bin/xfce4-panel on PATH so the session manager's panel spawns land
       # in the same shim — this covers brand-new sessions without a panel
-      # client. Whatever starts last wins; both kill the other first.
+      # client. Two bars: main (top) + dock (bottom). Whatever starts last
+      # wins; both kill the other first.
       pkill -x polybar 2>/dev/null
-      exec ${pkgs.polybar}/bin/polybar main
+      ${pkgs.polybar}/bin/polybar main >/dev/null 2>&1 &
+      ${pkgs.polybar}/bin/polybar dock >/dev/null 2>&1 &
+      wait
     '';
     home.file.".local/bin/polybar-start".executable = true;
 
