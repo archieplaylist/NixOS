@@ -43,7 +43,7 @@ No wiring in `flake.nix`.
 
 ## Application groups (`modules/home/apps.nix`)
 
-- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake, fd, ripgrep. **gaming**: heroic, mangohud, protonplus, bottles. **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
+- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (unstable). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake, fd, ripgrep. **gaming**: heroic, mangohud, protonplus, bottles (flatpak, gated on gaming in `mySystem.flatpakApps`). **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
 - System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo + low-latency PipeWire).
 
 ## Editor (VSCode)

@@ -165,11 +165,15 @@ _: {
     };
 
     config = {
-      mySystem.flatpakApps = [
-        "org.localsend.localsend_app"
-        "it.mijorus.gearlever"
-        "com.github.tchx84.Flatseal"
-      ];
+      mySystem.flatpakApps =
+        [
+          "org.localsend.localsend_app"
+          "it.mijorus.gearlever"
+          "com.github.tchx84.Flatseal"
+        ]
+        ++ lib.optional (config.mySystem.appGroups.gaming.enable or false)
+          # flatpak build instead of nixpkgs wrapper (see home/apps.nix)
+          "com.usebottles.bottles";
 
       mySystem.gnomeExtensions = lib.mkIf (config.mySystem.desktop == "gnome") [
         { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }

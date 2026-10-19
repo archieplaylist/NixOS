@@ -77,7 +77,7 @@ _: {
           heroic
           mangohud
           unstable.protonplus
-          (unstable.bottles.override { removeWarningPopup = true; })
+          # bottles moved to the flatpak build (mySystem.flatpakApps, gated on gaming)
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
           chromium
