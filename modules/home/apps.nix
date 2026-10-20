@@ -65,8 +65,8 @@ _: {
         (lib.mkIf osConfig.mySystem.appGroups.office.enable (with pkgs; [
           libreoffice-fresh
           onlyoffice-desktopeditors
-          zoom-us
           unstable.joplin-desktop
+          unstable.zoom-us
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.comms.enable (with pkgs; [
           # Electron/Chromium backend defaults to gnome-libsecret outside KDE —
