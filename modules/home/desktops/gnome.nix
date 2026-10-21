@@ -58,6 +58,14 @@ _: {
         gtk4.extraCss = builtins.readFile "${pkgs.ayu-theme}/share/ayu-theme/libadwaita/gtk.css.dark";
       };
 
+      # Flatpak can't read /run/current-system/sw/share/themes, so
+      # GTK_THEME=Ayu-Dark needs the theme under ~/.themes; the flatpak
+      # override in features/desktop.nix makes the symlink resolve inside
+      # the sandbox.
+      home.file.".themes/Ayu-Dark" = {
+        source = "${pkgs.ayu-theme}/share/themes/Ayu-Dark";
+      };
+
       dconf.settings."org/gnome/desktop/interface".color-scheme =
         lib.mkIf (osConfig.mySystem.desktop == "gnome") "prefer-dark";
     })

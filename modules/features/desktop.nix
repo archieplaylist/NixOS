@@ -27,6 +27,12 @@ _: {
           };
         };
 
+        # Icon theme for every DE. System-wide so it lands in
+        # /run/current-system/sw/share/icons — nixpkgs patches flatpak to
+        # expose that dir (and the nix store paths it symlinks to) inside
+        # the sandbox, so flatpak apps get the same icons as native ones.
+        environment.systemPackages = [ pkgs.mactahoe-icons ];
+
         hardware.bluetooth = {
           enable = true;
           powerOnBoot = false;
@@ -37,6 +43,26 @@ _: {
         # nautilus trash + mtp/smb + sidebar mounts outside GNOME need these
         services.gvfs.enable = true;
         services.udisks2.enable = true;
+      })
+
+      # Flatpak sandboxes don't see the host theme by default:
+      #  - xdg-config/gtk-3.0, xdg-config/gtk-4.0 → GTK settings (icon
+      #    theme, font) + the Ayu libadwaita CSS
+      #  - ~/.themes/Ayu-Dark → the theme itself (symlink into the nix
+      #    store; see home/desktops/gnome.nix)
+      (lib.mkIf (lib.elem config.mySystem.desktop [ "gnome" "xfce" ]) {
+        services.flatpak.overrides.settings.global = {
+          Context.filesystems = [
+            "xdg-config/gtk-3.0"
+            "xdg-config/gtk-4.0"
+            "~/.themes/Ayu-Dark"
+          ];
+          Environment = {
+            GTK_THEME = "Ayu-Dark";
+            # libadwaita apps ignore GTK_THEME
+            ADW_DEBUG_COLOR_SCHEME = "prefer-dark";
+          };
+        };
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "gnome") {
