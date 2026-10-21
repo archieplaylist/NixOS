@@ -11,11 +11,14 @@ let
       inputs.nix-flatpak.nixosModules.nix-flatpak
       inputs.disko.nixosModules.disko
       inputs.lanzaboote.nixosModules.lanzaboote
+      inputs.ayu-theme.nixosModules.default
       # home content resolved here (flake level); wired to
       # home-manager.users.<mySystem.username> in base.nix (NixOS level)
       { _module.args.homeModules = config.home.modules.primary; }
       {
         nixpkgs.overlays = [
+          # ayu-theme: GTK2/3/4 + gnome-shell + xfwm4 theme (pkgs.ayu-theme)
+          inputs.ayu-theme.overlays.default
           (_final: _prev: {
             unstable = import inputs.nixpkgs-unstable {
               localSystem = { inherit system; };

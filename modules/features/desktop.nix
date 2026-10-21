@@ -18,6 +18,9 @@ _: {
           blueman.enable = config.mySystem.desktop != "plasma";
           # ppd owns the CPU governor on desktop hosts; vm left to its host defaults
           power-profiles-daemon.enable = !config.mySystem.isVm;
+          # ayu theme system-wide: /run/current-system/sw/share/themes is on
+          # XDG_DATA_DIRS, so GTK, GNOME Shell, xfwm4 and the greeter find it
+          ayu-theme.enable = true;
           flatpak = {
             enable = true;
             packages = config.mySystem.flatpakApps;
@@ -94,7 +97,7 @@ _: {
               enable = true;
               theme = {
                 name = "Ayu-Dark";
-                package = pkgs.ayu-theme-gtk;
+                package = pkgs.ayu-theme;
               };
               iconTheme = {
                 # dark variant to match xfconf Net/IconThemeName in home/desktops/xfce.nix

@@ -19,6 +19,10 @@
       url = "github:nix-community/lanzaboote/v0.4.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # ayu GTK theme (upstream ships nixos + home-manager modules)
+    ayu-theme = {
+      url = "github:archieplaylist/ayu-theme";
+    };
     # skills (plain sources, not flakes) — update with `nix flake update ponytail caveman`
     ponytail = {
       url = "github:DietrichGebert/ponytail";

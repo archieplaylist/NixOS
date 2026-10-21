@@ -19,9 +19,9 @@ _: {
     };
     home.sessionVariables.SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/keyring/ssh";
 
-    # Mirror the Ayu-Dark GTK theming (gnome.nix sets gtk.theme for xfce) so
-    # Thunar/mousepad/panel match. Xfce reads the xsettings channel;
-    # programs.xfconf is already on via the NixOS xfce module.
+    # Mirror the Ayu-Dark GTK theming (gnome.nix sets gtk.theme) so
+    # Thunar/mousepad/panel match. The theme ships gtk-2/3/4 + xfwm4
+    # assets and is installed system-wide (features/desktop.nix).
     xfconf.settings = {
       xsettings = {
         "Net/ThemeName" = "Ayu-Dark";
