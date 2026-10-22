@@ -56,6 +56,19 @@ _: {
           package = pkgs.ayu-theme;
         };
         gtk4.extraCss = builtins.readFile "${pkgs.ayu-theme}/share/ayu-theme/libadwaita/gtk.css.dark";
+        # don't run ayu-theme's extra/libadwaita/install.sh — the CSS above
+        # is the declarative source of truth for ~/.config/gtk-4.0/gtk.css
+      };
+
+      # GTK rewrites ~/.config/gtk-{3,4}.0/settings.ini when it exits
+      # (GLib writes a temp file and renames it over the target), which
+      # replaces Home Manager's symlink with a real file. The next switch
+      # then aborts on the backup path. force = true re-links the
+      # declarative version and skips Home Manager's collision check.
+      xdg.configFile = {
+        "gtk-3.0/settings.ini".force = true;
+        "gtk-4.0/settings.ini".force = true;
+        "gtk-4.0/gtk.css".force = true;
       };
 
       # Flatpak can't read /run/current-system/sw/share/themes, so

@@ -40,6 +40,8 @@ let
           useGlobalPkgs = true;
           useUserPackages = true;
           backupFileExtension = "hm-backup";
+          # stale .hm-backup files must not abort the whole switch
+          overwriteBackup = true;
         };
       }
     ];
