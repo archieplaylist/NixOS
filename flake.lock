@@ -5,11 +5,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1792721999,
-        "narHash": "sha256-Bea7E/La3vWaGGS7/uczwwTHhW6PCStt9lMheF1nYv4=",
+        "lastModified": 1792804048,
+        "narHash": "sha256-tQXu+dw6yJPk2Tldddc3tb/qU8nLHZ/UJwsrnE6Spv4=",
         "owner": "archieplaylist",
         "repo": "ayu-theme",
-        "rev": "e62ba7a873ad0fcb1408e78728cf8f5de122910e",
+        "rev": "50baa7c1b6e4ec7b407d0da821f9ddc64b8a6882",
         "type": "github"
       },
       "original": {
@@ -21,11 +21,11 @@
     "caveman": {
       "flake": false,
       "locked": {
-        "lastModified": 1792271332,
-        "narHash": "sha256-G2i54t+5fFCRI3lXP6fXV9oPWwIKklmx6F3EfrqntBY=",
+        "lastModified": 1792803614,
+        "narHash": "sha256-/q3Y3mQ6bjv+0V1H+E+npxXfluVSFwasf7qVoIO2gug=",
         "owner": "juliusbrussee",
         "repo": "caveman",
-        "rev": "bad48a0e1df55e05e3f52249afa35ecc1909ee76",
+        "rev": "bae9beaf3aa6dc509f05f3d3ed239c827f6e51bb",
         "type": "github"
       },
       "original": {
