@@ -252,7 +252,7 @@ ls -la ~/.config/
 # Some apps store DE-specific configs
 
 # Restore if needed
-~/.local/bin/switch-de restore backups/gnome/gnome-*.dconf
+~/.local/bin/backup-de restore backups/gnome/gnome-*.dconf
 ```
 
 ### Plasma: SDDM won't start

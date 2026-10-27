@@ -25,7 +25,7 @@ BASE="${BASE:-${XDG_DATA_HOME:-$HOME/.local/share}/de-backups}"
 
 usage() { cat <<'USAGE'
 backup-de backup [gnome|xfce|plasma|all]  → backups/<de>/<de>-*.{dconf,tar.gz} (default: current DE)
-backup-de restore <file>                  → dconf load (.dconf, old bundle tars) or tar -xzf into $HOME
+backup-de restore <file>                  → dconf load (.dconf) or tar -xzf into $HOME; run outside that DE session
 backup-de list [gnome|xfce|plasma]  → ls backup dirs
 USAGE
 }
@@ -124,10 +124,16 @@ cmd="${1:-}"; case "$cmd" in
       # refuse absolute-entry tarballs — restore writes into $HOME
       if tar -tzf "$f" | grep -q "^/"; then echo "refusing tarball with absolute paths" >&2; exit 1; fi
       tar -xzf "$f" -C "$HOME"
+      # stop this DE's config daemon so a live session does not write its
+      # (old) config back over the restored files on logout
+      case "$(basename "$f")" in
+        xfce-*) pkill -x xfce4-panel 2>/dev/null || true; pkill -x xfconfd 2>/dev/null || true ;;
+        plasma-*) kquitapp5 plasmashell 2>/dev/null || true; pkill -x ksmserver 2>/dev/null || true ;;
+      esac
     else
       usage; echo "unknown backup format: $f" >&2; exit 1
     fi
-    echo "restore done — relogin to apply"
+    echo "restore done — relogin to apply (do not stay logged into this DE or it saves its old config back)"
     ;;
   list|"")
     de="${2:-}"
