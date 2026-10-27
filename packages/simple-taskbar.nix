@@ -2,12 +2,12 @@
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "gnome-shell-extension-simple-taskbar";
-  version = "72";
+  version = "75";
   src = fetchFromGitHub {
     owner = "Sultech";
     repo = "simple-taskbar";
     rev = finalAttrs.version;
-    hash = "sha256-QChPmKPxUqTZp5R8iirmlb3b96kaA9SzDNn7rM414cE=";
+    hash = "sha256-CgwfXfGb9xjgHazFrXguHuuI+dI5eGfo7zYpcghh90w=";
   };
   nativeBuildInputs = [ gettext glib gnome-shell unzip ];
   dontBuild = true;
