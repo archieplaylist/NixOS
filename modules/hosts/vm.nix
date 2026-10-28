@@ -10,7 +10,7 @@
 
     mySystem.hostname = "nixvms";
     mySystem.isVm = true;
-    mySystem.desktop = "xfce";
+    mySystem.desktop = "plasma";
     mySystem.enableDesktop = true;
     mySystem.enableSSH = true;
     mySystem.enableDocker = false;
