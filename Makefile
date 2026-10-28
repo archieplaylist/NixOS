@@ -8,7 +8,7 @@
 DETECTED_HOST := $(shell grep -lE 'mySystem\.hostname *= *"$(shell hostname)"' modules/hosts/*.nix 2>/dev/null | head -1 | xargs -r basename 2>/dev/null | sed 's/\.nix$$//')
 HOST ?= $(if $(DETECTED_HOST),$(DETECTED_HOST),work)
 
-.PHONY: help check test fmt fmt-check hooks build boot switch clean update develop update-opencode update-all
+.PHONY: help check test fmt fmt-check hooks build boot switch clean update develop update-opencode update-fetch update-all
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' Makefile | sed 's/:.*##/:/' | sort
@@ -47,8 +47,11 @@ update: ## Refresh flake inputs
 update-opencode: ## Bump opencode to the latest 2.x npm release (version + hash)
 	nix develop --command nix-update --flake opencode
 
-update-all: ## Bump all overlay packages (opencode, mactahoe-icons, simple-taskbar)
-	nix develop --command bash -c "nix-update --flake opencode && nix-update --flake mactahoe-icons && nix-update --flake simple-taskbar"
+update-fetch: ## Bump fetch to the latest upstream release (version + hash)
+	nix develop --command nix-update --flake fetch
+
+update-all: ## Bump all overlay packages (opencode, mactahoe-icons, simple-taskbar, fetch)
+	nix develop --command bash -c "nix-update --flake opencode && nix-update --flake mactahoe-icons && nix-update --flake simple-taskbar && nix-update --flake fetch"
 
 develop: ## Enter a shell with the formatter and Nix linters
 	nix develop

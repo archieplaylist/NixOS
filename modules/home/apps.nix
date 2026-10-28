@@ -25,6 +25,7 @@ _: {
           btop
           exfatprogs
           fastfetch
+          fetch
           file-roller
           fzf
           ntfs3g

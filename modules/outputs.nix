@@ -28,6 +28,8 @@ let
           (_final: prev: {
             # opencode - npm platform binary, ahead of nixpkgs' v1
             opencode = prev.callPackage ../packages/opencode.nix { };
+            # fetch - animated 3D fetch tool (areofyl/fetch)
+            fetch = prev.callPackage ../packages/fetch.nix { };
             mactahoe-icons = prev.callPackage ../packages/mactahoe-icons.nix { };
             gnomeExtensions = prev.gnomeExtensions // {
               simple-taskbar = prev.callPackage ../packages/simple-taskbar.nix { };
@@ -56,6 +58,7 @@ in
   perSystem = { pkgs, ... }: {
     # flake outputs so `nix-update --flake <name>` can bump version+hash
     packages.opencode = pkgs.callPackage ../packages/opencode.nix { };
+    packages.fetch = pkgs.callPackage ../packages/fetch.nix { };
     packages.mactahoe-icons = pkgs.callPackage ../packages/mactahoe-icons.nix { };
     packages.simple-taskbar = pkgs.callPackage ../packages/simple-taskbar.nix { };
 
