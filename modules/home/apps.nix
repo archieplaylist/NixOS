@@ -47,9 +47,14 @@ _: {
           gnumake
           lazygit
           nodejs
-          unstable.pnpm
+          php85
+          php85Packages.composer
+          phpunit
+          phpstan
+          php85Packages.php-cs-fixer
           python3
           ripgrep
+          unstable.pnpm
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.browsers.enable [
           pkgs.firefox
