@@ -92,6 +92,33 @@ _: {
         ]))
       ];
 
+      # fetch config — info fields + label color approximating fastfetch's cyan keys
+      xdg.configFile."fetch/config".text = ''
+        os
+        host
+        kernel
+        uptime
+        packages
+        shell
+        display
+        wm
+        terminal
+        font
+        theme
+        icons
+        cpu
+        gpu
+        memory
+        swap
+        disk
+        battery
+        ip
+        locale
+        colors
+        label_color=cyan
+        separator=-
+      '';
+
       # MangoHud — only when gaming group enabled
       home.file.".config/MangoHud/MangoHud.conf" = lib.mkIf osConfig.mySystem.appGroups.gaming.enable {
         text = ''
