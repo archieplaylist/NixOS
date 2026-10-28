@@ -287,6 +287,27 @@
         "type": "github"
       }
     },
+    "plasma-theme": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793157457,
+        "narHash": "sha256-NAY1ZLqc06f2mawLzsUmF6eScAZd8t3I4YZUZVdXzcY=",
+        "owner": "archieplaylist",
+        "repo": "plasmaTheme",
+        "rev": "2dd9733f8651d80729c42acadfa270dbe374ee8b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "archieplaylist",
+        "repo": "plasmaTheme",
+        "rev": "2dd9733f8651d80729c42acadfa270dbe374ee8b",
+        "type": "github"
+      }
+    },
     "ponytail": {
       "flake": false,
       "locked": {
@@ -341,6 +362,7 @@
         "nix-flatpak": "nix-flatpak",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-unstable": "nixpkgs-unstable",
+        "plasma-theme": "plasma-theme",
         "ponytail": "ponytail"
       }
     },

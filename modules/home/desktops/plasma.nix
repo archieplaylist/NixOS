@@ -1,7 +1,8 @@
-# primary home plasma: kate (Plasma ships its own apps and
-# theming — set in System Settings, no declarative config).
+# primary home plasma: kate and Mystical Blue theme assets.
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "plasma") {
+    programs.juxTheme.enable = true;
+
     home.packages = with pkgs; [
       kdePackages.kate
       qt6Packages.qtstyleplugin-kvantum # Qt6 Kvantum style + Manager, pick theme in System Settings

@@ -14,7 +14,14 @@ let
       inputs.ayu-theme.nixosModules.default
       # home content resolved here (flake level); wired to
       # home-manager.users.<mySystem.username> in base.nix (NixOS level)
-      { _module.args.homeModules = config.home.modules.primary; }
+      {
+        _module.args.homeModules = {
+          imports = [
+            config.home.modules.primary
+            inputs.plasma-theme.homeManagerModules.default
+          ];
+        };
+      }
       {
         nixpkgs.overlays = [
           # ayu-theme: GTK2/3/4 + gnome-shell + xfwm4 theme (pkgs.ayu-theme)

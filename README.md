@@ -65,7 +65,7 @@ I keep a few small helpers here for media downloads, audio conversion, and deskt
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. I keep the GNOME extension list in `mySystem.gnomeExtensions`, the single source of truth. GNOME and XFCE share MacTahoe-Dark GTK theming via home-manager GTK + xfconf; Plasma stays at its stock defaults, set in System Settings.
+GNOME (GDM/Wayland), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. I keep the GNOME extension list in `mySystem.gnomeExtensions`, the single source of truth. GNOME and XFCE share MacTahoe-Dark GTK theming via home-manager GTK + xfconf. Plasma users get Mystical Blue's theme assets; select the Plasma and Kvantum styles in System Settings and Kvantum Manager.
 
 ## Flatpak
 
