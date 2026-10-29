@@ -19,12 +19,13 @@
       url = "github:nix-community/lanzaboote/v0.4.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # ayu GTK theme (upstream ships nixos + home-manager modules)
+    # Ayu GTK theme from main (system-wide)
     ayu-theme = {
       url = "github:archieplaylist/ayu-theme";
     };
-    plasma-theme = {
-      url = "github:archieplaylist/plasmaTheme/2dd9733f8651d80729c42acadfa270dbe374ee8b";
+    # Ayu Plasma styles and decorations
+    ayu-theme-plasma = {
+      url = "github:archieplaylist/ayu-theme/plasma";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # skills (plain sources, not flakes) — update with `nix flake update ponytail caveman`

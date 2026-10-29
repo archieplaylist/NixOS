@@ -5,15 +5,36 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1792994600,
-        "narHash": "sha256-vzGkFyK1OpzrRsgnBcVb/6W3xvoXozVtl0G3iVU3hPY=",
+        "lastModified": 1793245397,
+        "narHash": "sha256-LxrLbiv4F2vm7QPyoRZdE78H883/iULgBZjbbe3byxw=",
         "owner": "archieplaylist",
         "repo": "ayu-theme",
-        "rev": "0d785b8e742f32e9d816a809773e3d586444ac8b",
+        "rev": "0651a46e56ab048752b788616ef97e46ac53f6ec",
         "type": "github"
       },
       "original": {
         "owner": "archieplaylist",
+        "repo": "ayu-theme",
+        "type": "github"
+      }
+    },
+    "ayu-theme-plasma": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793248062,
+        "narHash": "sha256-kGAuYJn/v+MxsLqMfdikXG0DYYjA7Q+CG3IqqswsoQU=",
+        "owner": "archieplaylist",
+        "repo": "ayu-theme",
+        "rev": "1da21e56174475ce764ecb860726f26b581b03d3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "archieplaylist",
+        "ref": "plasma",
         "repo": "ayu-theme",
         "type": "github"
       }
@@ -257,11 +278,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1792773339,
-        "narHash": "sha256-rZLrzrC6i+jnTAlvPZHogKDulY7WWDEv9hJeHieO7Zw=",
+        "lastModified": 1793110635,
+        "narHash": "sha256-dhoW6VgFWlaodSY5jrBn+CF2FLmaUvDVgM7+C7T2+NM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "3ec636362e1816bc2f0888fa0fa2c69f1bc9e504",
+        "rev": "31ecbaca1bdefa45dffc409f0250bd8039ea0010",
         "type": "github"
       },
       "original": {
@@ -273,11 +294,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1793015021,
-        "narHash": "sha256-Ee5BWo8sh3pGt70QUdRajnaginqFmWvrtdBc4gJzhks=",
+        "lastModified": 1793183032,
+        "narHash": "sha256-56mFMf8heLNfYhcgbrh4GpN5x+G9JOfTFXZC3n6w0qM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "718f670e845328e9c2cecdd832835712b2cbd065",
+        "rev": "08d3a97586f6b6343b3b5e799980773629432610",
         "type": "github"
       },
       "original": {
@@ -287,35 +308,14 @@
         "type": "github"
       }
     },
-    "plasma-theme": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1793157457,
-        "narHash": "sha256-NAY1ZLqc06f2mawLzsUmF6eScAZd8t3I4YZUZVdXzcY=",
-        "owner": "archieplaylist",
-        "repo": "plasmaTheme",
-        "rev": "2dd9733f8651d80729c42acadfa270dbe374ee8b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "archieplaylist",
-        "repo": "plasmaTheme",
-        "rev": "2dd9733f8651d80729c42acadfa270dbe374ee8b",
-        "type": "github"
-      }
-    },
     "ponytail": {
       "flake": false,
       "locked": {
-        "lastModified": 1792288514,
-        "narHash": "sha256-sVnxA4rfxa2SlS2g+2+q3odRq0VJz1z7PEVHW2QRPQI=",
+        "lastModified": 1793243094,
+        "narHash": "sha256-CY0EifTY0UVc6/FPGVJjEfYEf/8QLsINQmoYYKZYh98=",
         "owner": "DietrichGebert",
         "repo": "ponytail",
-        "rev": "09c434ab73ca43761c5d8b0c5d341926c2fba710",
+        "rev": "7801d061243d7b753bad0e0b3c057cd250b11755",
         "type": "github"
       },
       "original": {
@@ -354,6 +354,7 @@
     "root": {
       "inputs": {
         "ayu-theme": "ayu-theme",
+        "ayu-theme-plasma": "ayu-theme-plasma",
         "caveman": "caveman",
         "disko": "disko",
         "flake-parts": "flake-parts",
@@ -362,7 +363,6 @@
         "nix-flatpak": "nix-flatpak",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-unstable": "nixpkgs-unstable",
-        "plasma-theme": "plasma-theme",
         "ponytail": "ponytail"
       }
     },

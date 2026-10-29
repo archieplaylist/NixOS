@@ -14,14 +14,7 @@ let
       inputs.ayu-theme.nixosModules.default
       # home content resolved here (flake level); wired to
       # home-manager.users.<mySystem.username> in base.nix (NixOS level)
-      {
-        _module.args.homeModules = {
-          imports = [
-            config.home.modules.primary
-            inputs.plasma-theme.homeManagerModules.default
-          ];
-        };
-      }
+      { _module.args.homeModules = config.home.modules.primary; }
       {
         nixpkgs.overlays = [
           # ayu-theme: GTK2/3/4 + gnome-shell + xfwm4 theme (pkgs.ayu-theme)
@@ -37,6 +30,7 @@ let
             opencode = prev.callPackage ../packages/opencode.nix { };
             # fetch - animated 3D fetch tool (areofyl/fetch)
             fetch = prev.callPackage ../packages/fetch.nix { };
+            ayu-theme-plasma = inputs.ayu-theme-plasma.packages.${system}.default;
             mactahoe-icons = prev.callPackage ../packages/mactahoe-icons.nix { };
             gnomeExtensions = prev.gnomeExtensions // {
               simple-taskbar = prev.callPackage ../packages/simple-taskbar.nix { };
