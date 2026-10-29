@@ -23,9 +23,8 @@
     ayu-theme = {
       url = "github:archieplaylist/ayu-theme";
     };
-    # Ayu Plasma styles and decorations
-    ayu-theme-plasma = {
-      url = "github:archieplaylist/ayu-theme/plasma";
+    plasma-theme = {
+      url = "github:archieplaylist/plasmaTheme/2dd9733f8651d80729c42acadfa270dbe374ee8b";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # skills (plain sources, not flakes) — update with `nix flake update ponytail caveman`

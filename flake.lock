@@ -18,27 +18,6 @@
         "type": "github"
       }
     },
-    "ayu-theme-plasma": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1793248062,
-        "narHash": "sha256-kGAuYJn/v+MxsLqMfdikXG0DYYjA7Q+CG3IqqswsoQU=",
-        "owner": "archieplaylist",
-        "repo": "ayu-theme",
-        "rev": "1da21e56174475ce764ecb860726f26b581b03d3",
-        "type": "github"
-      },
-      "original": {
-        "owner": "archieplaylist",
-        "ref": "plasma",
-        "repo": "ayu-theme",
-        "type": "github"
-      }
-    },
     "caveman": {
       "flake": false,
       "locked": {
@@ -308,6 +287,27 @@
         "type": "github"
       }
     },
+    "plasma-theme": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793157457,
+        "narHash": "sha256-NAY1ZLqc06f2mawLzsUmF6eScAZd8t3I4YZUZVdXzcY=",
+        "owner": "archieplaylist",
+        "repo": "plasmaTheme",
+        "rev": "2dd9733f8651d80729c42acadfa270dbe374ee8b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "archieplaylist",
+        "repo": "plasmaTheme",
+        "rev": "2dd9733f8651d80729c42acadfa270dbe374ee8b",
+        "type": "github"
+      }
+    },
     "ponytail": {
       "flake": false,
       "locked": {
@@ -354,7 +354,6 @@
     "root": {
       "inputs": {
         "ayu-theme": "ayu-theme",
-        "ayu-theme-plasma": "ayu-theme-plasma",
         "caveman": "caveman",
         "disko": "disko",
         "flake-parts": "flake-parts",
@@ -363,6 +362,7 @@
         "nix-flatpak": "nix-flatpak",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-unstable": "nixpkgs-unstable",
+        "plasma-theme": "plasma-theme",
         "ponytail": "ponytail"
       }
     },
