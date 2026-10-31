@@ -30,7 +30,7 @@ _: {
     boot.loader.efi.efiSysMountPoint = "/boot";
     boot.loader.timeout = 5;
 
-    # Plymouth boot splash (initrd stage, works with systemd-boot and lanzaboote).
+    # Plymouth boot splash (initrd stage, works with Limine and Lanzaboote).
     # The plymouth module adds "splash" itself; "quiet" keeps the boot log hidden.
     # Logo is the default Nix snowflake (boot.plymouth.logo).
     boot.plymouth.enable = true;
@@ -38,9 +38,10 @@ _: {
     boot.plymouth.theme = "connect";
     boot.kernelParams = [ "quiet" ];
 
-    # systemd-boot unless Secure Boot is enabled (lanzaboote replaces it)
-    boot.loader.systemd-boot.enable = !config.mySystem.enableSecureBoot;
-    boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
+    # Limine unless Secure Boot is enabled (Lanzaboote replaces it).
+    boot.loader.limine.enable = !config.mySystem.enableSecureBoot;
+    boot.loader.limine.maxGenerations = lib.mkDefault 10;
+    boot.loader.systemd-boot.enable = false;
 
     boot.lanzaboote.enable = config.mySystem.enableSecureBoot;
     boot.lanzaboote.pkiBundle = "/var/lib/sbctl";

@@ -156,7 +156,7 @@ cryptsetup open /dev/disk/by-label/nixos-root cryptroot
 # Check current boot mode
 [ -d /sys/firmware/efi ] && echo "UEFI" || echo "BIOS"
 
-# This config assumes UEFI boot (boot.loader.systemd-boot.enable)
+# This config assumes UEFI boot (Limine by default, Lanzaboote with Secure Boot)
 # Ensure system is booted in UEFI mode
 
 # For BIOS systems, you would need GRUB (not currently in this config)

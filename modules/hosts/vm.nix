@@ -26,7 +26,7 @@
     services.system-config-printer.enable = false;
 
     # 8GB vm disk can't hold 10 generations
-    boot.loader.systemd-boot.configurationLimit = 5;
+    boot.loader.limine.maxGenerations = 5;
 
     virtualisation.vmVariant = {
       virtualisation = {
