@@ -36,12 +36,10 @@ _: {
         services.printing.enable = lib.mkDefault true;
         services.system-config-printer.enable = lib.mkDefault true;
 
-        boot.binfmt.registrations.appimage = {
-          wrapInterpreterInShell = false;
-          interpreter = "${pkgs.appimage-run}";
-          recognitionType = "magic";
-          offset = 0;
-          magicOrExtension = ''\x7fELF....AI\x02'';
+        programs.appimage = {
+          enable = true;
+          binfmt = true;
+          package = pkgs.appimage-run;
         };
 
         hardware.enableRedistributableFirmware = lib.mkDefault true;
