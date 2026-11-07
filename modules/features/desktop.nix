@@ -4,6 +4,7 @@ _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
       (lib.mkIf config.mySystem.enableDesktop {
+        security.polkit.enable = true;
         security.rtkit.enable = true;
         services.pipewire = {
           enable = true;
@@ -31,7 +32,32 @@ _: {
         # /run/current-system/sw/share/icons — nixpkgs patches flatpak to
         # expose that dir (and the nix store paths it symlinks to) inside
         # the sandbox, so flatpak apps get the same icons as native ones.
-        environment.systemPackages = [ pkgs.mactahoe-icons ];
+        environment.systemPackages = [
+          pkgs.mactahoe-icons
+          (pkgs.writeTextFile {
+            name = "rpi-imager-polkit-policy";
+            destination = "/share/polkit-1/actions/org.raspberrypi.rpi-imager.policy";
+            text = ''
+              <?xml version="1.0" encoding="UTF-8"?>
+              <!DOCTYPE policyconfig PUBLIC
+                "-//freedesktop//DTD polkit Policy Configuration 1.0//EN"
+                "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+              <policyconfig>
+                <action id="org.raspberrypi.rpi-imager">
+                  <description>Run Raspberry Pi Imager as root</description>
+                  <message>Authentication is required to write to storage devices</message>
+                  <defaults>
+                    <allow_any>no</allow_any>
+                    <allow_inactive>no</allow_inactive>
+                    <allow_active>auth_admin</allow_active>
+                  </defaults>
+                  <annotate key="org.freedesktop.policykit.exec.path">${pkgs.unstable.rpi-imager}/bin/rpi-imager</annotate>
+                  <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+                </action>
+              </policyconfig>
+            '';
+          })
+        ];
 
         hardware.bluetooth = {
           enable = true;

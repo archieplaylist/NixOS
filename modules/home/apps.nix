@@ -97,6 +97,19 @@ _: {
         ]))
       ];
 
+      xdg.desktopEntries."com.raspberrypi.rpi-imager" = lib.mkIf osConfig.mySystem.enableDesktop {
+        name = "Raspberry Pi Imager";
+        comment = "Tool for writing images to SD cards for Raspberry Pi";
+        icon = "rpi-imager";
+        exec = "/run/wrappers/bin/pkexec ${pkgs.unstable.rpi-imager}/bin/rpi-imager %u";
+        categories = [ "Utility" ];
+        mimeType = [
+          "x-scheme-handler/rpi-imager"
+          "application/vnd.raspberrypi.imager-manifest+json"
+        ];
+        startupNotify = false;
+      };
+
       # fetch config — info fields + label color approximating fastfetch's cyan keys
       xdg.configFile."fetch/config".text = ''
         os
