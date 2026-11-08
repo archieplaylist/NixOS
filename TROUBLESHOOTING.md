@@ -491,6 +491,16 @@ gamemoded -r
 powerprofilesctl set performance
 ```
 
+For games launched through Flatpak Bottles, first activate the updated gaming host so
+the Bottles GameMode permission and Gamescope runtime extension are installed.
+Then open the game's three-dot menu in Bottles and choose **Change Launch Options**:
+
+- Enable the per-program **Gamescope** option.
+- Under **Custom Arguments > Command Arguments**, enable **Pass these arguments at launch** and enter `gamemoderun %command%`.
+
+This applies GameMode and Gamescope to that game's launch, not to the Bottles
+window. The Steam-specific environment variables in `gaming.nix` do not apply.
+
 ### Audio latency or crackling
 
 **Cause:** PipeWire configuration or buffer size  

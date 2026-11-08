@@ -24,7 +24,10 @@ _: {
           ayu-theme.enable = true;
           flatpak = {
             enable = true;
-            packages = config.mySystem.flatpakApps;
+            packages = config.mySystem.flatpakApps
+              ++ lib.optionals config.mySystem.appGroups.gaming.enable [
+                "org.freedesktop.Platform.VulkanLayer.gamescope//25.08"
+              ];
           };
         };
 
@@ -89,6 +92,10 @@ _: {
             ADW_DEBUG_COLOR_SCHEME = "prefer-dark";
           };
         };
+      })
+
+      (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.appGroups.gaming.enable) {
+        services.flatpak.overrides.settings."com.usebottles.bottles"."Session Bus Policy"."com.feralinteractive.GameMode" = "talk";
       })
 
       (lib.mkIf (config.mySystem.enableDesktop && config.mySystem.desktop == "gnome") {
