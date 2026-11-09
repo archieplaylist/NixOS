@@ -39,7 +39,11 @@ _: {
         programs.appimage = {
           enable = true;
           binfmt = true;
-          package = pkgs.appimage-run;
+          # bundled Ubuntu WebKitGTK AppImages (libsoup3) link libnghttp2 transitively;
+          # appimage-run's default FHS env ships curl but not its nghttp2 dep
+          package = pkgs.appimage-run.override {
+            extraPkgs = pkgs: [ pkgs.nghttp2 ];
+          };
         };
 
         hardware.enableRedistributableFirmware = lib.mkDefault true;
