@@ -83,13 +83,13 @@ _: {
           heroic
           mangohud
           unstable.protonplus
-          # bottles moved to the flatpak build (mySystem.flatpakApps, gated on gaming)
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.work.enable (with pkgs; [
           chromium
           dbeaver-bin
           filezilla
           remmina
+          virt-viewer
           weasis
         ]))
         (lib.mkIf osConfig.mySystem.enableMoonlight (with pkgs; [
