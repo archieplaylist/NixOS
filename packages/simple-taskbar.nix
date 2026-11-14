@@ -13,7 +13,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   dontBuild = true;
   installPhase = ''
     runHook preInstall
-    glib-compile-schemas --strict schemas
     gnome-extensions pack --force \
       --extra-source=COPYING \
       --extra-source=ASSET-CREDITS.md \
@@ -24,6 +23,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     mkdir -p "$out/share/gnome-shell/extensions/simple-taskbar@sultech"
     unzip -q "$TMPDIR/simple-taskbar@sultech.shell-extension.zip" \
       -d "$out/share/gnome-shell/extensions/simple-taskbar@sultech"
+    glib-compile-schemas --strict \
+      "$out/share/gnome-shell/extensions/simple-taskbar@sultech/schemas"
     runHook postInstall
   '';
 })
