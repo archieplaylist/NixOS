@@ -101,7 +101,7 @@ _: {
         name = "Raspberry Pi Imager";
         comment = "Tool for writing images to SD cards for Raspberry Pi";
         icon = "rpi-imager";
-        exec = "/run/wrappers/bin/pkexec ${pkgs.unstable.rpi-imager}/bin/rpi-imager %u";
+        exec = "/run/wrappers/bin/pkexec --disable-internal-agent ${pkgs.unstable.rpi-imager}/bin/rpi-imager %u";
         categories = [ "Utility" ];
         mimeType = [
           "x-scheme-handler/rpi-imager"

@@ -4,7 +4,6 @@ _: {
   config.nixos.modules.desktop = { config, lib, pkgs, ... }: {
     config = lib.mkMerge [
       (lib.mkIf config.mySystem.enableDesktop {
-        security.polkit.enable = true;
         security.rtkit.enable = true;
         services.pipewire = {
           enable = true;
@@ -26,8 +25,8 @@ _: {
             enable = true;
             packages = config.mySystem.flatpakApps
               ++ lib.optionals config.mySystem.appGroups.gaming.enable [
-                "org.freedesktop.Platform.VulkanLayer.gamescope//25.08"
-              ];
+              "org.freedesktop.Platform.VulkanLayer.gamescope//25.08"
+            ];
           };
         };
 

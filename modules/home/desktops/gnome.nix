@@ -21,6 +21,8 @@ _: {
             gtk-enable-primary-paste = true;
             monospace-font-name = "JetBrainsMono Nerd Font 11";
             document-font-name = "Noto Sans 11";
+            # 2C/4T laptops (X260) feel snappier without shell animations
+            enable-animations = !osConfig.mySystem.enableLaptop;
           };
           "org/gnome/desktop/sound" = {
             allow-volume-above-100-percent = true;
