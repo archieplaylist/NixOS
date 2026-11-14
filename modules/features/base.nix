@@ -1,7 +1,23 @@
 # Base slot: fundamentals for every host — locale/firewall/printing (basics),
 # SSH/Docker/Tailscale/VirtualBox (services), store maintenance (optimisation),
 # nix-ld, primary user. Sections merged, behavior unchanged.
-_: {
+_:
+let
+  # services.pipewire.jack.enable exports pipewire-jack on LD_LIBRARY_PATH
+  # session-wide. appimage-run passes the environment into its bwrap sandbox,
+  # so AppImages load the host libjack and abort (DuckStation: "We have
+  # detected that LD_LIBRARY_PATH has been set..."). Drop it inside AppImages
+  # only; native JACK clients still get the pipewire override.
+  appimage-run =
+    pkgs:
+    pkgs.writeShellScriptBin "appimage-run" ''
+      unset LD_LIBRARY_PATH
+      exec ${pkgs.appimage-run.override {
+        extraPkgs = pkgs: [ pkgs.nghttp2 ];
+      }}/bin/appimage-run "$@"
+    '';
+in
+{
   config.nixos.modules.base = { config, lib, pkgs, homeModules, ... }: {
     config = lib.mkMerge [
       {
@@ -39,11 +55,10 @@ _: {
         programs.appimage = {
           enable = true;
           binfmt = true;
-          # bundled Ubuntu WebKitGTK AppImages (libsoup3) link libnghttp2 transitively;
-          # appimage-run's default FHS env ships curl but not its nghttp2 dep
-          package = pkgs.appimage-run.override {
-            extraPkgs = pkgs: [ pkgs.nghttp2 ];
-          };
+          # extraPkgs nghttp2: bundled Ubuntu WebKitGTK AppImages (libsoup3)
+          # link it transitively, but appimage-run's FHS env's curl lacks the
+          # dep. Wrapper also clears LD_LIBRARY_PATH (see top of file).
+          package = appimage-run pkgs;
         };
 
         hardware.enableRedistributableFirmware = lib.mkDefault true;
