@@ -173,7 +173,9 @@ _: {
         ]
         ++ lib.optional (config.mySystem.appGroups.gaming.enable or false)
           # flatpak build instead of nixpkgs wrapper (see home/apps.nix)
-          "com.usebottles.bottles";
+          "com.usebottles.bottles"
+        ++ lib.optional (config.mySystem.appGroups.comms.enable or false)
+          "com.discordapp.Discord";
 
       mySystem.gnomeExtensions = lib.mkIf (config.mySystem.desktop == "gnome") [
         { uuid = "appindicatorsupport@rgcjonas.gmail.com"; package = "appindicator"; }

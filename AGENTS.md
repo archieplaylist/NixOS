@@ -22,7 +22,7 @@
   before push. Pre-push hook runs both (`make hooks` to install).
 - Dry run with `nh os build -H <host>`; activate with `nh os switch -H <host>`.
 - `nix flake update` refreshes all inputs; `pkgs.unstable` is only for apps
-  that need fresher versions (discord, vscode, pi, …), stable otherwise.
+  that need fresher versions (vscode, pi, …), stable otherwise.
 - Use `nix develop` shell (nixpkgs-fmt + deadnix + statix) for linting.
 
 ## Skills and tools (pi)

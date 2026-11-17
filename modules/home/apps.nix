@@ -78,11 +78,6 @@ _: {
           unstable.joplin-desktop
           unstable.zoom-us
         ]))
-        (lib.mkIf osConfig.mySystem.appGroups.comms.enable (with pkgs; [
-          # Electron/Chromium backend defaults to gnome-libsecret outside KDE —
-          # no flag override needed once xfce.nix provides org.freedesktop.secrets
-          unstable.discord
-        ]))
         (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
           heroic
           mangohud
@@ -100,6 +95,23 @@ _: {
           moonlight-qt
         ]))
       ];
+
+      # One-time migration for Discord native → Flatpak: copy the old profile
+      # (Local Storage keeps the login token, unlocked by the same keyring)
+      # into the sandbox before the Flatpak gets a chance to create it.
+      home.activation.discordFlatpakConfig = lib.mkIf osConfig.mySystem.appGroups.comms.enable (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          src="$HOME/.config/discord"
+          dst="$HOME/.var/app/com.discordapp.Discord/config/discord"
+          if [ -d "$src" ] && [ ! -e "$dst" ]; then
+            run mkdir -p "$(dirname "$dst")"
+            run cp -a "$src" "$dst"
+            # regenerated on first launch; singleton files point at the old process
+            run rm -rf "$dst/Cache" "$dst/Code Cache" "$dst/GPUCache" "$dst/DawnCache" "$dst/ShaderCache"
+            run rm -f "$dst"/Singleton*
+          fi
+        ''
+      );
 
       xdg.desktopEntries."com.raspberrypi.rpi-imager" = lib.mkIf osConfig.mySystem.enableDesktop {
         name = "Raspberry Pi Imager";
