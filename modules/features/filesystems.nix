@@ -71,6 +71,14 @@ _: {
           };
         };
       })
+
+      # NTFS: kernel ntfs3 driver (read/write, autoloaded but pinned here) + ntfs3g on the
+      # system PATH via system.fsPackages, so root-only ntfsfix/mount.ntfs resolve.
+      # exFAT likewise pulls exfatprogs. Nothing here is needed at boot; removable media only.
+      {
+        boot.kernelModules = [ "ntfs3" ];
+        boot.supportedFilesystems = [ "ntfs" "exfat" ];
+      }
     ];
   };
 }
