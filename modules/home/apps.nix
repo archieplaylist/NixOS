@@ -75,7 +75,6 @@ _: {
         (lib.mkIf osConfig.mySystem.appGroups.office.enable (with pkgs; [
           libreoffice-fresh
           onlyoffice-desktopeditors
-          unstable.joplin-desktop
           unstable.zoom-us
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.gaming.enable (with pkgs; [
