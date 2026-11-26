@@ -36,30 +36,29 @@ _: {
         # the sandbox, so flatpak apps get the same icons as native ones.
         environment.systemPackages = [
           pkgs.mactahoe-icons
-          (pkgs.writeTextFile {
-            name = "rpi-imager-polkit-policy";
-            destination = "/share/polkit-1/actions/org.raspberrypi.rpi-imager.policy";
-            text = ''
-              <?xml version="1.0" encoding="UTF-8"?>
-              <!DOCTYPE policyconfig PUBLIC
-                "-//freedesktop//DTD polkit Policy Configuration 1.0//EN"
-                "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
-              <policyconfig>
-                <action id="org.raspberrypi.rpi-imager">
-                  <description>Run Raspberry Pi Imager as root</description>
-                  <message>Authentication is required to write to storage devices</message>
-                  <defaults>
-                    <allow_any>no</allow_any>
-                    <allow_inactive>no</allow_inactive>
-                    <allow_active>auth_admin</allow_active>
-                  </defaults>
-                  <annotate key="org.freedesktop.policykit.exec.path">${pkgs.unstable.rpi-imager}/bin/rpi-imager</annotate>
-                  <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
-                </action>
-              </policyconfig>
-            '';
-          })
-        ];
+        ] ++ lib.optional (!config.mySystem.isVm) (pkgs.writeTextFile {
+          name = "rpi-imager-polkit-policy";
+          destination = "/share/polkit-1/actions/org.raspberrypi.rpi-imager.policy";
+          text = ''
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE policyconfig PUBLIC
+              "-//freedesktop//DTD polkit Policy Configuration 1.0//EN"
+              "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+            <policyconfig>
+              <action id="org.raspberrypi.rpi-imager">
+                <description>Run Raspberry Pi Imager as root</description>
+                <message>Authentication is required to write to storage devices</message>
+                <defaults>
+                  <allow_any>no</allow_any>
+                  <allow_inactive>no</allow_inactive>
+                  <allow_active>auth_admin</allow_active>
+                </defaults>
+                <annotate key="org.freedesktop.policykit.exec.path">${pkgs.unstable.rpi-imager}/bin/rpi-imager</annotate>
+                <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+              </action>
+            </policyconfig>
+          '';
+        });
 
         hardware.bluetooth = {
           enable = true;
@@ -78,7 +77,7 @@ _: {
       #    theme, font) + the Ayu libadwaita CSS
       #  - ~/.themes/Ayu-Dark → the theme itself (symlink into the nix
       #    store; see home/desktops/gnome.nix)
-      (lib.mkIf (lib.elem config.mySystem.desktop [ "gnome" "xfce" ]) {
+      (lib.mkIf (config.mySystem.enableDesktop && lib.elem config.mySystem.desktop [ "gnome" "xfce" ]) {
         services.flatpak.overrides.settings.global = {
           Context.filesystems = [
             "xdg-config/gtk-3.0"

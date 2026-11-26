@@ -2,7 +2,14 @@
 _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }:
     let
-      gtkSchema = "${pkgs.gtk3}/share/gsettings-schemas/gtk+3-${pkgs.gtk3.version}/glib-2.0/schemas/gschemas.compiled";
+      gtkSchema = pkgs.runCommand "gtk3-gschemas-compiled" { } ''
+        src="${pkgs.gtk3}/share/gsettings-schemas/gtk+3-${pkgs.gtk3.version}/glib-2.0/schemas/gschemas.compiled"
+        if [ ! -f "$src" ]; then
+          echo "gtk3 gsettings path moved ($src) — update the VirtualBox workaround in apps.nix" >&2
+          exit 1
+        fi
+        ln -s "$src" "$out"
+      '';
     in
     {
       programs.vscode = lib.mkIf osConfig.mySystem.appGroups.editor.enable {
@@ -29,13 +36,15 @@ _: {
           file-roller
           fzf
           ntfs3g
-          smartmontools
           unrar
           zip
-          unstable.rpi-imager
           unstable.dcmtk
         ])
-        (lib.mkIf (osConfig.mySystem.desktop == "gnome") (with pkgs; [
+        (lib.mkIf (!osConfig.mySystem.isVm) (with pkgs; [
+          smartmontools
+          unstable.rpi-imager
+        ]))
+        (lib.mkIf (osConfig.mySystem.enableDesktop && osConfig.mySystem.desktop == "gnome") (with pkgs; [
           nautilus
         ]))
         (lib.mkIf osConfig.mySystem.appGroups.dev.enable (with pkgs; [
@@ -95,7 +104,7 @@ _: {
         ]))
       ];
 
-      xdg.desktopEntries."com.raspberrypi.rpi-imager" = lib.mkIf osConfig.mySystem.enableDesktop {
+      xdg.desktopEntries."com.raspberrypi.rpi-imager" = lib.mkIf (osConfig.mySystem.enableDesktop && !osConfig.mySystem.isVm) {
         name = "Raspberry Pi Imager";
         comment = "Tool for writing images to SD cards for Raspberry Pi";
         icon = "rpi-imager";
@@ -151,10 +160,8 @@ _: {
       # GTK3 dialog aborts on launch. GSettings reads the user data dir
       # (~/.local/share/glib-2.0/schemas) regardless of XDG_DATA_DIRS, so
       # symlink gtk3's compiled schemas there. No VirtualBox rebuild needed.
-      xdg.dataFile = lib.mkIf (osConfig.mySystem.enableVirtualBox && builtins.pathExists gtkSchema) {
+      xdg.dataFile = lib.mkIf osConfig.mySystem.enableVirtualBox {
         "glib-2.0/schemas/gschemas.compiled".source = gtkSchema;
       };
-      warnings = lib.optional (osConfig.mySystem.enableVirtualBox && !(builtins.pathExists gtkSchema))
-        "gtk3 gsettings path moved — update the VirtualBox workaround in apps.nix";
     };
 }

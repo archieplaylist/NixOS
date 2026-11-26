@@ -14,17 +14,19 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' Makefile | sed 's/:.*##/:/' | sort
 
 check: ## Build every host config (`nix flake check`)
-	bash tests/state.sh
+	$(MAKE) test
 	nix flake check
 
-test: ## Run lightweight shell regression tests
+test: ## Run lightweight regression tests
 	bash tests/state.sh
+	bash tests/setup.sh
+	node tests/modes.mjs
 
 fmt: ## Reformat all Nix files (`nix fmt`)
 	nix fmt
 
 fmt-check: ## Fail if fmt/lint drifts or dead code is found (no mutation)
-	nix develop --command bash -c "nixpkgs-fmt --check . && deadnix --fail . && statix check ."
+	nix develop --command bash -c "nixpkgs-fmt --check . && deadnix --fail . && statix check . && shellcheck setup.sh lib/*.sh tests/*.sh .githooks/* modules/home/scripts/*"
 
 hooks: ## Install the repo's git hooks (core.hooksPath -> .githooks, once per clone)
 	git config core.hooksPath .githooks

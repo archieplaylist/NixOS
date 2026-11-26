@@ -1,21 +1,7 @@
-# Shared GTK font/icon/cursor for GNOME + XFCE, Alacritty basics for all DEs.
+# Shared GTK font/icon/cursor for GNOME + XFCE.
 _: {
-  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
-    {
-      xdg.configFile."alacritty/alacritty.toml".text = ''
-        [window]
-        padding = { x = 12, y = 12 }
-        opacity = 0.80
-
-        [font]
-        size = 11
-
-        [font.normal]
-        family = "JetBrainsMono Nerd Font"
-      '';
-    }
-
-    (lib.mkIf (builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }:
+    lib.mkIf (osConfig.mySystem.enableDesktop && builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
       gtk = {
         enable = true;
         font = {
@@ -33,6 +19,5 @@ _: {
           size = 20;
         };
       };
-    })
-  ];
+    };
 }

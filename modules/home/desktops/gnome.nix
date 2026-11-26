@@ -5,8 +5,8 @@ _: {
   config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkMerge [
     {
       dconf = {
-        enable = osConfig.mySystem.desktop == "gnome";
-        settings = lib.mkIf (osConfig.mySystem.desktop == "gnome") {
+        enable = osConfig.mySystem.enableDesktop && osConfig.mySystem.desktop == "gnome";
+        settings = lib.mkIf (osConfig.mySystem.enableDesktop && osConfig.mySystem.desktop == "gnome") {
           "org/gnome/shell" = {
             enabled-extensions = map (e: e.uuid) osConfig.mySystem.gnomeExtensions;
           };
@@ -38,7 +38,7 @@ _: {
 
     # Shared GTK bits for both DEs; fonts/icons/cursor live in theming.nix.
     # Both DEs get dark preference.
-    (lib.mkIf (builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
+    (lib.mkIf (osConfig.mySystem.enableDesktop && builtins.elem osConfig.mySystem.desktop [ "gnome" "xfce" ]) {
       gtk = {
         enable = true;
         gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
@@ -87,7 +87,7 @@ _: {
 
     # Orchis is no longer the active theme but stays installed so it can be
     # selected again in gnome-tweaks without rebuilding the config
-    (lib.mkIf (osConfig.mySystem.desktop == "gnome") {
+    (lib.mkIf (osConfig.mySystem.enableDesktop && osConfig.mySystem.desktop == "gnome") {
       home.packages = [ pkgs.unstable.orchis-theme ];
     })
   ];

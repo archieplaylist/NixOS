@@ -82,9 +82,9 @@ _: {
           options =
             let
               groups = {
-                browsers = "Web browsers (firefox, chromium, vivaldi).";
+                browsers = "Web browsers (firefox, vivaldi).";
                 media = "Media players and tooling (vlc, mpv, yt-dlp, ffmpeg).";
-                office = "Office and productivity (joplin, onlyoffice, libreoffice, zoom).";
+                office = "Office and productivity (onlyoffice, libreoffice, zoom).";
                 comms = "Communication apps (discord).";
                 editor = "Code editors (vscode).";
                 gaming = "Gaming applications (Steam, MangoHud, gamescope, Heroic).";

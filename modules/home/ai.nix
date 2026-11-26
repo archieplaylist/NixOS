@@ -181,20 +181,32 @@
           }
 
           function segmentIsReadOnly(seg: string): boolean {
-            // find -delete/-exec/-fprint and any --output write files.
-            if (/-delete|-exec|-fprint|-fls|--output/.test(seg)) return false;
+            // find -delete/-exec/-ok/-okdir/-fprint/-fls and any --output write or execute.
+            if (/-delete|-exec|-ok\b|-okdir\b|-fprint|-fls|--output/.test(seg)) return false;
             const parts = seg.split(/\s+/).filter(Boolean);
             if (parts.length === 0) return false;
             const bin = parts[0].replace(/^.*\//, "");
             if (READ_ONLY_CMDS.indexOf(bin) === -1) return false;
             if (bin === "sort" && parts.some((a) => a === "-o")) return false;
             if (bin === "git") {
-              const sub = firstSubcommand(parts);
-              if (sub === undefined) return false;
+              let subIdx = -1;
+              for (let i = 1; i < parts.length; i++) {
+                const a = parts[i];
+                if (a === "-C") { i++; continue; }
+                if (
+                  a === "-c" || (a.startsWith("-c") && a.length > 2) ||
+                  a === "--config-env" || a.startsWith("--config-env=") ||
+                  a === "--exec-path" || a.startsWith("--exec-path=")
+                ) return false;
+                if (a[0] !== "-") { subIdx = i; break; }
+              }
+              if (subIdx === -1) return false;
+              if (parts.some((a) => /^(--upload-pack|--receive-pack|--open-files-in-pager|--ext-diff)(=|$)/.test(a))) return false;
+              const sub = parts[subIdx];
               if (GIT_READ.indexOf(sub) !== -1) return true;
               if (GIT_LIST_ONLY.indexOf(sub) === -1) return false;
               // `git stash list` is the one positional that stays read-only.
-              const rest = parts.slice(parts.indexOf(sub) + 1).filter((a) => a[0] !== "-");
+              const rest = parts.slice(subIdx + 1).filter((a) => a[0] !== "-");
               return rest.length === 0 || (sub === "stash" && rest[0] === "list");
             }
             if (bin === "nix") {
@@ -205,11 +217,11 @@
             return true;
           }
 
-          // Redirection, subshells and pipelines are rejected or split, never trusted.
+          // Redirection, subshells, backgrounding and pipelines are rejected or split, never trusted.
           function bashIsReadOnly(command: string): boolean {
             const cmd = String(command ?? "");
             if (cmd.trim() === "") return false;
-            if (/[><`]/.test(cmd) || cmd.includes("$(") || /\btee\b/.test(cmd)) return false;
+            if (/[><`]/.test(cmd) || cmd.includes("$(") || /(^|[^&])&([^&]|$)/.test(cmd) || /\btee\b/.test(cmd)) return false;
             const segments = cmd.split(/&&|\|\||[;|\n]/).map((s) => s.trim()).filter(Boolean);
             if (segments.length === 0) return false;
             return segments.every(segmentIsReadOnly);

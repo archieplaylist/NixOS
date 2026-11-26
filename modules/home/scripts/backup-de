@@ -128,7 +128,7 @@ cmd="${1:-}"; case "$cmd" in
       # (old) config back over the restored files on logout
       case "$(basename "$f")" in
         xfce-*) pkill -x xfce4-panel 2>/dev/null || true; pkill -x xfconfd 2>/dev/null || true ;;
-        plasma-*) kquitapp5 plasmashell 2>/dev/null || true; pkill -x ksmserver 2>/dev/null || true ;;
+        plasma-*) (kquitapp6 plasmashell || kquitapp5 plasmashell) 2>/dev/null || true; pkill -x ksmserver 2>/dev/null || true ;;
       esac
     else
       usage; echo "unknown backup format: $f" >&2; exit 1

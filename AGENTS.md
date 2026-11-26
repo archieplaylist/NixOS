@@ -19,7 +19,8 @@
 ## Workflow
 
 - `nix fmt` before commit; `make check` (`nix flake check`, builds every host)
-  before push. Pre-push hook runs both (`make hooks` to install).
+  before push. Pre-push hook runs `fmt-check` (`make hooks` to install; run
+  `make check` manually before push).
 - Dry run with `nh os build -H <host>`; activate with `nh os switch -H <host>`.
 - `nix flake update` refreshes all inputs; `pkgs.unstable` is only for apps
   that need fresher versions (vscode, pi, …), stable otherwise.
@@ -44,7 +45,8 @@
 - `/review` (prompt) for bug/security/perf review sorted by severity with
   minimal diffs.
 - `memory_*` tools persist facts across sessions; `memory_search` needs the
-  `qmd` binary (auto-installed to `~/.local/share/npm-global/bin` on switch).
+  `qmd` binary (install once by hand to `~/.local/share/npm-global/bin`; no
+  activation-time npm fetch).
 
 ## Git
 

@@ -64,6 +64,12 @@ archive_de() {
   for pat in "$@"; do
     for p in "$HOME"/$pat; do
       [ -e "$p" ] || [ -L "$p" ] || continue
+      # skip home-manager-managed symlinks into the nix store
+      if [ -L "$p" ]; then
+        case "$(readlink -f "$p" 2>/dev/null || readlink "$p")" in
+          /nix/store/*) continue ;;
+        esac
+      fi
       # explicit wallet preserve — never archive secrets, no relogin
       case "$p" in
         */.cache/* | *keyrings* | *gnome-keyring*) continue ;;

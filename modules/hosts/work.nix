@@ -12,7 +12,7 @@
     mySystem.desktop = "gnome";
     mySystem.enableDesktop = true;
     mySystem.enableDocker = true;
-    mySystem.enableTailscale = true; # daemon on for `stream` toggle; `tailscale down` persists across reboots
+    mySystem.enableTailscale = true; # off at boot while enableSunshine=true; toggled on demand via `stream`
     mySystem.enableVirtualBox = true;
     mySystem.enableVirtManager = true;
     mySystem.enableWireshark = true;

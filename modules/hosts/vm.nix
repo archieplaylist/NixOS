@@ -1,4 +1,4 @@
-# vm — xfce guest (qemu/virtualbox), no gaming/dev
+# vm — plasma guest (qemu/virtualbox), no gaming/dev
 { config, ... }: {
   config.nixos.hosts.vm = {
     imports = [

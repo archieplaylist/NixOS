@@ -43,7 +43,7 @@ No wiring in `flake.nix`.
 
 ## Application groups (`modules/home/apps.nix`)
 
-- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: joplin, onlyoffice, libreoffice. **comms**: discord (flatpak, gated on comms in `mySystem.flatpakApps`). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake, fd, ripgrep. **gaming**: heroic, mangohud, protonplus, bottles (flatpak, gated on gaming in `mySystem.flatpakApps`). **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config.
+- **browsers**: firefox, vivaldi. **media**: vlc, mpv, yt-dlp, ffmpeg, qbittorrent. **office**: onlyoffice, libreoffice, zoom. **comms**: discord (flatpak, gated on comms in `mySystem.flatpakApps`). **editor**: vscode (unstable). **dev**: git, lazygit, nodejs, gh, python3, gnumake, fd, ripgrep. **gaming**: heroic, mangohud, protonplus, bottles (flatpak, gated on gaming in `mySystem.flatpakApps`). **work** (opt-in): chromium, dbeaver-bin, remmina, filezilla, virt-viewer, weasis. **ai** (off on `vm`): pi-coding-agent + `~/.pi/agent/` config, opencode, llama-cpp.
 - System side: `gaming.nix` (Steam + GameMode + gamescope + xone/xpadneo + low-latency PipeWire).
 
 ## Editor (VSCode)
@@ -65,7 +65,7 @@ I keep a few small helpers here for media downloads, audio conversion, and deskt
 
 ## Desktop environments
 
-GNOME (GDM/Wayland), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. I keep the GNOME extension list in `mySystem.gnomeExtensions`, the single source of truth. GNOME and XFCE share MacTahoe-Dark GTK theming via home-manager GTK + xfconf. The Ayu GTK theme is installed system-wide from the main branch. Plasma users also get Mystical Blue theme assets; select the Plasma and Kvantum styles in System Settings and Kvantum Manager.
+GNOME (GDM/Wayland), XFCE (LightDM/X11), Plasma 6 (SDDM/Wayland). Per-host via `mySystem.desktop`; switch with `switch-de`. I keep the GNOME extension list in `mySystem.gnomeExtensions`, the single source of truth. GNOME and XFCE share `Ayu-Dark` GTK theming (installed system-wide from the main branch) and `MacTahoe` icons via home-manager GTK + xfconf. Plasma users also get Mystical Blue theme assets; select the Plasma and Kvantum styles in System Settings and Kvantum Manager.
 
 ## Flatpak
 
@@ -177,11 +177,11 @@ nh os switch -H <host>  # now (also updates home-manager)
 nh clean all            # GC (weekly timer does this automatically)
 ```
 
-`nix flake update` refreshes all inputs (`nixpkgs-unstable` provides `pkgs.unstable` for vscode/pi). `nix develop` gives nixpkgs-fmt + deadnix + statix. Pre-push hook runs `fmt-check` + `check` (install with `make hooks`).
+`nix flake update` refreshes all inputs (`nixpkgs-unstable` provides `pkgs.unstable` for vscode/pi). `nix develop` gives nixpkgs-fmt + deadnix + statix + shellcheck. Pre-push hook runs `fmt-check` automatically (install with `make hooks`; run `make check` manually before push).
 
 ## Notes
 
-- Boot menu lists generations (systemd-boot, limit 10); `nh os rollback` reverts the last switch.
+- Boot menu lists generations (Limine, limit 10 — 5 on `vm`; Lanzaboote when `enableSecureBoot = true`); `nh os rollback` reverts the last switch.
 - `nixpkgs-unstable` + stable both in `flake.lock`; most packages are stable, only fresher apps use `pkgs.unstable`.
 - SSH is key-only by default; `mySystem.sshAuthorizedKeys` provides access, `mySystem.sshPasswordAuth = true` re-enables password login (e.g. `work` template: paste pubkey, set `enableSSH = true`, `make check && nh os switch -H work`).
 - `programs.nix-ld` ships a minimal lib set; when an unpatched binary misses a lib: `nix run github:nix-community/nix-index-database -- lib/<name>.so`, then add it to `modules/features/base.nix` (nix-ld section).

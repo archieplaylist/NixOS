@@ -622,6 +622,7 @@ $lsblk_out
 $layout"
   ans="SKIP"
   if [[ $FORCE_WIPE -eq 1 ]]; then
+    ans="WIPE"
     info "WIPE typing skipped (--force-wipe) — erasing $disk"
   else
     ans="$(ask "Type WIPE (exactly) to continue erasing $disk")" || {
@@ -776,13 +777,11 @@ step_password() {
   done
   unset p2
 
-  # SHA-512 crypt via openssl (present on the installer ISO). Prefer -stdin
-  # so the password never shows up in the process list.
-  if printf '%s' "$p1" | openssl passwd -6 -stdin >/dev/null 2>&1; then
-    hash="$(printf '%s' "$p1" | openssl passwd -6 -stdin)"
-  else
-    warn "openssl -stdin unsupported, falling back to argument passing"
-    hash="$(openssl passwd -6 "$p1")"
+  # SHA-512 crypt via openssl (present on the installer ISO). Require -stdin
+  # so the plaintext password never appears in /proc/pid/cmdline.
+  if ! hash="$(printf '%s' "$p1" | openssl passwd -6 -stdin 2>/dev/null)"; then
+    unset p1
+    die "openssl passwd -6 -stdin failed (refusing to pass password on argv)"
   fi
   unset p1
   [[ -n "$hash" ]] || { warn "openssl failed to hash the password"; return 1; }
@@ -978,7 +977,9 @@ step_deploy() {
     # whenever the lock file updates, breaking nixos-install with "NAR hash
     # mismatch in input path:...".
     mkdir -p /mnt/etc/nixos
-    cp -r "$REPO_ROOT"/. /mnt/etc/nixos/
+    tar -cf - -C "$REPO_ROOT" \
+      --exclude='./result' --exclude='./.direnv' --exclude='./PLAN.md' --exclude='*.bak' \
+      . | tar -xf - -C /mnt/etc/nixos
 
     # Provision the password hash on the target.
     [[ -n "$PASSWORD_HASH" ]] && printf '%s\n' "$PASSWORD_HASH" > /mnt/etc/hashed-password \
@@ -991,7 +992,7 @@ step_deploy() {
       && chmod 600 /etc/hashed-password
     if have nh; then
       info "-> nh os switch for '$name'"
-      nh os switch ".#$name"
+      nh os switch . -H "$name"
     else
       info "-> nixos-rebuild for '$name' (nh not in PATH)"
       nixos-rebuild switch --flake ".#$name"
@@ -1028,7 +1029,7 @@ guided_menu() {
     case "$choice" in
       1) SELECTED_HOST=""; step_host ;;
       2) if [[ $ENABLE_LUKS -eq 1 ]]; then
-           if confirm "Disable LUKS2 encryption?"; then ENABLE_LUKS=0; ENABLE_TPM2=0; LUKS_PW_MEM=""; mark_done "flags"; fi
+           if confirm "Disable LUKS2 encryption?"; then ENABLE_LUKS=0; ENABLE_TPM2=0; ENABLE_SECURE_BOOT=0; LUKS_PW_MEM=""; mark_done "flags"; fi
          elif confirm "Encrypt the root partition with LUKS2?"; then
            ENABLE_LUKS=1
            if have systemd-cryptenroll && [[ -n "$(systemd-cryptenroll --tpm2-device=list 2>/dev/null || true)" ]]; then
@@ -1038,6 +1039,8 @@ guided_menu() {
          fi ;;
       3) if [[ $ENABLE_SECURE_BOOT -eq 1 ]]; then
            if confirm "Disable Secure Boot?"; then ENABLE_SECURE_BOOT=0; mark_done "flags"; fi
+         elif [[ $ENABLE_LUKS -eq 0 ]]; then
+           note "Secure Boot requires LUKS2 — enable Encryption first"
          elif confirm "Enable Secure Boot (needs sbctl enrollment after boot)?"; then
            ENABLE_SECURE_BOOT=1; mark_done "flags"
          fi ;;
@@ -1086,10 +1089,8 @@ if [[ $LIST_HOSTS -eq 1 ]]; then
   exit 0
 fi
 
-# --tpm2 enrolls a TPM2 key against the LUKS volume, so it requires --luks.
-if [[ $ENABLE_TPM2 -eq 1 ]] && [[ $ENABLE_LUKS -eq 0 ]]; then
-  die "--tpm2 requires --luks (e.g.: sudo ./setup.sh --luks --tpm2)"
-fi
+# --tpm2 and --secure-boot both require --luks.
+validate_security_flags
 
 : "${TUI_MODE:=auto}"  # consumed by lib/tui.sh init_tui
 init_tui

@@ -1,6 +1,6 @@
 # primary home plasma: Kate and Mystical Blue theme assets.
 _: {
-  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "plasma") {
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.enableDesktop && osConfig.mySystem.desktop == "plasma") {
     programs.juxTheme.enable = true;
 
     home.packages = with pkgs; [

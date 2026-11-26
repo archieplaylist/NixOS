@@ -7,7 +7,7 @@
 # Bar = stock xfce4-panel (eww/gross removed 2026-10). Panel layout is
 # user-owned xfconf state — nothing declared here touches it.
 _: {
-  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.desktop == "xfce") {
+  config.home.modules.primary = { lib, pkgs, osConfig, ... }: lib.mkIf (osConfig.mySystem.enableDesktop && osConfig.mySystem.desktop == "xfce") {
     home.packages = with pkgs; [
       libsecret # secret-tool for debugging the Login keyring
       brightnessctl # laptop backlight
