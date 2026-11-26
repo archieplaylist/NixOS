@@ -22,8 +22,8 @@ test: ## Run lightweight regression tests
 	bash tests/setup.sh
 	node tests/modes.mjs
 
-fmt: ## Reformat all Nix files (`nix fmt`)
-	nix fmt
+fmt: ## Reformat all Nix files (`nix fmt .`)
+	nix fmt .
 
 fmt-check: ## Fail if fmt/lint drifts or dead code is found (no mutation)
 	nix develop --command bash -c "nixpkgs-fmt --check . && deadnix --fail . && statix check . && shellcheck setup.sh lib/*.sh tests/*.sh .githooks/* modules/home/scripts/*"
